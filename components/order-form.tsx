@@ -1,53 +1,103 @@
-"use client"
-
-import type React from "react"
-
-import { useState } from "react"
-import type { CardDesign } from "@/components/card-designer"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowLeft, CheckCircle2 } from "lucide-react"
+import { useEffect, useState } from "react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import type { CardDesign } from "@/components/card-designer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 interface OrderFormProps {
-  onBackToDesign: () => void
-  cardDesign: CardDesign
+  onBackToDesign: () => void;
+  cardDesign: CardDesign;
 }
 
+const validationSchema = Yup.object({
+  fullName: Yup.string().required("Full Name is required"),
+  email: Yup.string()
+    .email("Invalid email address")
+    .required("Email is required"),
+  phone: Yup.string().required("Phone number is required"),
+  address: Yup.string().required("Address is required"),
+  city: Yup.string().required("City is required"),
+  state: Yup.string().required("State is required"),
+  zipCode: Yup.string().required("ZIP Code is required"),
+  agreeToTerms: Yup.boolean().oneOf(
+    [true],
+    "You must accept the terms and conditions"
+  ),
+  orderType: Yup.string().required("Order type is required"),
+  groupPhones: Yup.array().of(
+    Yup.string().required("Phone number is required")
+  ),
+  account: Yup.string().when("isOtpVerified", {
+    is: (isOtpVerified: boolean) => isOtpVerified,
+    then: (schema) => schema.required("Account selection is required"),
+  }),
+});
+
 export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
-  const [formState, setFormState] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    agreeToTerms: false,
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [error, setError] = useState("");
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target
-    setFormState({
-      ...formState,
-      [name]: type === "checkbox" ? checked : value,
-    })
-  }
+  const formik = useFormik({
+    initialValues: {
+      fullName: "",
+      email: "",
+      phone: "",
+      // address: "",
+      // city: "",
+      // state: "",
+      // zipCode: "",
+      agreeToTerms: false,
+      orderType: "individual",
+      groupPhones: [""],
+      account: "",
+    },
+    validationSchema,
+    onSubmit: (values) => {
+      setIsSubmitting(true);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+      // Simulate API call
+      setTimeout(() => {
+        setIsSubmitting(false);
+        setIsSubmitted(true);
+      }, 1500);
+    },
+  });
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setIsSubmitted(true)
-    }, 1500)
-  }
+  const handleOtpCall = (otp: string) => {
+    // Simulate OTP verification
+    if (otp === "123456") {
+      setModalVisible(false);
+      setIsOtpVerified(true);
+    } else {
+      setError("Invalid OTP. Please try again.");
+    }
+  };
 
   if (isSubmitted) {
     return (
@@ -55,40 +105,93 @@ export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
         <CardContent className="pt-6">
           <div className="text-center py-10">
             <CheckCircle2 className="mx-auto h-16 w-16 text-green-500 mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Order Submitted Successfully!</h2>
+            <h2 className="text-2xl font-bold mb-2">
+              Order Submitted Successfully!
+            </h2>
             <p className="text-gray-600 mb-6">
-              Thank you for your order. Your custom debit card will be processed and delivered within 7-10 business
-              days.
+              Thank you for your order. Your custom debit card will be processed
+              and delivered within 7-10 business days.
             </p>
-            <p className="text-gray-600 mb-6">A confirmation email has been sent to {formState.email}.</p>
-            <Button onClick={() => window.location.reload()}>Design Another Card</Button>
+            <p className="text-gray-600 mb-6">
+              A confirmation email has been sent to {formik.values.email}.
+            </p>
+            <Button onClick={() => window.location.reload()}>
+              Design Another Card
+            </Button>
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center">
-          <Button variant="ghost" size="icon" onClick={onBackToDesign} className="mr-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBackToDesign}
+            className="mr-2"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
             <CardTitle>Complete Your Order</CardTitle>
             <CardDescription>
-              Please provide your shipping information to complete your custom card order.
+              Please provide your shipping information to complete your custom
+              card order.
             </CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={formik.handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Order Type</Label>
+            <RadioGroup
+              className="bg-gray-100 p-2 rounded-md"
+              value={formik.values.orderType}
+              onValueChange={(value) =>
+                formik.setFieldValue("orderType", value)
+              }
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="individual" id="individual" />
+                <Label className=" px-2 rounded-md" htmlFor="individual">
+                  Individual
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="group" id="group" />
+                <Label className=" px-2 rounded-md" htmlFor="group">
+                  Group
+                </Label>
+              </div>
+            </RadioGroup>
+            {formik.touched.orderType && formik.errors.orderType ? (
+              <div className="text-red-500 text-sm">
+                {formik.errors.orderType}
+              </div>
+            ) : null}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
-              <Input id="fullName" name="fullName" value={formState.fullName} onChange={handleInputChange} required />
+              <Input
+                id="fullName"
+                name="fullName"
+                value={formik.values.fullName}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                required
+              />
+              {formik.touched.fullName && formik.errors.fullName ? (
+                <div className="text-red-500 text-sm">
+                  {formik.errors.fullName}
+                </div>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -96,35 +199,143 @@ export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
                 id="email"
                 name="email"
                 type="email"
-                value={formState.email}
-                onChange={handleInputChange}
+                value={formik.values.email}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 required
               />
+              {formik.touched.email && formik.errors.email ? (
+                <div className="text-red-500 text-sm">
+                  {formik.errors.email}
+                </div>
+              ) : null}
             </div>
           </div>
+
+          <div className="space-y-2 flex flex-col">
+            <Label htmlFor="phone">My Phone Number</Label>
+            <Input
+              id="phone"
+              name="phone"
+              type="tel"
+              value={formik.values.phone}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              required
+            />
+            {formik.touched.phone && formik.errors.phone ? (
+              <div className="text-red-500 text-sm">{formik.errors.phone}</div>
+            ) : null}
+            {formik.values.phone && !isOtpVerified && (
+              <Button
+                className="self-end"
+                type="button"
+                onClick={() => setModalVisible(true)}
+              >
+                Verify
+              </Button>
+            )}
+          </div>
+
+          {isOtpVerified && (
+            <div className="space-y-2">
+              <Label htmlFor="account">Select Account Number</Label>
+              <select
+                id="account"
+                name="account"
+                value={formik.values.account}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                required
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="" disabled>
+                  Select an account
+                </option>
+                <option value="account1">****12456</option>
+                <option value="account2">****12456</option>
+                <option value="account3">****12456</option>
+              </select>
+              {formik.touched.account && formik.errors.account ? (
+                <div className="text-red-500 text-sm">
+                  {formik.errors.account}
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {formik.values.orderType === "group" && (
+            <div className="flex flex-col space-y-2">
+              <Label>Invite Users by Phone Numbers</Label>
+              {formik.values.groupPhones.map((phone, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <Input
+                    name={`groupPhones[${index}]`}
+                    value={phone}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    required
+                  />
+                  {formik.values.groupPhones.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        const newGroupPhones = formik.values.groupPhones.filter(
+                          (_, i) => i !== index
+                        );
+                        formik.setFieldValue("groupPhones", newGroupPhones);
+                      }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-5 h-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                className="self-end"
+                type="button"
+                onClick={() => {
+                  formik.setFieldValue("groupPhones", [
+                    ...formik.values.groupPhones,
+                    "",
+                  ]);
+                }}
+              >
+                Add
+              </Button>
+            </div>
+          )}
 
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input id="phone" name="phone" type="tel" value={formState.phone} onChange={handleInputChange} required />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="address">Shipping Address</Label>
-            <Input id="address" name="address" value={formState.address} onChange={handleInputChange} required />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input id="city" name="city" value={formState.city} onChange={handleInputChange} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-              <Input id="state" name="state" value={formState.state} onChange={handleInputChange} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="zipCode">ZIP Code</Label>
-              <Input id="zipCode" name="zipCode" value={formState.zipCode} onChange={handleInputChange} required />
+            <Label>Pickup Place</Label>
+            <div className="h-64 w-full bg-gray-200 rounded-md">
+              {/* Placeholder for map component */}
+              <div className="h-full w-full">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  frameBorder="0"
+                  scrolling="no"
+                  marginHeight={0}
+                  marginWidth={0}
+                  allowFullScreen
+                ></iframe>
+              </div>
             </div>
           </div>
 
@@ -132,23 +343,70 @@ export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
             <Checkbox
               id="agreeToTerms"
               name="agreeToTerms"
-              checked={formState.agreeToTerms}
-              onCheckedChange={(checked) => setFormState({ ...formState, agreeToTerms: checked as boolean })}
+              checked={formik.values.agreeToTerms}
+              onCheckedChange={(checked) =>
+                formik.setFieldValue("agreeToTerms", checked as boolean)
+              }
               required
             />
             <Label htmlFor="agreeToTerms" className="text-sm">
-              I agree to the terms and conditions and understand that my card design will be reviewed before production.
+              I agree to the terms and conditions and understand that my card
+              design will be reviewed before production.
             </Label>
+            {formik.touched.agreeToTerms && formik.errors.agreeToTerms ? (
+              <div className="text-red-500 text-sm">
+                {formik.errors.agreeToTerms}
+              </div>
+            ) : null}
           </div>
 
           <div className="pt-4">
-            <Button type="submit" className="w-full" disabled={isSubmitting || !formState.agreeToTerms}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isSubmitting || !formik.values.agreeToTerms}
+            >
               {isSubmitting ? "Processing..." : "Submit Order"}
             </Button>
           </div>
         </form>
       </CardContent>
-    </Card>
-  )
-}
 
+      <Dialog open={isModalVisible} onOpenChange={setModalVisible}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enter Verification Code</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center space-y-4">
+            <p className="text-sm text-muted-foreground text-center">
+              Please enter the verification code sent to your phone
+            </p>
+            <InputOTP
+              maxLength={6}
+              onComplete={handleOtpCall}
+              className="gap-2"
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
+            {error && (
+              <p className="text-sm text-red-500 text-center">{error}</p>
+            )}
+            <p className="text-sm text-muted-foreground">
+              Didn&apos;t receive a code?{" "}
+              <Button variant="link" className="p-0 h-auto">
+                Resend
+              </Button>
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
