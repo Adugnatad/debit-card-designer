@@ -9,6 +9,7 @@ import { OrderForm } from "@/components/order-form";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { LogoUploader } from "./logo-uploader";
 
 export type CardDesign = {
   backgroundImage: string | null;
@@ -17,7 +18,9 @@ export type CardDesign = {
   textColor: string;
   fontFamily: string;
   textPosition: { x: number; y: number };
+  logoPosition: { x: number; y: number };
   cardDetailsTextColor: string;
+  logo: string | null;
 };
 
 export function CardDesigner() {
@@ -30,6 +33,8 @@ export function CardDesigner() {
     fontFamily: "Inter",
     textPosition: { x: 30, y: 120 },
     cardDetailsTextColor: "#ffffff",
+    logoPosition: { x: 50, y: 140 },
+    logo: null,
   });
 
   const handleImageUpload = (imageUrl: string) => {
@@ -60,12 +65,26 @@ export function CardDesigner() {
     });
   };
 
+  const handleLogoPositionChange = (position: { x: number; y: number }) => {
+    setCardDesign({
+      ...cardDesign,
+      logoPosition: position,
+    });
+  };
+
   const handleProceedToOrder = () => {
     setCurrentStep("order");
   };
 
   const handleBackToDesign = () => {
     setCurrentStep("design");
+  };
+
+  const handleLogoUpload = (imageUrl: string) => {
+    setCardDesign({
+      ...cardDesign,
+      logo: imageUrl,
+    });
   };
 
   return (
@@ -75,10 +94,11 @@ export function CardDesigner() {
           <Card>
             <CardContent className="p-6">
               <Tabs defaultValue="image" className="w-full">
-                <TabsList className="grid grid-cols-3 mb-6">
+                <TabsList className="grid grid-cols-4 mb-6">
                   <TabsTrigger value="image">Image</TabsTrigger>
                   <TabsTrigger value="text">Text</TabsTrigger>
                   <TabsTrigger value="color">Color</TabsTrigger>
+                  <TabsTrigger value="logo">Logo</TabsTrigger>
                 </TabsList>
                 <TabsContent value="image">
                   <ImageUploader onImageUpload={handleImageUpload} />
@@ -97,6 +117,9 @@ export function CardDesigner() {
                     selectedColor={cardDesign.backgroundColor}
                     onColorChange={handleColorChange}
                   />
+                </TabsContent>
+                <TabsContent value="logo">
+                  <LogoUploader onImageUpload={handleLogoUpload} />
                 </TabsContent>
               </Tabs>
               <div className="mt-6 flex justify-end">
@@ -118,6 +141,7 @@ export function CardDesigner() {
             design={cardDesign}
             onTextPositionChange={handleTextPositionChange}
             isDraggable={currentStep === "design"}
+            onLogoPositionChange={handleLogoPositionChange}
           />
           <p className="text-sm text-gray-500 mt-4">
             This is a preview of how your card will look. You can drag the text

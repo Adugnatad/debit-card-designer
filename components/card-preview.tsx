@@ -2,12 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, type PanInfo } from "framer-motion";
-import type { CardDesign } from "@/components/card-designer";
 import { CreditCard } from "lucide-react";
+import type { CardDesign } from "@/components/card-designer";
 
 interface CardPreviewProps {
   design: CardDesign;
   onTextPositionChange?: (position: { x: number; y: number }) => void;
+  onLogoPositionChange?: (position: { x: number; y: number }) => void;
   isDraggable?: boolean;
 }
 
@@ -21,12 +22,32 @@ export function CardPreview({
     x: design.textPosition.x,
     y: design.textPosition.y,
   });
+  const [logoPosition, setLogoPosition] = useState({
+    x: design.logoPosition.x,
+    y: design.logoPosition.y,
+  });
+
   const [constraints, setConstraints] = useState({
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
   });
+  const [imageSize, setImageSize] = useState({ width: 200, height: 200 });
+
+  const [image, setImage] = useState<string | null>(null);
+
+  // Handle image upload
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Update position when design changes
   useEffect(() => {
@@ -92,6 +113,32 @@ export function CardPreview({
         backgroundPosition: "center",
       }}
     >
+      {/* Image upload input */}
+      {/* <input type="file" accept="image/*" onChange={handleImageUpload} /> */}
+      {/* Display uploaded image */}
+      {image && (
+        <motion.img
+          src={image}
+          alt="Uploaded"
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            x: position.x + 50,
+            y: position.y + 50,
+            // width: imageSize.width,
+            // height: imageSize.height,
+            cursor: "move",
+            userSelect: "none",
+          }}
+          drag
+          dragMomentum={false}
+          dragElastic={0}
+          onDrag={handleDrag}
+          onDragEnd={handleDragEnd}
+        />
+      )}
+
       {/* Bank logo placeholder */}
       <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm p-2 rounded-md">
         <CreditCard className="w-6 h-6 text-white" />
@@ -195,6 +242,15 @@ export function CardPreview({
         >
           {design.customText}
         </div>
+      )}
+      {design.logo && (
+        <motion.img
+          drag
+          dragMomentum={false}
+          src={design.logo}
+          alt="Uploaded"
+          className="cursor-move"
+        />
       )}
     </div>
   );
