@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CardPreview } from "@/components/card-preview";
 import { ImageUploader } from "@/components/image-uploader";
 import { TextCustomizer } from "@/components/text-customizer";
@@ -87,6 +87,10 @@ export function CardDesigner() {
     });
   };
 
+  const passCardPreviewScreenshot = useRef<{
+    handleCardScreenshot: () => string;
+  }>(null);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2">
@@ -131,6 +135,9 @@ export function CardDesigner() {
           <OrderForm
             onBackToDesign={handleBackToDesign}
             cardDesign={cardDesign}
+            triggerScreenshot={async () =>
+              passCardPreviewScreenshot.current?.handleCardScreenshot() || ""
+            }
           />
         )}
       </div>
@@ -142,6 +149,7 @@ export function CardDesigner() {
             onTextPositionChange={handleTextPositionChange}
             isDraggable={currentStep === "design"}
             onLogoPositionChange={handleLogoPositionChange}
+            ref={passCardPreviewScreenshot}
           />
           <p className="text-sm text-gray-500 mt-4">
             This is a preview of how your card will look. You can drag the text

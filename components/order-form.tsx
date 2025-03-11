@@ -26,10 +26,16 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import { useMutation } from "@tanstack/react-query";
+import { orderPayload, submitOrder } from "@/lib/apis/order_api";
+import { useToast } from "@/hooks/use-toast";
+import { LoadingScreen } from "./loading-screen";
+import { sendOtp, verifyOtp } from "@/lib/apis/otp_api";
 
 interface OrderFormProps {
   onBackToDesign: () => void;
   cardDesign: CardDesign;
+  triggerScreenshot: () => Promise<string>;
 }
 
 const validationSchema = Yup.object({
@@ -37,55 +43,78 @@ const validationSchema = Yup.object({
   email: Yup.string()
     .email("Invalid email address")
     .required("Email is required"),
-  phone: Yup.string().required("Phone number is required"),
-  address: Yup.string().required("Address is required"),
-  city: Yup.string().required("City is required"),
-  state: Yup.string().required("State is required"),
-  zipCode: Yup.string().required("ZIP Code is required"),
+  phone: Yup.string()
+    .matches(/^(\+251|0)?9\d{8}$/, "Phone number is not valid")
+    .required("Phone number is required"),
   agreeToTerms: Yup.boolean().oneOf(
     [true],
     "You must accept the terms and conditions"
   ),
   orderType: Yup.string().required("Order type is required"),
-  groupPhones: Yup.array().of(
-    Yup.string().required("Phone number is required")
-  ),
-  account: Yup.string().when("isOtpVerified", {
-    is: (isOtpVerified: boolean) => isOtpVerified,
-    then: (schema) => schema.required("Account selection is required"),
-  }),
+  account: Yup.string().required("Account selection is required"),
 });
 
-export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
+export function OrderForm({
+  onBackToDesign,
+  cardDesign,
+  triggerScreenshot,
+}: OrderFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
   const [error, setError] = useState("");
   const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const { toast } = useToast();
+
+  const send_otp = useMutation({
+    mutationFn: ({ phoneNumber, id }: { phoneNumber: string; id: string }) =>
+      sendOtp({ phoneNumber, id }),
+    onError: (err) => {
+      console.log(err);
+    },
+  });
+
+  const otpCall = useMutation({
+    mutationFn: (code: string) => verifyOtp({ id: "", otp: code }),
+    onSuccess: () => {
+      setIsOtpVerified(true);
+    },
+    onError: (error: any) => {
+      // setError(error.message);
+    },
+  });
+
+  const sendOrder = useMutation({
+    mutationFn: (data: orderPayload) => submitOrder(data),
+    onSuccess: () => {
+      setIsSubmitting(false);
+    },
+    onError: () => {
+      setIsSubmitting(false);
+    },
+  });
 
   const formik = useFormik({
     initialValues: {
       fullName: "",
       email: "",
       phone: "",
-      // address: "",
-      // city: "",
-      // state: "",
-      // zipCode: "",
       agreeToTerms: false,
       orderType: "individual",
       groupPhones: [""],
       account: "",
     },
     validationSchema,
-    onSubmit: (values) => {
+    onSubmit: async (values) => {
+      console.log(values);
       setIsSubmitting(true);
-
-      // Simulate API call
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setIsSubmitted(true);
-      }, 1500);
+      await triggerScreenshot().then((image) => {
+        const sendOrderData = {
+          ...values,
+          image: image,
+        };
+        sendOrder.mutate(sendOrderData);
+      });
     },
   });
 
@@ -122,6 +151,10 @@ export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
         </CardContent>
       </Card>
     );
+  }
+
+  if (sendOrder.isPending) {
+    return <LoadingScreen message="Submitting Order ..." />;
   }
 
   return (
@@ -226,7 +259,12 @@ export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
             {formik.touched.phone && formik.errors.phone ? (
               <div className="text-red-500 text-sm">{formik.errors.phone}</div>
             ) : null}
-            {formik.values.phone && !isOtpVerified && (
+            {formik.touched.phone && !formik.errors.phone && !isOtpVerified && (
+              <div className="text-red-500 text-sm">
+                Phone number needs to be verified
+              </div>
+            )}
+            {formik.values.phone && !formik.errors.phone && !isOtpVerified && (
               <Button
                 className="self-end"
                 type="button"
@@ -275,7 +313,16 @@ export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     required
+                    pattern="^(\+251|0)?9\d{8}$"
+                    title="Phone number is not valid"
                   />
+                  {formik.touched.groupPhones &&
+                  formik.errors.groupPhones &&
+                  formik.errors.groupPhones[index] ? (
+                    <div className="text-red-500 text-sm">
+                      {formik.errors.groupPhones[index]}
+                    </div>
+                  ) : null}
                   {formik.values.groupPhones.length > 1 && (
                     <Button
                       type="button"
