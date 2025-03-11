@@ -9,6 +9,8 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPrint } from "@fortawesome/free-solid-svg-icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
 
@@ -69,6 +71,7 @@ const CustomerCardTable = () => {
                 <TableHead>Created By</TableHead>
                 <TableHead>Members Name</TableHead>
                 <TableHead>Phone Number</TableHead>
+                <TableHead>Print</TableHead>
 
 
               </TableRow>
@@ -90,6 +93,11 @@ const CustomerCardTable = () => {
                     )}
                     <TableCell>{member}</TableCell>
                     <TableCell>{group.phone_numbers[index]}</TableCell>
+                     {index === 0 && (
+                      <>
+                        <TableCell rowSpan={group.members.length}><FontAwesomeIcon icon={faPrint} className="text-lg" /></TableCell>
+                      </>
+                    )}
 
 
 
