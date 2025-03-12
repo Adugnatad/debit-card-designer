@@ -14,9 +14,12 @@ import html2canvas from "html2canvas";
 import { Button } from "./ui/button";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
+import Image from "next/image";
 
 interface CardPreviewProps {
   design: CardDesign;
+  groupImage?: string;
+  groupCreator?: string;
   onTextPositionChange?: (position: { x: number; y: number }) => void;
   onLogoPositionChange?: (position: { x: number; y: number }) => void;
   isDraggable?: boolean;
@@ -27,6 +30,8 @@ export const CardPreview = forwardRef(
   (
     {
       design,
+      groupImage,
+      groupCreator,
       onTextPositionChange,
       onLogoPositionChange,
       isDraggable = true,
@@ -53,18 +58,34 @@ export const CardPreview = forwardRef(
     const [imageSize, setImageSize] = useState({ width: 200, height: 200 });
 
     const [image, setImage] = useState<string | null>(null);
+    const [groupCardImage, setGroupCardImage] = useState<string>();
+
+    useEffect(() => {
+      const fetchGroupImage = async () => {
+        if (groupImage) {
+          const response = await fetch(
+            `https://9r7j860h-8000.uks1.devtunnels.ms/${groupImage}`
+          );
+          const blob = await response.blob();
+          const imageUrl = URL.createObjectURL(blob);
+          setGroupCardImage(imageUrl);
+          console.log(imageUrl);
+        }
+      };
+      fetchGroupImage();
+    }, [groupImage]);
 
     // Handle image upload
-    const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setImage(e.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
-    };
+    // const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    //   const file = event.target.files?.[0];
+    //   if (file) {
+    //     const reader = new FileReader();
+    //     reader.onload = (e) => {
+    //       setImage(e.target?.result as string);
+    //     };
+    //     reader.readAsDataURL(file);
+    //   }
+    // };
 
     // Update position when design changes
     useEffect(() => {
@@ -162,16 +183,23 @@ export const CardPreview = forwardRef(
     }));
 
     return (
-      <div>
+      <div
+        style={{
+          width: "405px", // Minimum width of a credit card
+          height: "259px", // Minimum height of a credit card
+        }}
+      >
         <div
           ref={cardRef}
-          className="relative w-full aspect-[1.586/1] rounded-xl overflow-hidden shadow-lg"
+          className="relative w-full aspect-[1.586/1] rounded-xl overflow-hidden shadow-lg "
           style={{
             backgroundColor: design.backgroundColor,
-            backgroundImage: design.backgroundImage
+            backgroundImage: groupCardImage
+              ? `url(${groupCardImage})`
+              : design.backgroundImage
               ? `url(${design.backgroundImage})`
               : "none",
-            backgroundSize: "cover",
+            backgroundSize: "100%",
             backgroundPosition: "center",
           }}
         >
@@ -200,17 +228,21 @@ export const CardPreview = forwardRef(
               onDragEnd={handleDragEnd}
             />
           )}
-
-          {/* Bank logo placeholder */}
-          <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm p-2 rounded-md hide-for-screenshot">
-            <CreditCard className="w-6 h-6 text-white" />
-          </div>
-
-          {/* Chip and contactless symbols */}
+          <motion.div drag dragMomentum={false}>
+            {/* Bank logo placeholder */}
+            <div className="absolute top-4 right-4  p-2 rounded-md hide-for-screenshot cursor-move">
+              <Image
+                src="/coop_logo.svg"
+                alt="Coop Logo"
+                width={50}
+                height={50}
+              />
+            </div>
+          </motion.div>
+          '{/* Chip and contactless symbols */}
           <div className="absolute top-16 left-6 hide-for-screenshot">
-            <div className="w-10 h-8 bg-yellow-300/90 rounded-md"></div>
+            <div className="w-10 h-8 bg-yellow-300/90 </div>rounded-md"></div>
           </div>
-
           {/* Card number placeholder */}
           <div className="absolute bottom-20 left-6 right-6 hide-for-screenshot">
             <div className="flex justify-between">
@@ -220,7 +252,6 @@ export const CardPreview = forwardRef(
               <div className="w-10 h-3 bg-white/50 rounded-sm"></div>
             </div>
           </div>
-
           {/* Expiry date placeholder */}
           <div className="absolute bottom-8 left-6 hide-for-screenshot">
             <div
@@ -243,9 +274,8 @@ export const CardPreview = forwardRef(
               12/28
             </div>
           </div>
-
           {/* Custom text */}
-          {isDraggable ? (
+          {!groupCardImage && (
             <motion.div
               drag
               dragMomentum={false}
@@ -269,21 +299,6 @@ export const CardPreview = forwardRef(
             >
               {design.customText}
             </motion.div>
-          ) : (
-            <div
-              style={{
-                position: "absolute",
-                left: design.textPosition.x,
-                top: design.textPosition.y,
-                color: design.textColor,
-                fontFamily: design.fontFamily,
-                fontSize: "1.25rem",
-                fontWeight: "bold",
-                textShadow: "0px 1px 2px rgba(0,0,0,0.3)",
-              }}
-            >
-              {design.customText}
-            </div>
           )}
           {design.logo && (
             <motion.div
@@ -338,6 +353,10 @@ export const CardPreview = forwardRef(
         <Button onClick={handleScreenshot} className="mt-4">
           Take Screenshot
         </Button>
+        <p className="text-sm text-gray-500 mt-4">
+          This is a preview of how your card will look. You can drag the text to
+          position it.
+        </p>
       </div>
     );
   }

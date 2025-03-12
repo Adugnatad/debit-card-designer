@@ -4,7 +4,7 @@ import { CardDesigner } from "@/components/card-designer";
 import { Toaster } from "@/components/ui/toaster";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { getDesign } from "@/lib/apis/design_apis";
@@ -16,7 +16,7 @@ export default function Designer() {
   const { toast } = useToast();
 
   const design = useQuery({
-    queryKey: ["design", params.id],
+    queryKey: ["design"],
     queryFn: () => getDesign(params.id as string),
   });
 
@@ -33,7 +33,7 @@ export default function Designer() {
   }, [design.error]);
 
   if (design.isLoading) {
-    return <LoadingScreen message="Fetching Design..." />;
+    return <LoadingScreen message="Fetching Invitation Data ..." />;
   }
 
   return (
@@ -48,7 +48,7 @@ export default function Designer() {
             and choose colors to create a card that's uniquely yours.
           </p>
         </div>
-        <CardDesigner />
+        <CardDesigner design={design.data} />
         <Toaster />
       </div>
     </main>

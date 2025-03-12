@@ -31,6 +31,7 @@ import { orderPayload, submitOrder } from "@/lib/apis/order_api";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingScreen } from "./loading-screen";
 import { sendOtp, verifyOtp } from "@/lib/apis/otp_api";
+import { send } from "process";
 
 interface OrderFormProps {
   onBackToDesign: () => void;
@@ -64,34 +65,42 @@ export function OrderForm({
   const [isModalVisible, setModalVisible] = useState(false);
   const [error, setError] = useState("");
   const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [id, setId] = useState("");
+  const [accounts, setAccounts] = useState<
+    { id: string; accountNumber: string }[]
+  >([]);
   const { toast } = useToast();
 
   const send_otp = useMutation({
-    mutationFn: ({ phoneNumber, id }: { phoneNumber: string; id: string }) =>
-      sendOtp({ phoneNumber, id }),
+    mutationFn: ({ phoneNumber }: { phoneNumber: string }) =>
+      sendOtp({ phoneNumber }),
+    onSuccess: (data: { id: string; message: string }) => {
+      setId(data.id);
+      setModalVisible(true);
+    },
     onError: (err) => {
       console.log(err);
     },
   });
 
-  const otpCall = useMutation({
-    mutationFn: (code: string) => verifyOtp({ id: "", otp: code }),
-    onSuccess: () => {
+  const verify_otp = useMutation({
+    mutationFn: (code: string) => verifyOtp({ id, otp: code }),
+    onSuccess: (data) => {
+      setAccounts(data);
       setIsOtpVerified(true);
+      setModalVisible(false);
     },
     onError: (error: any) => {
-      // setError(error.message);
+      setError("Invalid OTP code");
     },
   });
 
   const sendOrder = useMutation({
     mutationFn: (data: orderPayload) => submitOrder(data),
     onSuccess: () => {
-      setIsSubmitting(false);
+      setIsSubmitted(true);
     },
-    onError: () => {
-      setIsSubmitting(false);
-    },
+    onError: () => {},
   });
 
   const formik = useFormik({
@@ -109,9 +118,15 @@ export function OrderForm({
       console.log(values);
       setIsSubmitting(true);
       await triggerScreenshot().then((image) => {
-        const sendOrderData = {
-          ...values,
+        const sendOrderData: orderPayload = {
           image: image,
+          email: values.email,
+          name: values.fullName,
+          accountNumber: values.account,
+          list_of_phoneNumbers: values.groupPhones,
+          pickup_location: "default_location", // replace with actual location if available
+          requestType: values.orderType,
+          user_id: id,
         };
         sendOrder.mutate(sendOrderData);
       });
@@ -119,13 +134,7 @@ export function OrderForm({
   });
 
   const handleOtpCall = (otp: string) => {
-    // Simulate OTP verification
-    if (otp === "123456") {
-      setModalVisible(false);
-      setIsOtpVerified(true);
-    } else {
-      setError("Invalid OTP. Please try again.");
-    }
+    verify_otp.mutate(otp);
   };
 
   if (isSubmitted) {
@@ -157,6 +166,14 @@ export function OrderForm({
     return <LoadingScreen message="Submitting Order ..." />;
   }
 
+  if (send_otp.isPending) {
+    return <LoadingScreen message="Sending OTP ..." />;
+  }
+
+  if (verify_otp.isPending) {
+    return <LoadingScreen message="Verifying OTP ..." />;
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -172,8 +189,7 @@ export function OrderForm({
           <div>
             <CardTitle>Complete Your Order</CardTitle>
             <CardDescription>
-              Please provide your shipping information to complete your custom
-              card order.
+              Please provide your details to complete your custom card order.
             </CardDescription>
           </div>
         </div>
@@ -190,13 +206,13 @@ export function OrderForm({
               }
             >
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="individual" id="individual" />
+                <RadioGroupItem value="Individual" id="individual" />
                 <Label className=" px-2 rounded-md" htmlFor="individual">
                   Individual
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="group" id="group" />
+                <RadioGroupItem value="Group" id="group" />
                 <Label className=" px-2 rounded-md" htmlFor="group">
                   Group
                 </Label>
@@ -268,7 +284,9 @@ export function OrderForm({
               <Button
                 className="self-end"
                 type="button"
-                onClick={() => setModalVisible(true)}
+                onClick={() =>
+                  send_otp.mutate({ phoneNumber: formik.values.phone })
+                }
               >
                 Verify
               </Button>
@@ -290,9 +308,13 @@ export function OrderForm({
                 <option value="" disabled>
                   Select an account
                 </option>
-                <option value="account1">****12456</option>
-                <option value="account2">****12456</option>
-                <option value="account3">****12456</option>
+                {accounts.map(
+                  (account: { id: string; accountNumber: string }) => (
+                    <option key={account.id} value={account.accountNumber}>
+                      {account.accountNumber}
+                    </option>
+                  )
+                )}
               </select>
               {formik.touched.account && formik.errors.account ? (
                 <div className="text-red-500 text-sm">
@@ -302,7 +324,7 @@ export function OrderForm({
             </div>
           )}
 
-          {formik.values.orderType === "group" && (
+          {formik.values.orderType === "Group" && (
             <div className="flex flex-col space-y-2">
               <Label>Invite Users by Phone Numbers</Label>
               {formik.values.groupPhones.map((phone, index) => (
@@ -411,9 +433,9 @@ export function OrderForm({
             <Button
               type="submit"
               className="w-full"
-              disabled={isSubmitting || !formik.values.agreeToTerms}
+              disabled={!formik.values.agreeToTerms}
             >
-              {isSubmitting ? "Processing..." : "Submit Order"}
+              Submit Order
             </Button>
           </div>
         </form>

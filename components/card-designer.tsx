@@ -23,7 +23,7 @@ export type CardDesign = {
   logo: string | null;
 };
 
-export function CardDesigner() {
+export function CardDesigner(design?: any) {
   const [currentStep, setCurrentStep] = useState<"design" | "order">("design");
   const [cardDesign, setCardDesign] = useState<CardDesign>({
     backgroundImage: null,
@@ -97,35 +97,41 @@ export function CardDesigner() {
         {currentStep === "design" ? (
           <Card>
             <CardContent className="p-6">
-              <Tabs defaultValue="image" className="w-full">
-                <TabsList className="grid grid-cols-4 mb-6">
-                  <TabsTrigger value="image">Image</TabsTrigger>
-                  <TabsTrigger value="text">Text</TabsTrigger>
-                  <TabsTrigger value="color">Color</TabsTrigger>
-                  <TabsTrigger value="logo">Logo</TabsTrigger>
-                </TabsList>
-                <TabsContent value="image">
-                  <ImageUploader onImageUpload={handleImageUpload} />
-                </TabsContent>
-                <TabsContent value="text">
-                  <TextCustomizer
-                    text={cardDesign.customText}
-                    textColor={cardDesign.textColor}
-                    cardDetailsTextColor={cardDesign.cardDetailsTextColor}
-                    fontFamily={cardDesign.fontFamily}
-                    onTextChange={handleTextChange}
-                  />
-                </TabsContent>
-                <TabsContent value="color">
-                  <ColorSelector
-                    selectedColor={cardDesign.backgroundColor}
-                    onColorChange={handleColorChange}
-                  />
-                </TabsContent>
-                <TabsContent value="logo">
-                  <LogoUploader onImageUpload={handleLogoUpload} />
-                </TabsContent>
-              </Tabs>
+              {design.design ? (
+                <p className="text-red-500">
+                  Design customization is disabled for invited users.
+                </p>
+              ) : (
+                <Tabs defaultValue="image" className="w-full">
+                  <TabsList className="grid grid-cols-4 mb-6">
+                    <TabsTrigger value="image">Image</TabsTrigger>
+                    <TabsTrigger value="text">Text</TabsTrigger>
+                    <TabsTrigger value="color">Color</TabsTrigger>
+                    <TabsTrigger value="logo">Logo</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="image">
+                    <ImageUploader onImageUpload={handleImageUpload} />
+                  </TabsContent>
+                  <TabsContent value="text">
+                    <TextCustomizer
+                      text={cardDesign.customText}
+                      textColor={cardDesign.textColor}
+                      cardDetailsTextColor={cardDesign.cardDetailsTextColor}
+                      fontFamily={cardDesign.fontFamily}
+                      onTextChange={handleTextChange}
+                    />
+                  </TabsContent>
+                  <TabsContent value="color">
+                    <ColorSelector
+                      selectedColor={cardDesign.backgroundColor}
+                      onColorChange={handleColorChange}
+                    />
+                  </TabsContent>
+                  <TabsContent value="logo">
+                    <LogoUploader onImageUpload={handleLogoUpload} />
+                  </TabsContent>
+                </Tabs>
+              )}
               <div className="mt-6 flex justify-end">
                 <Button onClick={handleProceedToOrder}>Proceed to Order</Button>
               </div>
@@ -146,15 +152,13 @@ export function CardDesigner() {
           <h2 className="text-xl font-semibold mb-4">Card Preview</h2>
           <CardPreview
             design={cardDesign}
+            groupImage={design.design?.image}
+            groupCreator={design.design?.creator_name}
             onTextPositionChange={handleTextPositionChange}
             isDraggable={currentStep === "design"}
             onLogoPositionChange={handleLogoPositionChange}
             ref={passCardPreviewScreenshot}
           />
-          <p className="text-sm text-gray-500 mt-4">
-            This is a preview of how your card will look. You can drag the text
-            to position it.
-          </p>
         </div>
       </div>
     </div>
