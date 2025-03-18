@@ -10,6 +10,15 @@ export interface orderPayload {
   user_id: string;
 }
 
+export interface SendOrderData {
+  email: string;
+  name: string;
+  accountNumber: string;
+  pickup_location: string;
+  group_id: string;
+  user_id: string;
+}
+
 // apis.ts
 //   import { axiosConfig as axios } from "../axios";
 import axios from "axios";
@@ -46,6 +55,19 @@ export const submitOrder = async (payload: orderPayload): Promise<void> => {
         "Content-Type": "multipart/form-data",
       },
     }
+  );
+
+  if (response.status !== 201) {
+    throw new Error("Order failed");
+  }
+};
+
+export const confirmInvitation = async (
+  payload: SendOrderData
+): Promise<void> => {
+  const response = await axios.post(
+    `https://9r7j860h-8000.uks1.devtunnels.ms/api/v1/cards/${payload.group_id}/invitation-card-confirm/`,
+    payload
   );
 
   if (response.status !== 201) {

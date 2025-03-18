@@ -18,6 +18,7 @@ import Image from "next/image";
 
 interface CardPreviewProps {
   design: CardDesign;
+  isTemplate?: boolean;
   groupImage?: string;
   groupCreator?: string;
   onTextPositionChange?: (position: { x: number; y: number }) => void;
@@ -30,6 +31,7 @@ export const CardPreview = forwardRef(
   (
     {
       design,
+      isTemplate = false,
       groupImage,
       groupCreator,
       onTextPositionChange,
@@ -55,6 +57,7 @@ export const CardPreview = forwardRef(
       right: 0,
       bottom: 0,
     });
+
     const [imageSize, setImageSize] = useState({ width: 200, height: 200 });
 
     const [image, setImage] = useState<string | null>(null);
@@ -312,8 +315,6 @@ export const CardPreview = forwardRef(
               }}
               style={{
                 position: "absolute",
-                left: logoPosition.x, // Update position dynamically
-                top: logoPosition.y,
                 cursor: "move",
               }}
             >
@@ -321,7 +322,7 @@ export const CardPreview = forwardRef(
                 width={logoSize.width}
                 height={logoSize.height}
                 lockAspectRatio
-                resizeHandles={["se", "sw", "ne", "nw"]}
+                resizeHandles={["nw"]}
                 onResizeStop={(_, data) => {
                   setLogoSize({
                     width: data.size.width,
@@ -329,7 +330,6 @@ export const CardPreview = forwardRef(
                   });
                 }}
                 style={{
-                  border: "1px dashed gray",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -350,13 +350,18 @@ export const CardPreview = forwardRef(
             </motion.div>
           )}
         </div>
-        <Button onClick={handleScreenshot} className="mt-4">
-          Take Screenshot
-        </Button>
-        <p className="text-sm text-gray-500 mt-4">
-          This is a preview of how your card will look. You can drag the text to
-          position it.
-        </p>
+        {!isTemplate && (
+          <>
+            <Button onClick={handleScreenshot} className="mt-4">
+              Take Screenshot
+            </Button>
+
+            <p className="text-sm text-gray-500 mt-4">
+              This is a preview of how your card will look. You can drag the
+              text to position it.
+            </p>
+          </>
+        )}
       </div>
     );
   }

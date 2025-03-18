@@ -27,13 +27,20 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { useMutation } from "@tanstack/react-query";
-import { orderPayload, submitOrder } from "@/lib/apis/order_api";
+import {
+  confirmInvitation,
+  orderPayload,
+  SendOrderData,
+  submitOrder,
+} from "@/lib/apis/order_api";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingScreen } from "./loading-screen";
 import { sendOtp, verifyOtp } from "@/lib/apis/otp_api";
-import { send } from "process";
+import { useParams } from "next/navigation";
+import { group } from "node:console";
 
 interface OrderFormProps {
+  design: any;
   onBackToDesign: () => void;
   cardDesign: CardDesign;
   triggerScreenshot: () => Promise<string>;
@@ -51,11 +58,12 @@ const validationSchema = Yup.object({
     [true],
     "You must accept the terms and conditions"
   ),
-  orderType: Yup.string().required("Order type is required"),
+  orderType: Yup.string(),
   account: Yup.string().required("Account selection is required"),
 });
 
 export function OrderForm({
+  design,
   onBackToDesign,
   cardDesign,
   triggerScreenshot,
@@ -70,6 +78,23 @@ export function OrderForm({
     { id: string; accountNumber: string }[]
   >([]);
   const { toast } = useToast();
+  const [otpSendError, setOtpSendError] = useState("");
+  const [resendTimer, setResendTimer] = useState(60);
+  const params = useParams();
+
+  const group_id = params.id as string;
+
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
+
+  const handleResendOtp = () => {
+    setResendTimer(60);
+    send_otp.mutate({ phoneNumber: formik.values.phone });
+  };
 
   const send_otp = useMutation({
     mutationFn: ({ phoneNumber }: { phoneNumber: string }) =>
@@ -79,7 +104,7 @@ export function OrderForm({
       setModalVisible(true);
     },
     onError: (err) => {
-      console.log(err);
+      setOtpSendError("Failed to send OTP. Please try again.");
     },
   });
 
@@ -103,6 +128,14 @@ export function OrderForm({
     onError: () => {},
   });
 
+  const confirmOrder = useMutation({
+    mutationFn: (data: SendOrderData) => confirmInvitation(data),
+    onSuccess: () => {
+      setIsSubmitted(true);
+    },
+    onError: () => {},
+  });
+
   const formik = useFormik({
     initialValues: {
       fullName: "",
@@ -117,19 +150,43 @@ export function OrderForm({
     onSubmit: async (values) => {
       console.log(values);
       setIsSubmitting(true);
-      await triggerScreenshot().then((image) => {
+      if (group_id) {
+        const sendOrderData: SendOrderData = {
+          name: values.fullName,
+          email: values.email,
+          accountNumber: values.account,
+          pickup_location: "default_location", // replace with actual location if available
+          user_id: id,
+          group_id: group_id,
+        };
+        confirmOrder.mutate(sendOrderData);
+      } else {
         const sendOrderData: orderPayload = {
-          image: image,
           email: values.email,
           name: values.fullName,
           accountNumber: values.account,
-          list_of_phoneNumbers: values.groupPhones,
           pickup_location: "default_location", // replace with actual location if available
           requestType: values.orderType,
-          user_id: id,
+          image: await triggerScreenshot(),
+          list_of_phoneNumbers: values.groupPhones.filter((phone) => phone),
+          user_id: group_id,
         };
         sendOrder.mutate(sendOrderData);
-      });
+
+        // await triggerScreenshot().then((image) => {
+        //   const sendOrderData: orderPayload = {
+        //     image: image,
+        //     email: values.email,
+        //     name: values.fullName,
+        //     accountNumber: values.account,
+        //     list_of_phoneNumbers: values.groupPhones,
+        //     pickup_location: "default_location", // replace with actual location if available
+        //     requestType: values.orderType,
+        //     user_id: id,
+        //   }
+        //   sendOrder.mutate(sendOrderData);
+        // })
+      }
     },
   });
 
@@ -166,6 +223,10 @@ export function OrderForm({
     return <LoadingScreen message="Submitting Order ..." />;
   }
 
+  if (confirmOrder.isPending) {
+    return <LoadingScreen message="Accepting Invitation ..." />;
+  }
+
   if (send_otp.isPending) {
     return <LoadingScreen message="Sending OTP ..." />;
   }
@@ -196,35 +257,36 @@ export function OrderForm({
       </CardHeader>
       <CardContent>
         <form onSubmit={formik.handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Order Type</Label>
-            <RadioGroup
-              className="bg-gray-100 p-2 rounded-md"
-              value={formik.values.orderType}
-              onValueChange={(value) =>
-                formik.setFieldValue("orderType", value)
-              }
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Individual" id="individual" />
-                <Label className=" px-2 rounded-md" htmlFor="individual">
-                  Individual
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Group" id="group" />
-                <Label className=" px-2 rounded-md" htmlFor="group">
-                  Group
-                </Label>
-              </div>
-            </RadioGroup>
-            {formik.touched.orderType && formik.errors.orderType ? (
-              <div className="text-red-500 text-sm">
-                {formik.errors.orderType}
-              </div>
-            ) : null}
-          </div>
-
+          {Object.keys(design).length === 0 && (
+            <div className="space-y-2">
+              <Label>Order Type</Label>
+              <RadioGroup
+                className="bg-gray-100 p-2 rounded-md"
+                value={formik.values.orderType}
+                onValueChange={(value) =>
+                  formik.setFieldValue("orderType", value)
+                }
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="Individual" id="individual" />
+                  <Label className=" px-2 rounded-md" htmlFor="individual">
+                    Individual
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="Group" id="group" />
+                  <Label className=" px-2 rounded-md" htmlFor="group">
+                    Group
+                  </Label>
+                </div>
+              </RadioGroup>
+              {formik.touched.orderType && formik.errors.orderType ? (
+                <div className="text-red-500 text-sm">
+                  {formik.errors.orderType}
+                </div>
+              ) : null}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
@@ -469,13 +531,35 @@ export function OrderForm({
             )}
             <p className="text-sm text-muted-foreground">
               Didn&apos;t receive a code?{" "}
-              <Button variant="link" className="p-0 h-auto">
-                Resend
-              </Button>
+              {resendTimer > 0 ? (
+                <span>Resend in {resendTimer}s</span>
+              ) : (
+                <Button
+                  variant="link"
+                  className="p-0 h-auto"
+                  onClick={handleResendOtp}
+                >
+                  Resend
+                </Button>
+              )}
             </p>
           </div>
         </DialogContent>
       </Dialog>
+
+      {otpSendError && (
+        <Dialog open={!!otpSendError} onOpenChange={() => setOtpSendError("")}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Error</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center space-y-4">
+              <p className="text-sm text-red-500 text-center">{otpSendError}</p>
+              <Button onClick={() => setOtpSendError("")}>Close</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 }

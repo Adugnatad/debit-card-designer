@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CardPreview } from "@/components/card-preview";
 import { ImageUploader } from "@/components/image-uploader";
 import { TextCustomizer } from "@/components/text-customizer";
@@ -23,7 +23,13 @@ export type CardDesign = {
   logo: string | null;
 };
 
-export function CardDesigner(design?: any) {
+export function CardDesigner({
+  template = {} as CardDesign,
+  design = {},
+}: {
+  template?: CardDesign;
+  design?: any;
+}) {
   const [currentStep, setCurrentStep] = useState<"design" | "order">("design");
   const [cardDesign, setCardDesign] = useState<CardDesign>({
     backgroundImage: null,
@@ -36,6 +42,14 @@ export function CardDesigner(design?: any) {
     logoPosition: { x: 50, y: 140 },
     logo: null,
   });
+
+  console.log(design);
+
+  useEffect(() => {
+    if (Object.keys(template).length > 0) {
+      setCardDesign(template);
+    }
+  }, [template]);
 
   const handleImageUpload = (imageUrl: string) => {
     setCardDesign({
@@ -97,7 +111,7 @@ export function CardDesigner(design?: any) {
         {currentStep === "design" ? (
           <Card>
             <CardContent className="p-6">
-              {design.design ? (
+              {Object.keys(design).length > 0 ? (
                 <p className="text-red-500">
                   Design customization is disabled for invited users.
                 </p>
@@ -139,6 +153,7 @@ export function CardDesigner(design?: any) {
           </Card>
         ) : (
           <OrderForm
+            design={design}
             onBackToDesign={handleBackToDesign}
             cardDesign={cardDesign}
             triggerScreenshot={async () =>
@@ -152,8 +167,8 @@ export function CardDesigner(design?: any) {
           <h2 className="text-xl font-semibold mb-4">Card Preview</h2>
           <CardPreview
             design={cardDesign}
-            groupImage={design.design?.image}
-            groupCreator={design.design?.creator_name}
+            groupImage={design?.image}
+            groupCreator={design?.creator_name}
             onTextPositionChange={handleTextPositionChange}
             isDraggable={currentStep === "design"}
             onLogoPositionChange={handleLogoPositionChange}
