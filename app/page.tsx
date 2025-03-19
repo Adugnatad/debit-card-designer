@@ -50,7 +50,7 @@ export default function AffinityCardPage() {
             </a>
             <ChevronRight className="h-4 w-4 mx-2" />
             <span className="text-gray-700 font-medium">
-              Affinity Debit Cards
+              Custom Debit Cards
             </span>
           </div>
         </div>
@@ -61,7 +61,7 @@ export default function AffinityCardPage() {
             {/* Main Content Area */}
             <div className="lg:col-span-2">
               <h1 className="text-3xl md:text-4xl font-bold text-[#006241] mb-6">
-                Affinity Debit Cards
+                Customized Debit Cards
               </h1>
               <p className="text-lg text-gray-700 mb-8">
                 Show your support for your favorite organization with every
@@ -395,7 +395,7 @@ export default function AffinityCardPage() {
                       Apply for Your Card
                     </CardTitle>
                     <CardDescription>
-                      Get your affinity card in just a few steps
+                      Get your custom card in just a few steps
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

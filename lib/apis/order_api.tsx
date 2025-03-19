@@ -22,6 +22,7 @@ export interface SendOrderData {
 // apis.ts
 //   import { axiosConfig as axios } from "../axios";
 import axios from "axios";
+const BASE_URL = process.env.BASE_URL;
 
 export const submitOrder = async (payload: orderPayload): Promise<void> => {
   console.log(payload);
@@ -48,7 +49,7 @@ export const submitOrder = async (payload: orderPayload): Promise<void> => {
   }
 
   const response = await axios.post(
-    `https://9r7j860h-8000.uks1.devtunnels.ms/api/v1/cards/${payload.user_id}/create-card/`,
+    `${BASE_URL}/api/v1/cards/${payload.user_id}/create-card/`,
     formData,
     {
       headers: {
@@ -66,7 +67,7 @@ export const confirmInvitation = async (
   payload: SendOrderData
 ): Promise<void> => {
   const response = await axios.post(
-    `https://9r7j860h-8000.uks1.devtunnels.ms/api/v1/cards/${payload.group_id}/invitation-card-confirm/`,
+    `${BASE_URL}/api/v1/cards/${payload.group_id}/invitation-card-confirm/`,
     payload
   );
 

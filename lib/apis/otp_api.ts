@@ -1,10 +1,11 @@
 import axios from "axios";
+const BASE_URL = process.env.BASE_URL;
 
 export const sendOtp = async (data: {
   phoneNumber: string;
 }): Promise<{ id: string; message: string }> => {
   const response = await axios.post(
-    "https://9r7j860h-8000.uks1.devtunnels.ms/api/v1/users/send-otp/",
+    `${BASE_URL}/api/v1/users/send-otp/`,
     { phone_number: data.phoneNumber },
     {
       headers: {
@@ -25,7 +26,7 @@ export const verifyOtp = async (data: {
   otp: string;
 }): Promise<[{ id: string; accountNumber: string }]> => {
   const response = await axios.post(
-    `https://9r7j860h-8000.uks1.devtunnels.ms/api/v1/users/${data.id}/verify-otp/`,
+    `${BASE_URL}/api/v1/users/${data.id}/verify-otp/`,
     { otp: data.otp },
     {
       headers: {

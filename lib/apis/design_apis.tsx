@@ -1,4 +1,5 @@
 import axios from "axios";
+const BASE_URL = process.env.BASE_URL;
 
 // types.ts
 export interface Design {
@@ -11,7 +12,7 @@ export interface Design {
 // api.ts
 export const getDesign = async (id: string): Promise<Design> => {
   const response = await axios.get(
-    `https://9r7j860h-8000.uks1.devtunnels.ms/api/v1/cards/${id}/invitation-card-confirm/`
+    `${BASE_URL}/api/v1/cards/${id}/invitation-card-confirm/`
   );
   return response.data;
 };

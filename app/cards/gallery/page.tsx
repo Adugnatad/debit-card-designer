@@ -44,7 +44,7 @@ export default function GalleryPage() {
             </Button>
           </Link>
           <Link href="/cards/new">
-            <Button className="gap-2">
+            <Button className="gap-2" style={{ backgroundColor: "#187154" }}>
               <PlusCircle className="h-4 w-4" />
               Create New Design
             </Button>
@@ -52,10 +52,10 @@ export default function GalleryPage() {
         </div>
 
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-[#006241]">
             Card Design Gallery
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-[#374151] mt-2">
             Browse through our sample card designs or create your own
           </p>
         </div>

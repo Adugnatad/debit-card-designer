@@ -26,7 +26,7 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   confirmInvitation,
   orderPayload,
@@ -38,6 +38,8 @@ import { LoadingScreen } from "./loading-screen";
 import { sendOtp, verifyOtp } from "@/lib/apis/otp_api";
 import { useParams } from "next/navigation";
 import { group } from "node:console";
+import MapComponent from "./map-component";
+import { getLocation } from "@/lib/apis/map_apis";
 
 interface OrderFormProps {
   design: any;
@@ -134,6 +136,11 @@ export function OrderForm({
       setIsSubmitted(true);
     },
     onError: () => {},
+  });
+
+  const locations = useQuery({
+    queryKey: ["location"],
+    queryFn: () => getLocation(),
   });
 
   const formik = useFormik({
@@ -233,6 +240,10 @@ export function OrderForm({
 
   if (verify_otp.isPending) {
     return <LoadingScreen message="Verifying OTP ..." />;
+  }
+
+  if (locations.isLoading) {
+    return <LoadingScreen message="Fetching Locations ..." />;
   }
 
   return (
@@ -453,20 +464,9 @@ export function OrderForm({
           )}
 
           <div className="space-y-2">
-            <Label>Pickup Place</Label>
-            <div className="h-64 w-full bg-gray-200 rounded-md">
-              {/* Placeholder for map component */}
-              <div className="h-full w-full">
-                <iframe
-                  width="100%"
-                  height="100%"
-                  frameBorder="0"
-                  scrolling="no"
-                  marginHeight={0}
-                  marginWidth={0}
-                  allowFullScreen
-                ></iframe>
-              </div>
+            <Label>Pickup Branch</Label>
+            <div className="w-full bg-gray-200 rounded-md">
+              <MapComponent location={locations.data || []} />
             </div>
           </div>
 
