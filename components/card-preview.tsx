@@ -64,11 +64,10 @@ export const CardPreview = forwardRef(
     const [groupCardImage, setGroupCardImage] = useState<string>();
 
     useEffect(() => {
+      const BASE_URL = process.env.BASE_URL;
       const fetchGroupImage = async () => {
         if (groupImage) {
-          const response = await fetch(
-            `https://9r7j860h-8000.uks1.devtunnels.ms/${groupImage}`
-          );
+          const response = await fetch(`${BASE_URL}/${groupImage}`);
           const blob = await response.blob();
           const imageUrl = URL.createObjectURL(blob);
           setGroupCardImage(imageUrl);
@@ -242,7 +241,7 @@ export const CardPreview = forwardRef(
               />
             </div>
           </motion.div>
-          '{/* Chip and contactless symbols */}
+          {/* Chip and contactless symbols */}
           <div className="absolute top-16 left-6 hide-for-screenshot">
             <div className="w-10 h-8 bg-yellow-300/90 </div>rounded-md"></div>
           </div>

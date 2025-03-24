@@ -1,40 +1,67 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState } from "react";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function CardSelector() {
-  const [selectedCard, setSelectedCard] = useState("university")
+  const [selectedCard, setSelectedCard] =
+    useState<keyof typeof cardOptions>("university");
 
   const cardOptions = {
     university: {
       name: "University & Education",
-      description: "Show your school pride with cards featuring your university or educational institution.",
-      examples: ["Addis Ababa University", "Jimma University", "Oromia State University"],
+      description:
+        "Show your school pride with cards featuring your university or educational institution.",
+      examples: [
+        "Addis Ababa University",
+        "Jimma University",
+        "Oromia State University",
+      ],
     },
     sports: {
       name: "Sports Teams",
-      description: "Support your favorite sports teams with every purchase you make.",
-      examples: ["Ethiopian Coffee SC", "Adama City FC", "Ethiopia National Team"],
+      description:
+        "Support your favorite sports teams with every purchase you make.",
+      examples: [
+        "Ethiopian Coffee SC",
+        "Adama City FC",
+        "Ethiopia National Team",
+      ],
     },
     nonprofit: {
       name: "Nonprofit Organizations",
       description: "Help support causes you care about with every transaction.",
-      examples: ["Ethiopian Red Cross", "Oromia Development Association", "Environmental Society of Ethiopia"],
+      examples: [
+        "Ethiopian Red Cross",
+        "Oromia Development Association",
+        "Environmental Society of Ethiopia",
+      ],
     },
     community: {
       name: "Community Groups",
       description: "Show your local pride and support community initiatives.",
-      examples: ["Oromia Cultural Association", "Addis Chamber of Commerce", "Local Heritage Groups"],
+      examples: [
+        "Oromia Cultural Association",
+        "Addis Chamber of Commerce",
+        "Local Heritage Groups",
+      ],
     },
-  }
+  };
 
   return (
     <div className="bg-white rounded-xl border p-6">
-      <h2 className="text-xl font-bold text-[#006241] mb-4">Choose Your Card Category</h2>
-      <Tabs defaultValue="university" onValueChange={setSelectedCard} className="w-full">
+      <h2 className="text-xl font-bold text-[#006241] mb-4">
+        Choose Your Card Category
+      </h2>
+      <Tabs
+        defaultValue="university"
+        onValueChange={(value) =>
+          setSelectedCard(value as keyof typeof cardOptions)
+        }
+        className="w-full"
+      >
         <TabsList className="grid grid-cols-2 md:grid-cols-4 mb-6">
           <TabsTrigger value="university">Education</TabsTrigger>
           <TabsTrigger value="sports">Sports</TabsTrigger>
@@ -55,7 +82,10 @@ export function CardSelector() {
               </div>
               <div className="flex gap-2 mb-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="relative h-16 w-24 rounded border overflow-hidden">
+                  <div
+                    key={i}
+                    className="relative h-16 w-24 rounded border overflow-hidden"
+                  >
                     <Image
                       src={`/placeholder.svg?height=64&width=96&text=Card ${i}`}
                       alt={`Card option ${i}`}
@@ -67,8 +97,12 @@ export function CardSelector() {
               </div>
             </div>
             <div className="w-full md:w-1/2">
-              <h3 className="text-lg font-semibold text-[#006241] mb-2">{cardOptions[selectedCard].name}</h3>
-              <p className="text-gray-700 mb-4">{cardOptions[selectedCard].description}</p>
+              <h3 className="text-lg font-semibold text-[#006241] mb-2">
+                {cardOptions[selectedCard].name}
+              </h3>
+              <p className="text-gray-700 mb-4">
+                {cardOptions[selectedCard].description}
+              </p>
               <div className="mb-6">
                 <h4 className="font-medium mb-2">Popular Options:</h4>
                 <ul className="space-y-2">
@@ -80,7 +114,9 @@ export function CardSelector() {
                   ))}
                 </ul>
               </div>
-              <Button className="bg-[#006241] hover:bg-[#004d33] text-white">Select This Category</Button>
+              {/* <Button className="bg-[#006241] hover:bg-[#004d33] text-white">
+                Select This Category
+              </Button> */}
             </div>
           </div>
         </TabsContent>
@@ -98,7 +134,10 @@ export function CardSelector() {
               </div>
               <div className="flex gap-2 mb-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="relative h-16 w-24 rounded border overflow-hidden">
+                  <div
+                    key={i}
+                    className="relative h-16 w-24 rounded border overflow-hidden"
+                  >
                     <Image
                       src={`/placeholder.svg?height=64&width=96&text=Card ${i}`}
                       alt={`Card option ${i}`}
@@ -110,8 +149,12 @@ export function CardSelector() {
               </div>
             </div>
             <div className="w-full md:w-1/2">
-              <h3 className="text-lg font-semibold text-[#006241] mb-2">{cardOptions[selectedCard].name}</h3>
-              <p className="text-gray-700 mb-4">{cardOptions[selectedCard].description}</p>
+              <h3 className="text-lg font-semibold text-[#006241] mb-2">
+                {cardOptions[selectedCard].name}
+              </h3>
+              <p className="text-gray-700 mb-4">
+                {cardOptions[selectedCard].description}
+              </p>
               <div className="mb-6">
                 <h4 className="font-medium mb-2">Popular Options:</h4>
                 <ul className="space-y-2">
@@ -123,7 +166,9 @@ export function CardSelector() {
                   ))}
                 </ul>
               </div>
-              <Button className="bg-[#006241] hover:bg-[#004d33] text-white">Select This Category</Button>
+              {/* <Button className="bg-[#006241] hover:bg-[#004d33] text-white">
+                Select This Category
+              </Button> */}
             </div>
           </div>
         </TabsContent>
@@ -141,7 +186,10 @@ export function CardSelector() {
               </div>
               <div className="flex gap-2 mb-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="relative h-16 w-24 rounded border overflow-hidden">
+                  <div
+                    key={i}
+                    className="relative h-16 w-24 rounded border overflow-hidden"
+                  >
                     <Image
                       src={`/placeholder.svg?height=64&width=96&text=Card ${i}`}
                       alt={`Card option ${i}`}
@@ -153,8 +201,12 @@ export function CardSelector() {
               </div>
             </div>
             <div className="w-full md:w-1/2">
-              <h3 className="text-lg font-semibold text-[#006241] mb-2">{cardOptions[selectedCard].name}</h3>
-              <p className="text-gray-700 mb-4">{cardOptions[selectedCard].description}</p>
+              <h3 className="text-lg font-semibold text-[#006241] mb-2">
+                {cardOptions[selectedCard].name}
+              </h3>
+              <p className="text-gray-700 mb-4">
+                {cardOptions[selectedCard].description}
+              </p>
               <div className="mb-6">
                 <h4 className="font-medium mb-2">Popular Options:</h4>
                 <ul className="space-y-2">
@@ -166,7 +218,9 @@ export function CardSelector() {
                   ))}
                 </ul>
               </div>
-              <Button className="bg-[#006241] hover:bg-[#004d33] text-white">Select This Category</Button>
+              {/* <Button className="bg-[#006241] hover:bg-[#004d33] text-white">
+                Select This Category
+              </Button> */}
             </div>
           </div>
         </TabsContent>
@@ -184,7 +238,10 @@ export function CardSelector() {
               </div>
               <div className="flex gap-2 mb-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="relative h-16 w-24 rounded border overflow-hidden">
+                  <div
+                    key={i}
+                    className="relative h-16 w-24 rounded border overflow-hidden"
+                  >
                     <Image
                       src={`/placeholder.svg?height=64&width=96&text=Card ${i}`}
                       alt={`Card option ${i}`}
@@ -196,8 +253,12 @@ export function CardSelector() {
               </div>
             </div>
             <div className="w-full md:w-1/2">
-              <h3 className="text-lg font-semibold text-[#006241] mb-2">{cardOptions[selectedCard].name}</h3>
-              <p className="text-gray-700 mb-4">{cardOptions[selectedCard].description}</p>
+              <h3 className="text-lg font-semibold text-[#006241] mb-2">
+                {cardOptions[selectedCard].name}
+              </h3>
+              <p className="text-gray-700 mb-4">
+                {cardOptions[selectedCard].description}
+              </p>
               <div className="mb-6">
                 <h4 className="font-medium mb-2">Popular Options:</h4>
                 <ul className="space-y-2">
@@ -209,12 +270,13 @@ export function CardSelector() {
                   ))}
                 </ul>
               </div>
-              <Button className="bg-[#006241] hover:bg-[#004d33] text-white">Select This Category</Button>
+              {/* <Button className="bg-[#006241] hover:bg-[#004d33] text-white">
+                Select This Category
+              </Button> */}
             </div>
           </div>
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
-

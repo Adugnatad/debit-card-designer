@@ -26,6 +26,7 @@ import {
 import { HeroSection } from "@/components/hero-section";
 import { CardSelector } from "@/components/card-selector";
 import { FeatureHighlight } from "@/components/feature-highlight";
+import Link from "next/link";
 
 export default function AffinityCardPage() {
   return (
@@ -65,7 +66,7 @@ export default function AffinityCardPage() {
               </h1>
               <p className="text-lg text-gray-700 mb-8">
                 Show your support for your favorite organization with every
-                purchase. Our affinity debit cards let you proudly display your
+                purchase. Our custom debit cards let you proudly display your
                 passion while enjoying all the benefits of banking with
                 Cooperative Bank of Oromia.
               </p>
@@ -403,13 +404,16 @@ export default function AffinityCardPage() {
                       Show your support for your favorite organization while
                       enjoying all the benefits of our debit card.
                     </p>
-                    <Button className="w-full bg-[#006241] hover:bg-[#004d33] text-white">
+                    <Link
+                      href={"/cards/new"}
+                      className="block w-full text-center bg-[#006241] hover:bg-[#004d33] text-white py-2 rounded-md"
+                    >
                       Apply Online
-                    </Button>
+                    </Link>
                   </CardContent>
-                  <CardFooter className="border-t pt-4 text-sm text-gray-500">
+                  {/* <CardFooter className="border-t pt-4 text-sm text-gray-500">
                     <p>You can also apply at any branch</p>
-                  </CardFooter>
+                  </CardFooter> */}
                 </Card>
 
                 {/* FAQ Accordion */}
@@ -443,7 +447,7 @@ export default function AffinityCardPage() {
                       </AccordionItem>
                       <AccordionItem value="item-3">
                         <AccordionTrigger className="text-left">
-                          Is there a fee for the affinity card?
+                          Is there a fee for the custom card?
                         </AccordionTrigger>
                         <AccordionContent>
                           There is a standard card issuance fee of 100 Birr and
@@ -451,7 +455,7 @@ export default function AffinityCardPage() {
                           support both the bank and your chosen organization.
                         </AccordionContent>
                       </AccordionItem>
-                      <AccordionItem value="item-4">
+                      {/* <AccordionItem value="item-4">
                         <AccordionTrigger className="text-left">
                           How does my organization benefit?
                         </AccordionTrigger>
@@ -461,15 +465,15 @@ export default function AffinityCardPage() {
                           organization, helping support their mission and
                           activities.
                         </AccordionContent>
-                      </AccordionItem>
+                      </AccordionItem> */}
                       <AccordionItem value="item-5">
                         <AccordionTrigger className="text-left">
                           Can I use my card internationally?
                         </AccordionTrigger>
                         <AccordionContent>
-                          Yes, your affinity debit card can be used worldwide
-                          wherever Visa/Mastercard is accepted. International
-                          transaction fees may apply.
+                          No, your custom debit card can only be used within the
+                          country. If you need an international card, please
+                          contact your branch.
                         </AccordionContent>
                       </AccordionItem>
                     </Accordion>
@@ -490,7 +494,7 @@ export default function AffinityCardPage() {
                       </div>
                       <div>
                         <p className="font-medium">Customer Service</p>
-                        <p className="text-gray-600">Call us at 8070</p>
+                        <p className="text-gray-600">Call us at 609</p>
                       </div>
                     </div>
                     <div className="flex items-start">
@@ -502,12 +506,12 @@ export default function AffinityCardPage() {
                         <p className="text-gray-600">Find a branch near you</p>
                       </div>
                     </div>
-                    <Button
+                    {/* <Button
                       variant="outline"
                       className="w-full border-[#006241] text-[#006241] hover:bg-[#006241] hover:text-white"
                     >
                       Contact Us
-                    </Button>
+                    </Button> */}
                   </CardContent>
                 </Card>
               </div>

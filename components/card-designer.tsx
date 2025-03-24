@@ -124,7 +124,10 @@ export function CardDesigner({
                     <TabsTrigger value="logo">Logo</TabsTrigger>
                   </TabsList>
                   <TabsContent value="image">
-                    <ImageUploader onImageUpload={handleImageUpload} />
+                    <ImageUploader
+                      image={cardDesign.backgroundImage}
+                      onImageUpload={handleImageUpload}
+                    />
                   </TabsContent>
                   <TabsContent value="text">
                     <TextCustomizer
@@ -142,7 +145,10 @@ export function CardDesigner({
                     />
                   </TabsContent>
                   <TabsContent value="logo">
-                    <LogoUploader onImageUpload={handleLogoUpload} />
+                    <LogoUploader
+                      logo={cardDesign.logo}
+                      onImageUpload={handleLogoUpload}
+                    />
                   </TabsContent>
                 </Tabs>
               )}

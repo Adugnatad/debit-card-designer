@@ -1,70 +1,71 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useRef } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Upload, X } from "lucide-react"
+import { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Upload, X } from "lucide-react";
 
 interface ImageUploaderProps {
-  onImageUpload: (imageUrl: string) => void
+  image: string | null;
+  onImageUpload: (imageUrl: string) => void;
 }
 
-export function ImageUploader({ onImageUpload }: ImageUploaderProps) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+export function ImageUploader({ image, onImageUpload }: ImageUploaderProps) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(image);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      processFile(file)
+      processFile(file);
     }
-  }
+  };
 
   const processFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
-      alert("Please upload an image file")
-      return
+      alert("Please upload an image file");
+      return;
     }
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = (e) => {
-      const result = e.target?.result as string
-      setPreviewUrl(result)
-      onImageUpload(result)
-    }
-    reader.readAsDataURL(file)
-  }
+      const result = e.target?.result as string;
+      setPreviewUrl(result);
+      onImageUpload(result);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
+    e.preventDefault();
+    setIsDragging(true);
+  };
 
   const handleDragLeave = () => {
-    setIsDragging(false)
-  }
+    setIsDragging(false);
+  };
 
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
+    e.preventDefault();
+    setIsDragging(false);
 
-    const file = e.dataTransfer.files[0]
+    const file = e.dataTransfer.files[0];
     if (file) {
-      processFile(file)
+      processFile(file);
     }
-  }
+  };
 
   const handleRemoveImage = () => {
-    setPreviewUrl(null)
-    onImageUpload("")
+    setPreviewUrl(null);
+    onImageUpload("");
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+      fileInputRef.current.value = "";
     }
-  }
+  };
 
   return (
     <div className="space-y-4">
@@ -95,7 +96,9 @@ export function ImageUploader({ onImageUpload }: ImageUploaderProps) {
         ) : (
           <div className="py-4">
             <Upload className="mx-auto h-12 w-12 text-gray-400" />
-            <p className="mt-2 text-sm text-gray-600">Drag and drop an image, or click to select</p>
+            <p className="mt-2 text-sm text-gray-600">
+              Drag and drop an image, or click to select
+            </p>
           </div>
         )}
       </div>
@@ -110,7 +113,11 @@ export function ImageUploader({ onImageUpload }: ImageUploaderProps) {
           className="hidden"
         />
         <Label htmlFor="image-upload" className="w-full">
-          <Button variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()}>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => fileInputRef.current?.click()}
+          >
             Select Image
           </Button>
         </Label>
@@ -122,6 +129,5 @@ export function ImageUploader({ onImageUpload }: ImageUploaderProps) {
         <p>Supported formats: JPG, PNG, GIF</p>
       </div>
     </div>
-  )
+  );
 }
-

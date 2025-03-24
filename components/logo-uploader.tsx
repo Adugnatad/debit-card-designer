@@ -9,11 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Upload, X } from "lucide-react";
 
 interface LogoUploaderProps {
+  logo: string | null;
   onImageUpload: (imageUrl: string) => void;
 }
 
-export function LogoUploader({ onImageUpload }: LogoUploaderProps) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+export function LogoUploader({ logo, onImageUpload }: LogoUploaderProps) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(logo);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
