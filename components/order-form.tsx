@@ -26,10 +26,26 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  confirmInvitation,
+  orderPayload,
+  SendOrderData,
+  submitOrder,
+} from "@/lib/apis/order_api";
+import { useToast } from "@/hooks/use-toast";
+import { LoadingScreen } from "./loading-screen";
+import { sendOtp, verifyOtp } from "@/lib/apis/otp_api";
+import { useParams } from "next/navigation";
+import { group } from "node:console";
+import MapComponent from "./map-component";
+import { getLocation } from "@/lib/apis/map_apis";
 
 interface OrderFormProps {
+  design: any;
   onBackToDesign: () => void;
   cardDesign: CardDesign;
+  triggerScreenshot: () => Promise<string>;
 }
 
 const validationSchema = Yup.object({
@@ -37,66 +53,152 @@ const validationSchema = Yup.object({
   email: Yup.string()
     .email("Invalid email address")
     .required("Email is required"),
-  phone: Yup.string().required("Phone number is required"),
-  address: Yup.string().required("Address is required"),
-  city: Yup.string().required("City is required"),
-  state: Yup.string().required("State is required"),
-  zipCode: Yup.string().required("ZIP Code is required"),
+  phone: Yup.string()
+    .matches(/^(\+251|0)?9\d{8}$/, "Phone number is not valid")
+    .required("Phone number is required"),
   agreeToTerms: Yup.boolean().oneOf(
     [true],
     "You must accept the terms and conditions"
   ),
-  orderType: Yup.string().required("Order type is required"),
-  groupPhones: Yup.array().of(
-    Yup.string().required("Phone number is required")
-  ),
-  account: Yup.string().when("isOtpVerified", {
-    is: (isOtpVerified: boolean) => isOtpVerified,
-    then: (schema) => schema.required("Account selection is required"),
-  }),
+  orderType: Yup.string(),
+  account: Yup.string().required("Account selection is required"),
 });
 
-export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
+export function OrderForm({
+  design,
+  onBackToDesign,
+  cardDesign,
+  triggerScreenshot,
+}: OrderFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
   const [error, setError] = useState("");
   const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [id, setId] = useState("");
+  const [accounts, setAccounts] = useState<
+    { id: string; accountNumber: string }[]
+  >([]);
+  const { toast } = useToast();
+  const [otpSendError, setOtpSendError] = useState("");
+  const [resendTimer, setResendTimer] = useState(60);
+  const params = useParams();
+
+  const group_id = params.id as string;
+
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
+
+  const handleResendOtp = () => {
+    setResendTimer(60);
+    send_otp.mutate({ phoneNumber: formik.values.phone });
+  };
+
+  const send_otp = useMutation({
+    mutationFn: ({ phoneNumber }: { phoneNumber: string }) =>
+      sendOtp({ phoneNumber }),
+    onSuccess: (data: { id: string; message: string }) => {
+      setId(data.id);
+      setModalVisible(true);
+    },
+    onError: (err) => {
+      setOtpSendError("Failed to send OTP. Please try again.");
+    },
+  });
+
+  const verify_otp = useMutation({
+    mutationFn: (code: string) => verifyOtp({ id, otp: code }),
+    onSuccess: (data) => {
+      setAccounts(data);
+      setIsOtpVerified(true);
+      setModalVisible(false);
+    },
+    onError: (error: any) => {
+      setError("Invalid OTP code");
+    },
+  });
+
+  const sendOrder = useMutation({
+    mutationFn: (data: orderPayload) => submitOrder(data),
+    onSuccess: () => {
+      setIsSubmitted(true);
+    },
+    onError: () => {},
+  });
+
+  const confirmOrder = useMutation({
+    mutationFn: (data: SendOrderData) => confirmInvitation(data),
+    onSuccess: () => {
+      setIsSubmitted(true);
+    },
+    onError: () => {},
+  });
+
+  const locations = useQuery({
+    queryKey: ["location"],
+    queryFn: () => getLocation(),
+  });
 
   const formik = useFormik({
     initialValues: {
       fullName: "",
       email: "",
       phone: "",
-      // address: "",
-      // city: "",
-      // state: "",
-      // zipCode: "",
       agreeToTerms: false,
       orderType: "individual",
       groupPhones: [""],
       account: "",
     },
     validationSchema,
-    onSubmit: (values) => {
+    onSubmit: async (values) => {
+      console.log(values);
       setIsSubmitting(true);
+      if (group_id) {
+        const sendOrderData: SendOrderData = {
+          name: values.fullName,
+          email: values.email,
+          accountNumber: values.account,
+          pickup_location: "default_location", // replace with actual location if available
+          user_id: id,
+          group_id: group_id,
+        };
+        confirmOrder.mutate(sendOrderData);
+      } else {
+        const sendOrderData: orderPayload = {
+          email: values.email,
+          name: values.fullName,
+          accountNumber: values.account,
+          pickup_location: "default_location", // replace with actual location if available
+          requestType: values.orderType,
+          image: await triggerScreenshot(),
+          list_of_phoneNumbers: values.groupPhones.filter((phone) => phone),
+          user_id: group_id,
+        };
+        sendOrder.mutate(sendOrderData);
 
-      // Simulate API call
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setIsSubmitted(true);
-      }, 1500);
+        // await triggerScreenshot().then((image) => {
+        //   const sendOrderData: orderPayload = {
+        //     image: image,
+        //     email: values.email,
+        //     name: values.fullName,
+        //     accountNumber: values.account,
+        //     list_of_phoneNumbers: values.groupPhones,
+        //     pickup_location: "default_location", // replace with actual location if available
+        //     requestType: values.orderType,
+        //     user_id: id,
+        //   }
+        //   sendOrder.mutate(sendOrderData);
+        // })
+      }
     },
   });
 
   const handleOtpCall = (otp: string) => {
-    // Simulate OTP verification
-    if (otp === "123456") {
-      setModalVisible(false);
-      setIsOtpVerified(true);
-    } else {
-      setError("Invalid OTP. Please try again.");
-    }
+    verify_otp.mutate(otp);
   };
 
   if (isSubmitted) {
@@ -124,6 +226,26 @@ export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
     );
   }
 
+  if (sendOrder.isPending) {
+    return <LoadingScreen message="Submitting Order ..." />;
+  }
+
+  if (confirmOrder.isPending) {
+    return <LoadingScreen message="Accepting Invitation ..." />;
+  }
+
+  if (send_otp.isPending) {
+    return <LoadingScreen message="Sending OTP ..." />;
+  }
+
+  if (verify_otp.isPending) {
+    return <LoadingScreen message="Verifying OTP ..." />;
+  }
+
+  if (locations.isLoading) {
+    return <LoadingScreen message="Fetching Locations ..." />;
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -139,43 +261,43 @@ export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
           <div>
             <CardTitle>Complete Your Order</CardTitle>
             <CardDescription>
-              Please provide your shipping information to complete your custom
-              card order.
+              Please provide your details to complete your custom card order.
             </CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={formik.handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Order Type</Label>
-            <RadioGroup
-              className="bg-gray-100 p-2 rounded-md"
-              value={formik.values.orderType}
-              onValueChange={(value) =>
-                formik.setFieldValue("orderType", value)
-              }
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="individual" id="individual" />
-                <Label className=" px-2 rounded-md" htmlFor="individual">
-                  Individual
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="group" id="group" />
-                <Label className=" px-2 rounded-md" htmlFor="group">
-                  Group
-                </Label>
-              </div>
-            </RadioGroup>
-            {formik.touched.orderType && formik.errors.orderType ? (
-              <div className="text-red-500 text-sm">
-                {formik.errors.orderType}
-              </div>
-            ) : null}
-          </div>
-
+          {Object.keys(design).length === 0 && (
+            <div className="space-y-2">
+              <Label>Order Type</Label>
+              <RadioGroup
+                className="bg-gray-100 p-2 rounded-md"
+                value={formik.values.orderType}
+                onValueChange={(value) =>
+                  formik.setFieldValue("orderType", value)
+                }
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="Individual" id="individual" />
+                  <Label className=" px-2 rounded-md" htmlFor="individual">
+                    Individual
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="Group" id="group" />
+                  <Label className=" px-2 rounded-md" htmlFor="group">
+                    Group
+                  </Label>
+                </div>
+              </RadioGroup>
+              {formik.touched.orderType && formik.errors.orderType ? (
+                <div className="text-red-500 text-sm">
+                  {formik.errors.orderType}
+                </div>
+              ) : null}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
@@ -226,11 +348,18 @@ export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
             {formik.touched.phone && formik.errors.phone ? (
               <div className="text-red-500 text-sm">{formik.errors.phone}</div>
             ) : null}
-            {formik.values.phone && !isOtpVerified && (
+            {formik.touched.phone && !formik.errors.phone && !isOtpVerified && (
+              <div className="text-red-500 text-sm">
+                Phone number needs to be verified
+              </div>
+            )}
+            {formik.values.phone && !formik.errors.phone && !isOtpVerified && (
               <Button
                 className="self-end"
                 type="button"
-                onClick={() => setModalVisible(true)}
+                onClick={() =>
+                  send_otp.mutate({ phoneNumber: formik.values.phone })
+                }
               >
                 Verify
               </Button>
@@ -252,9 +381,13 @@ export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
                 <option value="" disabled>
                   Select an account
                 </option>
-                <option value="account1">****12456</option>
-                <option value="account2">****12456</option>
-                <option value="account3">****12456</option>
+                {accounts.map(
+                  (account: { id: string; accountNumber: string }) => (
+                    <option key={account.id} value={account.accountNumber}>
+                      {account.accountNumber}
+                    </option>
+                  )
+                )}
               </select>
               {formik.touched.account && formik.errors.account ? (
                 <div className="text-red-500 text-sm">
@@ -264,7 +397,7 @@ export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
             </div>
           )}
 
-          {formik.values.orderType === "group" && (
+          {formik.values.orderType === "Group" && (
             <div className="flex flex-col space-y-2">
               <Label>Invite Users by Phone Numbers</Label>
               {formik.values.groupPhones.map((phone, index) => (
@@ -275,7 +408,16 @@ export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     required
+                    pattern="^(\+251|0)?9\d{8}$"
+                    title="Phone number is not valid"
                   />
+                  {formik.touched.groupPhones &&
+                  formik.errors.groupPhones &&
+                  formik.errors.groupPhones[index] ? (
+                    <div className="text-red-500 text-sm">
+                      {formik.errors.groupPhones[index]}
+                    </div>
+                  ) : null}
                   {formik.values.groupPhones.length > 1 && (
                     <Button
                       type="button"
@@ -322,20 +464,9 @@ export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
           )}
 
           <div className="space-y-2">
-            <Label>Pickup Place</Label>
-            <div className="h-64 w-full bg-gray-200 rounded-md">
-              {/* Placeholder for map component */}
-              <div className="h-full w-full">
-                <iframe
-                  width="100%"
-                  height="100%"
-                  frameBorder="0"
-                  scrolling="no"
-                  marginHeight={0}
-                  marginWidth={0}
-                  allowFullScreen
-                ></iframe>
-              </div>
+            <Label>Pickup Branch</Label>
+            <div className="w-full bg-gray-200 rounded-md">
+              <MapComponent location={locations.data || []} />
             </div>
           </div>
 
@@ -364,9 +495,9 @@ export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
             <Button
               type="submit"
               className="w-full"
-              disabled={isSubmitting || !formik.values.agreeToTerms}
+              disabled={!formik.values.agreeToTerms}
             >
-              {isSubmitting ? "Processing..." : "Submit Order"}
+              Submit Order
             </Button>
           </div>
         </form>
@@ -400,13 +531,35 @@ export function OrderForm({ onBackToDesign, cardDesign }: OrderFormProps) {
             )}
             <p className="text-sm text-muted-foreground">
               Didn&apos;t receive a code?{" "}
-              <Button variant="link" className="p-0 h-auto">
-                Resend
-              </Button>
+              {resendTimer > 0 ? (
+                <span>Resend in {resendTimer}s</span>
+              ) : (
+                <Button
+                  variant="link"
+                  className="p-0 h-auto"
+                  onClick={handleResendOtp}
+                >
+                  Resend
+                </Button>
+              )}
             </p>
           </div>
         </DialogContent>
       </Dialog>
+
+      {otpSendError && (
+        <Dialog open={!!otpSendError} onOpenChange={() => setOtpSendError("")}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Error</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center space-y-4">
+              <p className="text-sm text-red-500 text-center">{otpSendError}</p>
+              <Button onClick={() => setOtpSendError("")}>Close</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 }

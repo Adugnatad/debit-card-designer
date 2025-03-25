@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CardPreview } from "@/components/card-preview";
 import { ImageUploader } from "@/components/image-uploader";
 import { TextCustomizer } from "@/components/text-customizer";
@@ -23,7 +23,13 @@ export type CardDesign = {
   logo: string | null;
 };
 
-export function CardDesigner() {
+export function CardDesigner({
+  template = {} as CardDesign,
+  design = {},
+}: {
+  template?: CardDesign;
+  design?: any;
+}) {
   const [currentStep, setCurrentStep] = useState<"design" | "order">("design");
   const [cardDesign, setCardDesign] = useState<CardDesign>({
     backgroundImage: null,
@@ -36,6 +42,14 @@ export function CardDesigner() {
     logoPosition: { x: 50, y: 140 },
     logo: null,
   });
+
+  console.log(design);
+
+  useEffect(() => {
+    if (Object.keys(template).length > 0) {
+      setCardDesign(template);
+    }
+  }, [template]);
 
   const handleImageUpload = (imageUrl: string) => {
     setCardDesign({
@@ -87,41 +101,51 @@ export function CardDesigner() {
     });
   };
 
+  const passCardPreviewScreenshot = useRef<{
+    handleCardScreenshot: () => string;
+  }>(null);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2">
         {currentStep === "design" ? (
           <Card>
             <CardContent className="p-6">
-              <Tabs defaultValue="image" className="w-full">
-                <TabsList className="grid grid-cols-4 mb-6">
-                  <TabsTrigger value="image">Image</TabsTrigger>
-                  <TabsTrigger value="text">Text</TabsTrigger>
-                  <TabsTrigger value="color">Color</TabsTrigger>
-                  <TabsTrigger value="logo">Logo</TabsTrigger>
-                </TabsList>
-                <TabsContent value="image">
-                  <ImageUploader onImageUpload={handleImageUpload} />
-                </TabsContent>
-                <TabsContent value="text">
-                  <TextCustomizer
-                    text={cardDesign.customText}
-                    textColor={cardDesign.textColor}
-                    cardDetailsTextColor={cardDesign.cardDetailsTextColor}
-                    fontFamily={cardDesign.fontFamily}
-                    onTextChange={handleTextChange}
-                  />
-                </TabsContent>
-                <TabsContent value="color">
-                  <ColorSelector
-                    selectedColor={cardDesign.backgroundColor}
-                    onColorChange={handleColorChange}
-                  />
-                </TabsContent>
-                <TabsContent value="logo">
-                  <LogoUploader onImageUpload={handleLogoUpload} />
-                </TabsContent>
-              </Tabs>
+              {Object.keys(design).length > 0 ? (
+                <p className="text-red-500">
+                  Design customization is disabled for invited users.
+                </p>
+              ) : (
+                <Tabs defaultValue="image" className="w-full">
+                  <TabsList className="grid grid-cols-4 mb-6">
+                    <TabsTrigger value="image">Image</TabsTrigger>
+                    <TabsTrigger value="text">Text</TabsTrigger>
+                    <TabsTrigger value="color">Color</TabsTrigger>
+                    <TabsTrigger value="logo">Logo</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="image">
+                    <ImageUploader onImageUpload={handleImageUpload} />
+                  </TabsContent>
+                  <TabsContent value="text">
+                    <TextCustomizer
+                      text={cardDesign.customText}
+                      textColor={cardDesign.textColor}
+                      cardDetailsTextColor={cardDesign.cardDetailsTextColor}
+                      fontFamily={cardDesign.fontFamily}
+                      onTextChange={handleTextChange}
+                    />
+                  </TabsContent>
+                  <TabsContent value="color">
+                    <ColorSelector
+                      selectedColor={cardDesign.backgroundColor}
+                      onColorChange={handleColorChange}
+                    />
+                  </TabsContent>
+                  <TabsContent value="logo">
+                    <LogoUploader onImageUpload={handleLogoUpload} />
+                  </TabsContent>
+                </Tabs>
+              )}
               <div className="mt-6 flex justify-end">
                 <Button onClick={handleProceedToOrder}>Proceed to Order</Button>
               </div>
@@ -129,8 +153,12 @@ export function CardDesigner() {
           </Card>
         ) : (
           <OrderForm
+            design={design}
             onBackToDesign={handleBackToDesign}
             cardDesign={cardDesign}
+            triggerScreenshot={async () =>
+              passCardPreviewScreenshot.current?.handleCardScreenshot() || ""
+            }
           />
         )}
       </div>
@@ -139,14 +167,13 @@ export function CardDesigner() {
           <h2 className="text-xl font-semibold mb-4">Card Preview</h2>
           <CardPreview
             design={cardDesign}
+            groupImage={design?.image}
+            groupCreator={design?.creator_name}
             onTextPositionChange={handleTextPositionChange}
             isDraggable={currentStep === "design"}
             onLogoPositionChange={handleLogoPositionChange}
+            ref={passCardPreviewScreenshot}
           />
-          <p className="text-sm text-gray-500 mt-4">
-            This is a preview of how your card will look. You can drag the text
-            to position it.
-          </p>
         </div>
       </div>
     </div>

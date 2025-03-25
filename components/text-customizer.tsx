@@ -141,9 +141,9 @@ export function TextCustomizer({
         <Card>
           <CardContent className="p-4">
             <Tabs defaultValue="name" className="w-full">
-              <TabsList className="grid grid-cols-2 mb-4">
+              <TabsList className="grid grid-cols-1 mb-4">
                 <TabsTrigger value="name">Custom Text</TabsTrigger>
-                <TabsTrigger value="details">Card Details</TabsTrigger>
+                {/* <TabsTrigger value="details">Card Details</TabsTrigger> */}
               </TabsList>
 
               <TabsContent value="name" className="space-y-4">
@@ -185,7 +185,7 @@ export function TextCustomizer({
                 </div> */}
               </TabsContent>
 
-              <TabsContent value="details" className="space-y-4">
+              {/* <TabsContent value="details" className="space-y-4">
                 <div className="flex items-center gap-3">
                   <Input
                     type="color"
@@ -212,27 +212,11 @@ export function TextCustomizer({
                     maxLength={7}
                   />
                 </div>
-                {/* <div
-                  className="p-3 rounded-md"
-                  style={{ backgroundColor: "#0f172a" }}
-                >
-                  <div
-                    className="text-xs mb-1"
-                    style={{ color: `${cardDetailsTextColor}99` }}
-                  >
-                    VALID THRU
-                  </div>
-                  <div
-                    className="text-sm"
-                    style={{ color: cardDetailsTextColor }}
-                  >
-                    12/28
-                  </div>
-                </div> */}
-              </TabsContent>
+               
+              </TabsContent> */}
             </Tabs>
 
-            <div className="mt-4 flex justify-between items-center">
+            {/* <div className="mt-4 flex justify-between items-center">
               <Button
                 variant="outline"
                 size="sm"
@@ -252,7 +236,7 @@ export function TextCustomizer({
                 <RefreshCw className="h-3 w-3 mr-1" />
                 Apply details color to all
               </Button>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </div>

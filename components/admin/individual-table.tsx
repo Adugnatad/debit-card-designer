@@ -118,9 +118,15 @@ const CardTable = () => {
     return (item.user_name && item.user_name.toLowerCase().includes(searchTerm.toLowerCase())) && statusMatch;
   });
 
-  const filteredGroupData = groupData.filter((group) =>
-    group.confirmed_cards.some((member) => filter === "All" || member.status.toLowerCase() === filter.toLowerCase())
-  );
+  const filteredGroupData = groupData.filter((group) =>{
+    // const statusmatch = filter === "All" || (group.confirmed_cards.status && group.confirmed_cards.status.toLowerCase() === filter.toLowerCase());
+
+    // const statusmatch=group.confirmed_cards.some((member) => filter === "All" || member.status.toLowerCase() === filter.toLowerCase())
+      return (group.creator && group.creator.toLowerCase().includes(searchTerm.toLowerCase()));
+
+});
+
+  const totalPages = Math.max(1, Math.ceil((selectedTab === "individual" ? filteredIndividualData.length : filteredGroupData.length) / itemsPerPage));
 
   const paginatedIndividualData = filteredIndividualData.slice(
     (currentPage - 1) * itemsPerPage,
@@ -243,12 +249,12 @@ const CardTable = () => {
           </CustomTable>
         )}
 
-        <Pagination
-          currentPage={currentPage}
-          totalPages={Math.max(1, Math.ceil((selectedTab === "individual" ? filteredIndividualData : filteredGroupData).length / itemsPerPage))}
-          onPageChange={setCurrentPage}
-          className="flex items-center justify-between pt-4"
-        />
+<Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={(page) => setCurrentPage(page)}
+        className="flex items-center justify-between pt-4"
+      />
       </div>
 
       <div className="col-span-4 flex items-center justify-center bg-gray-100 p-4 rounded-lg shadow-md" style={{ height: "250px" }}>
@@ -320,6 +326,7 @@ const CardTable = () => {
         </Dialog>
       )}  
     </div>
+    
   );
 };
 
