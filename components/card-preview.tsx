@@ -107,6 +107,19 @@ export const CardPreview = forwardRef(
       }
     }, []);
 
+    useEffect(() => {
+      if (cardRef.current) {
+        // Ensure consistent font rendering
+        const style = document.createElement("style");
+        style.innerHTML = `
+          body {
+            line-height: 0.5 !important;
+          }
+        `;
+        cardRef.current.appendChild(style);
+      }
+    }, []);
+
     const handleDrag = (
       event: MouseEvent | TouchEvent | PointerEvent,
       info: PanInfo
@@ -246,7 +259,12 @@ export const CardPreview = forwardRef(
             <div className="w-10 h-8 bg-yellow-300/90 </div>rounded-md"></div>
           </div>
           {/* Card number placeholder */}
-          <div className="absolute bottom-20 left-6 right-6 hide-for-screenshot">
+          <div
+            style={{
+              display: "inline-block",
+            }}
+            className="absolute bottom-20 left-6 right-6 hide-for-screenshot"
+          >
             <div className="flex justify-between">
               <div className="w-10 h-3 bg-white/50 rounded-sm"></div>
               <div className="w-10 h-3 bg-white/50 rounded-sm"></div>
