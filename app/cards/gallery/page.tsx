@@ -80,7 +80,7 @@ export default function GalleryPage() {
                       isTemplate={true}
                     />
                   </div>
-                  <h3 className="font-medium text-center truncate">
+                  <h3 className="font-medium text-center truncate leading-relaxed">
                     {item.design.customText}
                   </h3>
                 </CardContent>

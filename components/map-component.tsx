@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { GoogleMap, Marker, useLoadScript } from "@react-google-maps/api";
-import { useQuery } from "@tanstack/react-query";
-import { getLocation, Location } from "@/lib/apis/map_apis";
+import { Location } from "@/lib/apis/map_apis";
 
 const mapContainerStyle = {
   width: "100%",
@@ -9,13 +8,6 @@ const mapContainerStyle = {
 };
 
 const defaultCenter = { lat: 9.03, lng: 38.74 }; // Default center (Addis Ababa)
-
-// Locations with Names
-// const locations = [
-//   { name: "Golden Gate Bridge", lat: 37.8199, lng: -122.4783 },
-//   { name: "Alcatraz Island", lat: 37.8267, lng: -122.423 },
-//   { name: "Fisherman's Wharf", lat: 37.808, lng: -122.4177 },
-// ];
 
 const MapComponent = ({
   location,
@@ -34,7 +26,37 @@ const MapComponent = ({
     lat: number;
     lng: number;
   }>();
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  }>(defaultCenter);
   const mapRef = useRef<google.maps.Map | null>(null);
+
+  // Get user's current location
+  const fetchUserLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const newLocation = { lat: latitude, lng: longitude };
+          setUserLocation(newLocation);
+
+          // Move the map to the user's location
+          if (mapRef.current) {
+            mapRef.current.panTo(newLocation);
+            mapRef.current.setZoom(14);
+          }
+        },
+        (error) => {
+          console.error("Error getting user location:", error);
+        }
+      );
+    }
+  };
+
+  useEffect(() => {
+    fetchUserLocation();
+  }, []); // Fetch user location on component mount
 
   // Filter locations based on search
   const filteredLocations = location.filter((loc) =>
@@ -57,10 +79,6 @@ const MapComponent = ({
       mapRef.current.setZoom(14);
     }
   };
-
-  //   useEffect(() => {
-  //     setSelectedLocation(undefined);
-  //   }, [search]);
 
   if (loadError) return <p>Error loading maps</p>;
   if (!isLoaded) return <p>Loading...</p>;
@@ -116,9 +134,10 @@ const MapComponent = ({
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         zoom={12}
-        center={selectedLocation || defaultCenter}
+        center={selectedLocation || userLocation}
         onLoad={(map) => {
           mapRef.current = map;
+          fetchUserLocation(); // Fetch user location again when the map is loaded
         }}
       >
         {filteredLocations.map((loc, index) => (

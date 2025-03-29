@@ -1,5 +1,5 @@
 import axios from "axios";
-const MAP_URL = process.env.NEXT_PUBLIC_MAP_URL;
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 // types.ts
 export interface Location {
@@ -10,6 +10,6 @@ export interface Location {
 
 // api.ts
 export const getLocation = async (): Promise<Location[]> => {
-  const response = await axios.get(`${MAP_URL}/branches/`);
+  const response = await axios.get(`${BASE_URL}/api/v1/branches/`);
   return response.data;
 };
