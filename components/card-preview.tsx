@@ -15,6 +15,7 @@ import { Button } from "./ui/button";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
 import Image from "next/image";
+import axios from "axios";
 
 interface CardPreviewProps {
   design: CardDesign;
@@ -62,20 +63,23 @@ export const CardPreview = forwardRef(
 
     const [image, setImage] = useState<string | null>(null);
     const [groupCardImage, setGroupCardImage] = useState<string>();
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
-    useEffect(() => {
-      const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
-      const fetchGroupImage = async () => {
-        if (groupImage) {
-          const response = await fetch(`${BASE_URL}${groupImage}`);
-          const blob = await response.blob();
-          const imageUrl = URL.createObjectURL(blob);
-          setGroupCardImage(imageUrl);
-          console.log(imageUrl);
-        }
-      };
-      fetchGroupImage();
-    }, [groupImage]);
+    // useEffect(() => {
+    //   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+    //   const fetchGroupImage = async () => {
+    //     if (groupImage) {
+    //       const response = await axios.get(`${BASE_URL}${groupImage}`, {
+    //         responseType: "blob",
+    //       });
+    //       const blob = response.data;
+    //       const imageUrl = URL.createObjectURL(blob);
+    //       setGroupCardImage(imageUrl);
+    //       console.log(imageUrl);
+    //     }
+    //   };
+    //   fetchGroupImage();
+    // }, [groupImage]);
 
     // Handle image upload
     // const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -209,8 +213,8 @@ export const CardPreview = forwardRef(
           className="relative w-full aspect-[1.586/1] rounded-xl overflow-hidden shadow-lg "
           style={{
             backgroundColor: design.backgroundColor,
-            backgroundImage: groupCardImage
-              ? `url(${groupCardImage})`
+            backgroundImage: groupImage
+              ? `url(${BASE_URL}${groupImage})`
               : design.backgroundImage
               ? `url(${design.backgroundImage})`
               : "none",
@@ -295,7 +299,7 @@ export const CardPreview = forwardRef(
             </div>
           </div>
           {/* Custom text */}
-          {!groupCardImage && (
+          {!groupImage && (
             <motion.div
               drag
               dragMomentum={false}
