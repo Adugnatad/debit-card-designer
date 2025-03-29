@@ -17,7 +17,13 @@ const defaultCenter = { lat: 9.03, lng: 38.74 }; // Default center (Addis Ababa)
 //   { name: "Fisherman's Wharf", lat: 37.808, lng: -122.4177 },
 // ];
 
-const MapComponent = ({ location }: { location: Location[] }) => {
+const MapComponent = ({
+  location,
+  setPickup,
+}: {
+  location: Location[];
+  setPickup: (loc: string) => void;
+}) => {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: "AIzaSyAFJGkkxLWFayXiwrnk7Sb6CoXQWfV-I8c",
   });
@@ -41,6 +47,7 @@ const MapComponent = ({ location }: { location: Location[] }) => {
     lat: number;
     lng: number;
   }) => {
+    setPickup(location.name);
     setSearch(location.name);
     setSelectedLocation(location);
 

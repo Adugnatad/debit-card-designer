@@ -62,6 +62,7 @@ const validationSchema = Yup.object({
   ),
   orderType: Yup.string(),
   account: Yup.string().required("Account selection is required"),
+  pickup_location: Yup.string(),
 });
 
 export function OrderForm({
@@ -152,6 +153,7 @@ export function OrderForm({
       orderType: "individual",
       groupPhones: [""],
       account: "",
+      pickup_location: "default_location", // replace with actual location if available
     },
     validationSchema,
     onSubmit: async (values) => {
@@ -162,7 +164,7 @@ export function OrderForm({
           name: values.fullName,
           email: values.email,
           accountNumber: values.account,
-          pickup_location: "default_location", // replace with actual location if available
+          pickup_location: values.pickup_location, // replace with actual location if available
           user_id: id,
           group_id: group_id,
         };
@@ -172,11 +174,11 @@ export function OrderForm({
           email: values.email,
           name: values.fullName,
           accountNumber: values.account,
-          pickup_location: "default_location", // replace with actual location if available
+          pickup_location: values.pickup_location, // replace with actual location if available
           requestType: values.orderType,
           image: await triggerScreenshot(),
           list_of_phoneNumbers: values.groupPhones.filter((phone) => phone),
-          user_id: group_id,
+          user_id: id,
         };
         sendOrder.mutate(sendOrderData);
 
@@ -210,7 +212,7 @@ export function OrderForm({
             <h2 className="text-2xl font-bold mb-2">
               Order Submitted Successfully!
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 mb-6 leading-relaxed">
               Thank you for your order. Your custom debit card will be processed
               and delivered within 7-10 business days.
             </p>
@@ -466,7 +468,12 @@ export function OrderForm({
           <div className="space-y-2">
             <Label>Pickup Branch</Label>
             <div className="w-full bg-gray-200 rounded-md">
-              <MapComponent location={locations.data || []} />
+              <MapComponent
+                setPickup={(location: string) =>
+                  formik.setFieldValue("pickup_location", location)
+                }
+                location={locations.data || []}
+              />
             </div>
           </div>
 

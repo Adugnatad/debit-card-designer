@@ -64,10 +64,10 @@ export const CardPreview = forwardRef(
     const [groupCardImage, setGroupCardImage] = useState<string>();
 
     useEffect(() => {
-      const BASE_URL = process.env.BASE_URL;
+      const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
       const fetchGroupImage = async () => {
         if (groupImage) {
-          const response = await fetch(`${BASE_URL}/${groupImage}`);
+          const response = await fetch(`${BASE_URL}${groupImage}`);
           const blob = await response.blob();
           const imageUrl = URL.createObjectURL(blob);
           setGroupCardImage(imageUrl);
