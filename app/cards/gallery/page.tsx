@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { getAllCardDesigns } from "@/lib/card-store";
 import { CardPreview } from "@/components/card-preview";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, PlusCircle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import type { CardDesign } from "@/components/card-designer";
+import { useQuery } from "@tanstack/react-query";
+import { getGalleryDesigns } from "@/lib/apis/gallery_apis";
+import { LoadingScreen } from "@/components/loading-screen";
 
 interface GalleryItem {
   id: string;
@@ -15,22 +17,16 @@ interface GalleryItem {
 }
 
 export default function GalleryPage() {
-  const [designs, setDesigns] = useState<GalleryItem[]>([]);
+  // const [designs, setDesigns] = useState<GalleryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Load all designs
-    const allDesigns = getAllCardDesigns();
-    setDesigns(allDesigns);
-    setIsLoading(false);
-  }, []);
+  const galleryDesigns = useQuery({
+    queryKey: ["gallery_design"],
+    queryFn: () => getGalleryDesigns(),
+  });
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-xl">Loading gallery...</div>
-      </div>
-    );
+  if (galleryDesigns.isLoading) {
+    return <LoadingScreen message="Fetching Gallery ..." />;
   }
 
   return (
@@ -60,28 +56,35 @@ export default function GalleryPage() {
           </p>
         </div>
 
-        {designs.length === 0 ? (
+        {galleryDesigns.data?.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-            <p className="text-gray-500 mb-4">No saved designs found</p>
+            <p className="text-gray-500 mb-4">No Designs</p>
             <Link href="/cards/new">
               <Button>Create Your First Design</Button>
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-            {designs.map((item) => (
-              <Link href={`/cards/${item.id}`} key={item.id}>
+            {galleryDesigns.data?.map((item: CardDesign, index) => (
+              <Link
+                href={{
+                  pathname: `/cards/${index}`,
+                  query: { design: JSON.stringify(item) },
+                }}
+                key={index}
+              >
                 {/* <Card className="hover:shadow-md transition-shadow cursor-pointer h-full"> */}
                 <CardContent className="p-4">
                   <div className="mb-4">
                     <CardPreview
-                      design={item.design}
+                      design={item}
+                      galleryImage={item.backgroundImage ?? undefined}
                       isDraggable={false}
                       isTemplate={true}
                     />
                   </div>
                   <h3 className="font-medium text-center truncate leading-relaxed">
-                    {item.design.customText}
+                    {item.customText}
                   </h3>
                 </CardContent>
                 {/* </Card> */}

@@ -26,9 +26,11 @@ export type CardDesign = {
 export function CardDesigner({
   template = {} as CardDesign,
   design = {},
+  gallery,
 }: {
   template?: CardDesign;
   design?: any;
+  gallery?: string;
 }) {
   const [currentStep, setCurrentStep] = useState<"design" | "order">("design");
   const [cardDesign, setCardDesign] = useState<CardDesign>({
@@ -42,8 +44,6 @@ export function CardDesigner({
     logoPosition: { x: 50, y: 140 },
     logo: null,
   });
-
-  console.log(design);
 
   useEffect(() => {
     if (Object.keys(template).length > 0) {
@@ -173,6 +173,7 @@ export function CardDesigner({
           <h2 className="text-xl font-semibold mb-4">Card Preview</h2>
           <CardPreview
             design={cardDesign}
+            galleryImage={gallery}
             groupImage={design?.image}
             groupCreator={design?.creator_name}
             onTextPositionChange={handleTextPositionChange}

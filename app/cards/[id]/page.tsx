@@ -1,26 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { CardDesigner } from "@/components/card-designer";
-import {
-  defaultCardDesign,
-  getCardDesign,
-  saveCardDesign,
-  generateCardId,
-} from "@/lib/card-store";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import { CardDesign } from "@/lib/apis/gallery_apis";
 
 export default function CardDesignPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
-  const [cardDesign, setCardDesign] = useState(defaultCardDesign);
+  const [cardDesign, setCardDesign] = useState();
   const [cardId, setCardId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const id = params.id as string;
@@ -29,10 +25,11 @@ export default function CardDesignPage() {
       // Create a new design
       router.push("/cards/new");
     } else {
-      // Load existing design
-      const design = getCardDesign(id);
-      if (design) {
-        setCardDesign(design);
+      // Load gallery design
+      const galleryItem = searchParams.get("design");
+      if (galleryItem) {
+        const parsedDesign = JSON.parse(galleryItem);
+        setCardDesign(parsedDesign);
         setCardId(id);
       } else {
         // Handle case where design doesn't exist
@@ -87,8 +84,8 @@ export default function CardDesignPage() {
 }
 
 interface CardDesignerWrapperProps {
-  design: typeof defaultCardDesign;
-  onDesignChange: (design: typeof defaultCardDesign) => void;
+  design: CardDesign | undefined;
+  onDesignChange: (design: any) => void;
 }
 
 function CardDesignerWrapper({
@@ -97,7 +94,10 @@ function CardDesignerWrapper({
 }: CardDesignerWrapperProps) {
   return (
     <div className="card-designer-wrapper">
-      <CardDesigner template={design} />
+      <CardDesigner
+        template={design}
+        gallery={design?.backgroundImage ?? undefined}
+      />
     </div>
   );
 }

@@ -10,7 +10,8 @@ import {
 import { motion, type PanInfo } from "framer-motion";
 import { CreditCard } from "lucide-react";
 import type { CardDesign } from "@/components/card-designer";
-import html2canvas from "html2canvas";
+// import html2canvas from "html2canvas";
+import * as htmlToImage from "html-to-image";
 import { Button } from "./ui/button";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
@@ -21,6 +22,7 @@ interface CardPreviewProps {
   design: CardDesign;
   isTemplate?: boolean;
   groupImage?: string;
+  galleryImage?: string;
   groupCreator?: string;
   onTextPositionChange?: (position: { x: number; y: number }) => void;
   onLogoPositionChange?: (position: { x: number; y: number }) => void;
@@ -34,10 +36,8 @@ export const CardPreview = forwardRef(
       design,
       isTemplate = false,
       groupImage,
-      groupCreator,
+      galleryImage,
       onTextPositionChange,
-      onLogoPositionChange,
-      isDraggable = true,
     }: CardPreviewProps,
     ref
   ) => {
@@ -59,39 +59,8 @@ export const CardPreview = forwardRef(
       bottom: 0,
     });
 
-    const [imageSize, setImageSize] = useState({ width: 200, height: 200 });
-
     const [image, setImage] = useState<string | null>(null);
-    const [groupCardImage, setGroupCardImage] = useState<string>();
     const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
-
-    // useEffect(() => {
-    //   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
-    //   const fetchGroupImage = async () => {
-    //     if (groupImage) {
-    //       const response = await axios.get(`${BASE_URL}${groupImage}`, {
-    //         responseType: "blob",
-    //       });
-    //       const blob = response.data;
-    //       const imageUrl = URL.createObjectURL(blob);
-    //       setGroupCardImage(imageUrl);
-    //       console.log(imageUrl);
-    //     }
-    //   };
-    //   fetchGroupImage();
-    // }, [groupImage]);
-
-    // Handle image upload
-    // const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    //   const file = event.target.files?.[0];
-    //   if (file) {
-    //     const reader = new FileReader();
-    //     reader.onload = (e) => {
-    //       setImage(e.target?.result as string);
-    //     };
-    //     reader.readAsDataURL(file);
-    //   }
-    // };
 
     // Update position when design changes
     useEffect(() => {
@@ -111,18 +80,28 @@ export const CardPreview = forwardRef(
       }
     }, []);
 
+    console.log(galleryImage);
+
     useEffect(() => {
-      if (cardRef.current) {
-        // Ensure consistent font rendering
-        const style = document.createElement("style");
-        style.innerHTML = `
-          body {
-            line-height: 0.5 !important;
+      if (galleryImage) {
+        const fetchImage = async () => {
+          try {
+            const response = await fetch(`${BASE_URL}${galleryImage}`);
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            setImage(url);
+          } catch (error) {
+            console.error("Error fetching image:", error);
           }
-        `;
-        cardRef.current.appendChild(style);
+        };
+        fetchImage();
       }
-    }, []);
+      return () => {
+        if (image) {
+          URL.revokeObjectURL(image);
+        }
+      };
+    }, [galleryImage]);
 
     const handleDrag = (
       event: MouseEvent | TouchEvent | PointerEvent,
@@ -168,7 +147,7 @@ export const CardPreview = forwardRef(
         });
 
         // Take the screenshot
-        const canvas = await html2canvas(cardRef.current);
+        const canvas = await htmlToImage.toCanvas(cardRef.current);
         const blob = await new Promise<Blob | null>((resolve) =>
           canvas.toBlob(resolve, "image/png")
         );
@@ -188,12 +167,20 @@ export const CardPreview = forwardRef(
     const handleScreenshot = async () => {
       if (cardRef.current) {
         // Take the screenshot
-        const canvas = await html2canvas(cardRef.current);
-        const dataUrl = canvas.toDataURL("image/png");
-        const link = document.createElement("a");
-        link.href = dataUrl;
-        link.download = "card-preview.png";
-        link.click();
+
+        if (cardRef.current) {
+          htmlToImage
+            .toJpeg(cardRef.current, { quality: 0.95 })
+            .then((dataUrl) => {
+              const link = document.createElement("a");
+              link.download = "debit_card_design.jpeg";
+              link.href = dataUrl;
+              link.click();
+            })
+            .catch((error) => {
+              console.error("Failed to generate image:", error);
+            });
+        }
       }
     };
 
@@ -215,9 +202,9 @@ export const CardPreview = forwardRef(
             backgroundColor: design.backgroundColor,
             backgroundImage: groupImage
               ? `url(${BASE_URL}${groupImage})`
-              : design.backgroundImage
-              ? `url(${design.backgroundImage})`
-              : "none",
+              : galleryImage
+              ? `url(${image})`
+              : `url(${design.backgroundImage})`,
             backgroundSize: "100%",
             backgroundPosition: "center",
           }}
@@ -225,7 +212,7 @@ export const CardPreview = forwardRef(
           {/* Image upload input */}
           {/* <input type="file" accept="image/*" onChange={handleImageUpload} /> */}
           {/* Display uploaded image */}
-          {image && (
+          {/* {image && (
             <motion.img
               src={image}
               alt="Uploaded"
@@ -246,7 +233,7 @@ export const CardPreview = forwardRef(
               onDrag={handleDrag}
               onDragEnd={handleDragEnd}
             />
-          )}
+          )} */}
           <motion.div drag dragMomentum={false}>
             {/* Bank logo placeholder */}
             <div className="absolute top-4 right-4  p-2 rounded-md hide-for-screenshot cursor-move">
@@ -357,7 +344,7 @@ export const CardPreview = forwardRef(
                 }}
               >
                 <img
-                  src={design.logo}
+                  src={BASE_URL + design.logo}
                   alt="Uploaded"
                   className="cursor-move"
                   style={{
