@@ -19,7 +19,7 @@ export default function CardDesignPage() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const id = params.id as string;
+    const id = params.gallery_id as string;
 
     if (id === "new") {
       // Create a new design
