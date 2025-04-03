@@ -150,7 +150,7 @@ export function OrderForm({
       email: "",
       phone: "",
       agreeToTerms: false,
-      orderType: "individual",
+      orderType: "Individual",
       groupPhones: [""],
       account: "",
       pickup_location: "default_location", // replace with actual location if available
