@@ -35,13 +35,13 @@ export function HeroSection() {
           </div>
           <div className="w-full md:w-1/2 relative">
             <div className="relative h-[300px] md:h-[400px] w-full">
-              <div className="absolute top-0 left-0 w-[70%] h-[85%] rounded-lg overflow-hidden shadow-xl transform rotate-[-6deg] z-10">
+              <div className="absolute top-0 left-0 w-[75%] h-[85%] rounded-lg overflow-hidden shadow-xl transform rotate-[-6deg] z-10">
                 <img
                   alt="University Affinity Card"
                   loading="lazy"
                   decoding="async"
                   className="object-cover"
-                  src="/placeholder.svg?height=340&width=540&text=University Card"
+                  src="/Card1.png?height=340&width=540&text=University Card"
                   style={{
                     position: "absolute",
                     height: "100%",
@@ -51,13 +51,13 @@ export function HeroSection() {
                   }}
                 />
               </div>
-              <div className="absolute bottom-0 right-0 w-[70%] h-[85%] rounded-lg overflow-hidden shadow-xl transform rotate-[6deg] z-0">
+              <div className="absolute bottom-0 right-0 w-[75%] h-[85%] rounded-lg overflow-hidden shadow-xl transform rotate-[6deg] z-0">
                 <img
                   alt="Sports Team Affinity Card"
                   loading="lazy"
                   decoding="async"
                   className="object-cover"
-                  src="/placeholder.svg?height=340&width=540&text=Sports Card"
+                  src="/Card.png?height=340&width=540&text=Sports Card"
                   style={{
                     position: "absolute",
                     height: "100%",
