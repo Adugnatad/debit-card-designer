@@ -17,7 +17,7 @@ const MapComponent = ({
   setPickup: (loc: string) => void;
 }) => {
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: "AIzaSyAFJGkkxLWFayXiwrnk7Sb6CoXQWfV-I8c",
+    googleMapsApiKey: "-I8c",
   });
 
   const [search, setSearch] = useState(""); // Search state

@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export function CardSelector() {
   const [selectedCard, setSelectedCard] =
     useState<keyof typeof cardOptions>("university");
+  const [showCardUniversity, setShowCardUniversity] = useState(0);
 
   const cardOptions = {
     university: {
@@ -50,6 +51,12 @@ export function CardSelector() {
     },
   };
 
+  const univeristyCards = [
+    { asset: "Uni" },
+    { asset: "Uni1" },
+    { asset: "Card1" },
+  ];
+
   return (
     <div className="bg-white rounded-xl border p-6">
       <h2 className="text-xl font-bold text-[#006241] mb-4">
@@ -74,20 +81,21 @@ export function CardSelector() {
             <div className="w-full md:w-1/2">
               <div className="relative h-[200px] md:h-[250px] w-full rounded-lg overflow-hidden shadow-md mb-4">
                 <Image
-                  src="/placeholder.svg?height=250&width=400&text=University Card"
+                  src={`/${univeristyCards[showCardUniversity].asset}.png?height=250&width=400&text=University Card`}
                   alt="University Card Example"
                   fill
                   className="object-cover"
                 />
               </div>
               <div className="flex gap-2 mb-4">
-                {[1, 2, 3].map((i) => (
+                {univeristyCards.map((asset, i) => (
                   <div
                     key={i}
-                    className="relative h-16 w-24 rounded border overflow-hidden"
+                    onClick={() => setShowCardUniversity(i)}
+                    className="relative h-16 w-24 rounded border overflow-hidden cursor-pointer"
                   >
                     <Image
-                      src={`/placeholder.svg?height=64&width=96&text=Card ${i}`}
+                      src={`/${asset.asset}.png?height=64&width=96&text=Card ${i}`}
                       alt={`Card option ${i}`}
                       fill
                       className="object-cover"

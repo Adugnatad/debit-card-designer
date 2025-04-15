@@ -7,9 +7,9 @@ export function HeroSection() {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center">
           <div className="w-full md:w-1/2 mb-8 md:mb-0 md:pr-8">
-            <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-[#f8b133] hover:bg-[#e5a42f] text-black mb-4">
+            {/* <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-[#f8b133] hover:bg-[#e5a42f] text-black mb-4">
               New Feature
-            </div>
+            </div> */}
             <h1 className="text-4xl md:text-5xl font-bold text-[#006241] mb-4">
               Express Your Identity
             </h1>
