@@ -80,7 +80,7 @@ export const CardPreview = forwardRef(
       }
     }, []);
 
-    console.log(galleryImage);
+    // console.log(galleryImage);
 
     useEffect(() => {
       if (galleryImage) {
@@ -344,7 +344,7 @@ export const CardPreview = forwardRef(
                 }}
               >
                 <img
-                  src={BASE_URL + design.logo}
+                  src={design.logo}
                   alt="Uploaded"
                   className="cursor-move"
                   style={{

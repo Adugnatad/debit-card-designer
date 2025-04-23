@@ -44,21 +44,6 @@ export function TextCustomizer({
     { name: "Courier New", value: "Courier New" },
   ];
 
-  // Function to check if a color is too light for good visibility
-  const isColorTooLight = (hexColor: string): boolean => {
-    // Convert hex to RGB
-    const r = Number.parseInt(hexColor.slice(1, 3), 16);
-    const g = Number.parseInt(hexColor.slice(3, 5), 16);
-    const b = Number.parseInt(hexColor.slice(5, 7), 16);
-
-    // Calculate luminance (perceived brightness)
-    // Formula: 0.299*R + 0.587*G + 0.114*B
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-    // Return true if the color is too light (luminance > 0.7)
-    return luminance > 0.7;
-  };
-
   // Function to handle color input validation
   const validateAndUpdateColor = (
     colorValue: string,
@@ -72,12 +57,12 @@ export function TextCustomizer({
     }
   };
 
-  // Function to apply the same color to both text elements
-  const applyColorToAll = (color: string) => {
-    onTextChange({
-      textColor: color,
-      cardDetailsTextColor: color,
-    });
+  const validateAndUpdateText = (value: string) => {
+    if (value.length <= 24) {
+      onTextChange({ customText: value });
+    } else {
+      alert("Custom text must not exceed 24 characters.");
+    }
   };
 
   return (
@@ -87,7 +72,7 @@ export function TextCustomizer({
         <Input
           id="custom-text"
           value={text}
-          onChange={(e) => onTextChange({ customText: e.target.value })}
+          onChange={(e) => validateAndUpdateText(e.target.value)}
           placeholder="Enter text to display on card"
           maxLength={24}
         />

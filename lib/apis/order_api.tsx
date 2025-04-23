@@ -25,7 +25,7 @@ import axios from "axios";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 export const submitOrder = async (payload: orderPayload): Promise<void> => {
-  console.log(payload);
+  // console.log(payload);
   const formData = new FormData();
   formData.append("name", payload.name);
   if (payload.email) {

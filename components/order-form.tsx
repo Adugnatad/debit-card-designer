@@ -49,9 +49,13 @@ interface OrderFormProps {
 }
 
 const validationSchema = Yup.object({
-  fullName: Yup.string().required("Full Name is required"),
+  fullName: Yup.string()
+    .matches(/^[a-zA-Z\s]+$/, "Full Name must only contain letters and spaces")
+    .max(30, "Full Name must be at most 30 characters")
+    .required("Full Name is required"),
   email: Yup.string()
     .email("Invalid email address")
+    .max(30, "Email must be at most 30 characters")
     .required("Email is required"),
   phone: Yup.string()
     .matches(/^(\+251|0)?9\d{8}$/, "Phone number is not valid")
@@ -62,7 +66,12 @@ const validationSchema = Yup.object({
   ),
   orderType: Yup.string(),
   account: Yup.string().required("Account selection is required"),
-  pickup_location: Yup.string(),
+  pickup_location: Yup.string().required("Pickup location is required"),
+  groupPhones: Yup.array().of(
+    Yup.string()
+      .matches(/^(\+251|0)?9\d{8}$/, "Phone number is not valid")
+      .required("Phone number is required")
+  ),
 });
 
 export function OrderForm({
@@ -82,7 +91,7 @@ export function OrderForm({
   >([]);
   const { toast } = useToast();
   const [otpSendError, setOtpSendError] = useState("");
-  const [resendTimer, setResendTimer] = useState(60);
+  const [resendTimer, setResendTimer] = useState(120);
   const params = useParams();
 
   const group_id = params.id as string;
@@ -95,13 +104,15 @@ export function OrderForm({
   }, [resendTimer]);
 
   const handleResendOtp = () => {
-    setResendTimer(60);
     send_otp.mutate({ phoneNumber: formik.values.phone });
   };
 
   const send_otp = useMutation({
     mutationFn: ({ phoneNumber }: { phoneNumber: string }) =>
       sendOtp({ phoneNumber }),
+    onMutate: () => {
+      setResendTimer(120);
+    },
     onSuccess: (data: { id: string; message: string }) => {
       setId(data.id);
       setModalVisible(true);
@@ -153,11 +164,11 @@ export function OrderForm({
       orderType: "Individual",
       groupPhones: [""],
       account: "",
-      pickup_location: "default_location", // replace with actual location if available
+      pickup_location: "", // replace with actual location if available
     },
     validationSchema,
     onSubmit: async (values) => {
-      console.log(values);
+      // console.log(values);
       setIsSubmitting(true);
       if (group_id) {
         const sendOrderData: SendOrderData = {
@@ -413,13 +424,7 @@ export function OrderForm({
                     pattern="^(\+251|0)?9\d{8}$"
                     title="Phone number is not valid"
                   />
-                  {formik.touched.groupPhones &&
-                  formik.errors.groupPhones &&
-                  formik.errors.groupPhones[index] ? (
-                    <div className="text-red-500 text-sm">
-                      {formik.errors.groupPhones[index]}
-                    </div>
-                  ) : null}
+
                   {formik.values.groupPhones.length > 1 && (
                     <Button
                       type="button"
@@ -450,6 +455,11 @@ export function OrderForm({
                   )}
                 </div>
               ))}
+              {formik.touched.groupPhones && formik.errors.groupPhones ? (
+                <div className="text-red-500 text-sm">
+                  {formik.errors.groupPhones}
+                </div>
+              ) : null}
               <Button
                 className="self-end"
                 type="button"
@@ -468,6 +478,12 @@ export function OrderForm({
           <div className="space-y-2">
             <Label>Pickup Branch</Label>
             <div className="w-full bg-gray-200 rounded-md">
+              {formik.touched.pickup_location &&
+              formik.errors.pickup_location ? (
+                <div className="text-red-500 text-sm">
+                  {formik.errors.pickup_location}
+                </div>
+              ) : null}
               <MapComponent
                 setPickup={(location: string) =>
                   formik.setFieldValue("pickup_location", location)

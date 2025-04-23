@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, X } from "lucide-react";
+import { set } from "react-hook-form";
 
 interface ImageUploaderProps {
   image: string | null;
@@ -17,6 +18,7 @@ export function ImageUploader({ image, onImageUpload }: ImageUploaderProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(image);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -28,6 +30,12 @@ export function ImageUploader({ image, onImageUpload }: ImageUploaderProps) {
   const processFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
       alert("Please upload an image file");
+      return;
+    }
+    setError(false);
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError(true);
       return;
     }
 
@@ -112,6 +120,11 @@ export function ImageUploader({ image, onImageUpload }: ImageUploaderProps) {
           onChange={handleFileChange}
           className="hidden"
         />
+        {error && (
+          <p className="text-red-500 text-sm my-2">
+            File size exceeds 5MB. Please upload a smaller file.
+          </p>
+        )}
         <Label htmlFor="image-upload" className="w-full">
           <Button
             variant="outline"

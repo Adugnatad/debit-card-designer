@@ -9,8 +9,6 @@ export interface Design {
   creator_name: string;
 }
 
-console.log("BASE_URL", BASE_URL);
-
 // api.ts
 export const getDesign = async (id: string): Promise<Design> => {
   const response = await axios.get(

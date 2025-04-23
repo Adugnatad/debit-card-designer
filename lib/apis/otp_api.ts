@@ -16,7 +16,7 @@ export const sendOtp = async (data: {
   if (response.status !== 201) {
     throw new Error("Failed to send otp");
   }
-  console.log(response.data);
+  // console.log(response.data);
   return response.data;
 };
 
