@@ -67,11 +67,14 @@ const validationSchema = Yup.object({
   orderType: Yup.string(),
   account: Yup.string().required("Account selection is required"),
   pickup_location: Yup.string().required("Pickup location is required"),
-  groupPhones: Yup.array().of(
-    Yup.string()
-      .matches(/^(\+251|0)?9\d{8}$/, "Phone number is not valid")
-      .required("Phone number is required")
-  ),
+  groupPhones: Yup.array()
+    .of(Yup.string().matches(/^(\+251|0)?9\d{8}$/, "Phone number is not valid"))
+    .when("orderType", {
+      is: "Group",
+      then: (schema) =>
+        schema.required("At least one phone number is required"),
+      otherwise: (schema) => schema.notRequired(),
+    }),
 });
 
 export function OrderForm({
@@ -86,6 +89,7 @@ export function OrderForm({
   const [error, setError] = useState("");
   const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [id, setId] = useState("");
+  const [sessionToken, setSessionToken] = useState("");
   const [accounts, setAccounts] = useState<
     { id: string; accountNumber: string }[]
   >([]);
@@ -125,7 +129,8 @@ export function OrderForm({
   const verify_otp = useMutation({
     mutationFn: (code: string) => verifyOtp({ id, otp: code }),
     onSuccess: (data) => {
-      setAccounts(data);
+      setAccounts(data.accounts);
+      setSessionToken(data.session_token);
       setIsOtpVerified(true);
       setModalVisible(false);
     },
@@ -139,7 +144,13 @@ export function OrderForm({
     onSuccess: () => {
       setIsSubmitted(true);
     },
-    onError: () => {},
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit order. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const confirmOrder = useMutation({
@@ -147,7 +158,13 @@ export function OrderForm({
     onSuccess: () => {
       setIsSubmitted(true);
     },
-    onError: () => {},
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to accept invitation. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const locations = useQuery({
@@ -170,6 +187,16 @@ export function OrderForm({
     onSubmit: async (values) => {
       // console.log(values);
       setIsSubmitting(true);
+      if (!isOtpVerified) {
+        toast({
+          title: "Error",
+          description: "Please verify your phone number",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       if (group_id) {
         const sendOrderData: SendOrderData = {
           name: values.fullName,
@@ -178,6 +205,7 @@ export function OrderForm({
           pickup_location: values.pickup_location, // replace with actual location if available
           user_id: id,
           group_id: group_id,
+          session_token: sessionToken,
         };
         confirmOrder.mutate(sendOrderData);
       } else {
@@ -190,25 +218,16 @@ export function OrderForm({
           image: await triggerScreenshot(),
           list_of_phoneNumbers: values.groupPhones.filter((phone) => phone),
           user_id: id,
+          session_token: sessionToken,
         };
         sendOrder.mutate(sendOrderData);
-
-        // await triggerScreenshot().then((image) => {
-        //   const sendOrderData: orderPayload = {
-        //     image: image,
-        //     email: values.email,
-        //     name: values.fullName,
-        //     accountNumber: values.account,
-        //     list_of_phoneNumbers: values.groupPhones,
-        //     pickup_location: "default_location", // replace with actual location if available
-        //     requestType: values.orderType,
-        //     user_id: id,
-        //   }
-        //   sendOrder.mutate(sendOrderData);
-        // })
       }
     },
   });
+
+  useEffect(() => {
+    setIsOtpVerified(false);
+  }, [formik.values.phone]);
 
   const handleOtpCall = (otp: string) => {
     verify_otp.mutate(otp);
@@ -287,9 +306,10 @@ export function OrderForm({
               <RadioGroup
                 className="bg-gray-100 p-2 rounded-md"
                 value={formik.values.orderType}
-                onValueChange={(value) =>
-                  formik.setFieldValue("orderType", value)
-                }
+                onValueChange={(value) => {
+                  formik.setFieldValue("orderType", value);
+                  formik.setFieldValue("groupPhones", [""]);
+                }}
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="Individual" id="individual" />
@@ -394,7 +414,7 @@ export function OrderForm({
                 <option value="" disabled>
                   Select an account
                 </option>
-                {accounts.map(
+                {accounts?.map(
                   (account: { id: string; accountNumber: string }) => (
                     <option key={account.id} value={account.accountNumber}>
                       {account.accountNumber}

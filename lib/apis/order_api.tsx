@@ -8,6 +8,7 @@ export interface orderPayload {
   pickup_location: string;
   requestType: string;
   user_id: string;
+  session_token: string;
 }
 
 export interface SendOrderData {
@@ -17,6 +18,7 @@ export interface SendOrderData {
   pickup_location: string;
   group_id: string;
   user_id: string;
+  session_token: string;
 }
 
 // apis.ts
@@ -54,6 +56,7 @@ export const submitOrder = async (payload: orderPayload): Promise<void> => {
     {
       headers: {
         "Content-Type": "multipart/form-data",
+        "X-Session-Token": payload.session_token,
       },
     }
   );
@@ -68,7 +71,13 @@ export const confirmInvitation = async (
 ): Promise<void> => {
   const response = await axios.post(
     `${BASE_URL}/api/v1/cards/${payload.group_id}/invitation-card-confirm/`,
-    payload
+    payload,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "X-Session-Token": payload.session_token,
+      },
+    }
   );
 
   if (response.status !== 201) {

@@ -23,7 +23,11 @@ export const sendOtp = async (data: {
 export const verifyOtp = async (data: {
   id: string;
   otp: string;
-}): Promise<[{ id: string; accountNumber: string }]> => {
+}): Promise<{
+  id: string;
+  accounts: [{ id: any; accountNumber: string }];
+  session_token: string;
+}> => {
   const response = await axios.post(
     `${BASE_URL}/api/v1/users/${data.id}/verify-otp/`,
     { otp: data.otp },
@@ -37,5 +41,5 @@ export const verifyOtp = async (data: {
   if (response.status !== 200) {
     throw new Error("Failed to verify otp");
   }
-  return response.data.accounts;
+  return response.data;
 };

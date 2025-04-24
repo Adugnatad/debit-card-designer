@@ -79,7 +79,7 @@ export function CardSelector() {
         <TabsContent value="university" className="mt-0">
           <div className="flex flex-col md:flex-row gap-6">
             <div className="w-full md:w-1/2">
-              <div className="relative h-[200px] md:h-[250px] w-full rounded-lg overflow-hidden shadow-md mb-4">
+              <div className="relative h-[200px] md:h-[280px] w-full rounded-lg overflow-hidden shadow-md mb-4">
                 <Image
                   src={`/${univeristyCards[showCardUniversity].asset}.png?height=250&width=400&text=University Card`}
                   alt="University Card Example"
