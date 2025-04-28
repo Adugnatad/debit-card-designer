@@ -36,7 +36,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { LoadingScreen } from "./loading-screen";
 import { sendOtp, verifyOtp } from "@/lib/apis/otp_api";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, usePathname } from "next/navigation";
 import { group } from "node:console";
 import MapComponent from "./map-component";
 import { getLocation } from "@/lib/apis/map_apis";
@@ -97,6 +97,8 @@ export function OrderForm({
   const [otpSendError, setOtpSendError] = useState("");
   const [resendTimer, setResendTimer] = useState(120);
   const params = useParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const group_id = params.id as string;
 
@@ -144,6 +146,9 @@ export function OrderForm({
     onSuccess: () => {
       setIsSubmitted(true);
     },
+    onSettled: () => {
+      setIsSubmitting(false);
+    },
     onError: () => {
       toast({
         title: "Error",
@@ -157,6 +162,9 @@ export function OrderForm({
     mutationFn: (data: SendOrderData) => confirmInvitation(data),
     onSuccess: () => {
       setIsSubmitted(true);
+    },
+    onSettled: () => {
+      setIsSubmitting(false);
     },
     onError: () => {
       toast({
@@ -249,7 +257,15 @@ export function OrderForm({
             <p className="text-gray-600 mb-6">
               A confirmation email has been sent to {formik.values.email}.
             </p>
-            <Button onClick={() => window.location.reload()}>
+            <Button
+              onClick={() => {
+                if (pathname === "/cards/new") {
+                  window.location.reload();
+                } else {
+                  router.replace("/cards/new");
+                }
+              }}
+            >
               Design Another Card
             </Button>
           </div>
@@ -258,11 +274,11 @@ export function OrderForm({
     );
   }
 
-  if (sendOrder.isPending) {
+  if (sendOrder.isPending || isSubmitting) {
     return <LoadingScreen message="Submitting Order ..." />;
   }
 
-  if (confirmOrder.isPending) {
+  if (confirmOrder.isPending || isSubmitting) {
     return <LoadingScreen message="Accepting Invitation ..." />;
   }
 
