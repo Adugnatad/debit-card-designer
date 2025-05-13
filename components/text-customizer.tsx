@@ -58,6 +58,19 @@ export function TextCustomizer({
   };
 
   const validateAndUpdateText = (value: string) => {
+    const isAlphaNumeric = /^[a-zA-Z0-9\s]*$/.test(value);
+    const isLink = /(https?:\/\/[^\s]+)/.test(value);
+
+    if (!isAlphaNumeric) {
+      alert("Custom text must only contain alphanumeric characters.");
+      return;
+    }
+
+    if (isLink) {
+      alert("Custom text must not contain links.");
+      return;
+    }
+
     if (value.length <= 24) {
       onTextChange({ customText: value });
     } else {
