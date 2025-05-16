@@ -24,7 +24,7 @@ export interface SendOrderData {
 // apis.ts
 //   import { axiosConfig as axios } from "../axios";
 import axios from "axios";
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+const BASE_URL = process.env.BASE_URL;
 
 export const submitOrder = async (payload: orderPayload): Promise<void> => {
   // console.log(payload);

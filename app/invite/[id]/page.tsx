@@ -7,17 +7,26 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { getDesign } from "@/lib/apis/design_apis";
 import { LoadingScreen } from "@/components/loading-screen";
+import { Design } from "@/lib/apis/design_apis";
 
 export default function Designer() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
 
+  const fetchDesign = async (id: string): Promise<Design> => {
+    const response = await fetch(`/api/design/${id}`);
+    if (!response.ok) {
+      throw new Error("Design not found");
+    }
+    const data = await response.json();
+    return data;
+  };
+
   const design = useQuery({
     queryKey: ["design"],
-    queryFn: () => getDesign(params.id as string),
+    queryFn: () => fetchDesign(params.id as string),
   });
 
   useEffect(() => {

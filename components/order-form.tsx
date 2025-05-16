@@ -27,19 +27,12 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-  confirmInvitation,
-  orderPayload,
-  SendOrderData,
-  submitOrder,
-} from "@/lib/apis/order_api";
+import { orderPayload, SendOrderData } from "@/lib/apis/order_api";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingScreen } from "./loading-screen";
-import { sendOtp, verifyOtp } from "@/lib/apis/otp_api";
 import { useParams, useRouter, usePathname } from "next/navigation";
-import { group } from "node:console";
 import MapComponent from "./map-component";
-import { getLocation } from "@/lib/apis/map_apis";
+import { Location } from "@/lib/apis/map_apis";
 
 interface OrderFormProps {
   design: any;
@@ -102,6 +95,55 @@ export function OrderForm({
 
   const group_id = params.id as string;
 
+  const fetchLocations = async (): Promise<Location[]> => {
+    const res = await fetch("/api/locations");
+    if (!res.ok) throw new Error("Failed to fetch locations");
+    return res.json();
+  };
+
+  const postOrder = async (payload: orderPayload) => {
+    const res = await fetch("/api/order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    return res.json();
+  };
+
+  const confirmInvitationOrder = async (payload: SendOrderData) => {
+    const res = await fetch("/api/invitation-confirm", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    return res.json();
+  };
+
+  const postSendOtp = async (phoneNumber: string) => {
+    const res = await fetch("/api/send-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phoneNumber }),
+    });
+    return res.json(); // { id, message }
+  };
+
+  const postVerifyOtp = async (id: string, otp: string) => {
+    const res = await fetch("/api/verify-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, otp }),
+    });
+
+    return res.json(); // { id, accounts, session_token }
+  };
+
   useEffect(() => {
     if (resendTimer > 0) {
       const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
@@ -115,7 +157,7 @@ export function OrderForm({
 
   const send_otp = useMutation({
     mutationFn: ({ phoneNumber }: { phoneNumber: string }) =>
-      sendOtp({ phoneNumber }),
+      postSendOtp(phoneNumber),
     onMutate: () => {
       setResendTimer(120);
       setError("");
@@ -130,7 +172,7 @@ export function OrderForm({
   });
 
   const verify_otp = useMutation({
-    mutationFn: (code: string) => verifyOtp({ id, otp: code }),
+    mutationFn: (code: string) => postVerifyOtp(id, code),
     onSuccess: (data) => {
       setAccounts(data.accounts);
       setSessionToken(data.session_token);
@@ -144,7 +186,7 @@ export function OrderForm({
   });
 
   const sendOrder = useMutation({
-    mutationFn: (data: orderPayload) => submitOrder(data),
+    mutationFn: (data: orderPayload) => postOrder(data),
     onSuccess: () => {
       setIsSubmitted(true);
     },
@@ -161,7 +203,7 @@ export function OrderForm({
   });
 
   const confirmOrder = useMutation({
-    mutationFn: (data: SendOrderData) => confirmInvitation(data),
+    mutationFn: (data: SendOrderData) => confirmInvitationOrder(data),
     onSuccess: () => {
       setIsSubmitted(true);
     },
@@ -179,7 +221,7 @@ export function OrderForm({
 
   const locations = useQuery({
     queryKey: ["location"],
-    queryFn: () => getLocation(),
+    queryFn: () => fetchLocations(),
   });
 
   const formik = useFormik({

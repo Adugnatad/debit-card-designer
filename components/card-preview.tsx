@@ -60,7 +60,7 @@ export const CardPreview = forwardRef(
     });
 
     const [image, setImage] = useState<string | null>(null);
-    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+    const BASE_URL = process.env.BASE_URL;
 
     // Update position when design changes
     useEffect(() => {

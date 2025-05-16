@@ -1,6 +1,5 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { CardPreview } from "@/components/card-preview";
 import { Button } from "@/components/ui/button";
@@ -8,21 +7,18 @@ import { ArrowLeft, PlusCircle } from "lucide-react";
 import { CardContent } from "@/components/ui/card";
 import type { CardDesign } from "@/components/card-designer";
 import { useQuery } from "@tanstack/react-query";
-import { getGalleryDesigns } from "@/lib/apis/gallery_apis";
 import { LoadingScreen } from "@/components/loading-screen";
 
-interface GalleryItem {
-  id: string;
-  design: CardDesign;
-}
-
 export default function GalleryPage() {
-  // const [designs, setDesigns] = useState<GalleryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const fetchGalleryDesigns = async (): Promise<CardDesign[]> => {
+    const res = await fetch("/api/gallery-designs");
+    if (!res.ok) throw new Error("Failed to fetch gallery designs");
+    return res.json();
+  };
 
   const galleryDesigns = useQuery({
     queryKey: ["gallery_design"],
-    queryFn: () => getGalleryDesigns(),
+    queryFn: () => fetchGalleryDesigns(),
   });
 
   if (galleryDesigns.isLoading) {
