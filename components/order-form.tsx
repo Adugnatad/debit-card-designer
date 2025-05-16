@@ -118,6 +118,7 @@ export function OrderForm({
       sendOtp({ phoneNumber }),
     onMutate: () => {
       setResendTimer(120);
+      setError("");
     },
     onSuccess: (data: { id: string; message: string }) => {
       setId(data.id);
@@ -137,7 +138,8 @@ export function OrderForm({
       setModalVisible(false);
     },
     onError: (error: any) => {
-      setError("Invalid OTP code");
+      console.log(error);
+      setError(error?.response?.data.message || "Invalid OTP code");
     },
   });
 

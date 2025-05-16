@@ -38,8 +38,8 @@ export const verifyOtp = async (data: {
     }
   );
 
-  if (response.status !== 200) {
-    throw new Error("Failed to verify otp");
-  }
+  // if (response.status !== 200) {
+  //   throw new Error("Failed to verify otp");
+  // }
   return response.data;
 };
