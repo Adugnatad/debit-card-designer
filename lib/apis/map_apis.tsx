@@ -10,6 +10,13 @@ export interface Location {
 
 // api.ts
 export const getLocation = async (): Promise<Location[]> => {
-  const response = await axios.get(`${BASE_URL}/api/v1/branches/`);
-  return response.data;
+  try {
+    const response = await axios.get(`${BASE_URL}/api/v1/branches/`);
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data && error.response.data.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw new Error("Failed to fetch locations");
+  }
 };

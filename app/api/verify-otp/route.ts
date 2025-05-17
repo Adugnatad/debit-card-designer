@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     return NextResponse.json(
       { message: error.message || "Failed to verify OTP" },
-      { status: 500 }
+      { status: 400 }
     );
   }
 }

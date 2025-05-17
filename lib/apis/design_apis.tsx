@@ -11,8 +11,15 @@ export interface Design {
 
 // api.ts
 export const getDesign = async (id: string): Promise<Design> => {
-  const response = await axios.get(
-    `${BASE_URL}/api/v1/cards/${id}/invitation-card-confirm/`
-  );
-  return response.data;
+  try {
+    const response = await axios.get(
+      `${BASE_URL}/api/v1/cards/${id}/invitation-card-confirm/`
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data && error.response.data.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw new Error("Failed to fetch design");
+  }
 };

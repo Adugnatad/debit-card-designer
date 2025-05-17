@@ -3,21 +3,25 @@ const BASE_URL = process.env.BASE_URL;
 export const sendOtp = async (data: {
   phoneNumber: string;
 }): Promise<{ id: string; message: string }> => {
-  const response = await axios.post(
-    `${BASE_URL}/api/v1/users/send-otp/`,
-    { phone_number: data.phoneNumber },
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
-  );
+  try {
+    const response = await axios.post(
+      `${BASE_URL}/api/v1/users/send-otp/`,
+      { phone_number: data.phoneNumber },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-  if (response.status !== 201) {
+    // console.log(response.data);
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data && error.response.data.message) {
+      throw new Error(error.response.data.message);
+    }
     throw new Error("Failed to send otp");
   }
-  // console.log(response.data);
-  return response.data;
 };
 
 export const verifyOtp = async (data: {
@@ -28,18 +32,21 @@ export const verifyOtp = async (data: {
   accounts: [{ id: any; accountNumber: string }];
   session_token: string;
 }> => {
-  const response = await axios.post(
-    `${BASE_URL}/api/v1/users/${data.id}/verify-otp/`,
-    { otp: data.otp },
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
+  try {
+    const response = await axios.post(
+      `${BASE_URL}/api/v1/users/${data.id}/verify-otp/`,
+      { otp: data.otp },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data && error.response.data.message) {
+      throw new Error(error.response.data.message);
     }
-  );
-
-  // if (response.status !== 200) {
-  //   throw new Error("Failed to verify otp");
-  // }
-  return response.data;
+    throw new Error("Failed to verify otp");
+  }
 };

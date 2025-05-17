@@ -22,6 +22,13 @@ export interface CardDesign {
 
 // api.ts
 export const getGalleryDesigns = async (): Promise<CardDesign[]> => {
-  const response = await axios.get(`${BASE_URL}/api/v1/cards/card-designs/`);
-  return response.data.results;
+  try {
+    const response = await axios.get(`${BASE_URL}/api/v1/cards/card-designs/`);
+    return response.data.results;
+  } catch (error: any) {
+    if (error.response && error.response.data && error.response.data.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw new Error("Failed to fetch card designs");
+  }
 };
