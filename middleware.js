@@ -15,7 +15,6 @@ export function middleware(request) {
   base-uri 'self';
   form-action 'self';
   frame-ancestors 'none';
-  upgrade-insecure-requests;
 `;
 
   // Replace newline characters and spaces
