@@ -1,6 +1,7 @@
 import type React from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import QueryProvider from "@/components/QueryProvider";
 import Script from "next/script";
 import "./globals.css";
 
@@ -25,6 +26,3 @@ export default function RootLayout({
     </QueryProvider>
   );
 }
-
-import "./globals.css";
-import QueryProvider from "@/components/QueryProvider";
