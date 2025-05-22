@@ -4,17 +4,7 @@ export function middleware(request) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const cspHeader = `
   default-src 'self';
-  script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https: http: ${
-    process.env.NODE_ENV === "production" ? "" : `'unsafe-eval'`
-  };
-  style-src 'self' 'nonce-${nonce}' 'unsafe-inline';
-  img-src 'self' data: blob: https:;
-  font-src 'self' https:;
-  connect-src 'self' https:;
-  object-src 'none';
-  base-uri 'self';
-  form-action 'self';
-  frame-ancestors 'none';
+  script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
 `;
 
   // Replace newline characters and spaces
