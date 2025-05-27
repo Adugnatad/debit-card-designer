@@ -5,6 +5,7 @@ export function middleware(request) {
   const cspHeader = `
   default-src 'self';
   script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
+  style-src 'self' 'nonce-${nonce}';
 `;
 
   // Replace newline characters and spaces
