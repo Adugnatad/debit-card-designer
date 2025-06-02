@@ -2,11 +2,7 @@ import { NextResponse } from "next/server";
 
 export function middleware(request) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-  const cspHeader = `
-  default-src 'self';
-  script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
-  style-src 'self' 'nonce-${nonce}';
-`;
+  const cspHeader = ``;
 
   // Replace newline characters and spaces
   const contentSecurityPolicyHeaderValue = cspHeader
