@@ -96,11 +96,6 @@ export const CardPreview = forwardRef(
         };
         fetchImage();
       }
-      return () => {
-        if (image) {
-          URL.revokeObjectURL(image);
-        }
-      };
     }, [galleryImage]);
 
     const handleDrag = (
@@ -201,7 +196,7 @@ export const CardPreview = forwardRef(
           style={{
             backgroundColor: design.backgroundColor,
             backgroundImage: groupImage
-              ? `url(${BASE_URL}${groupImage})`
+              ? `url(${groupImage})`
               : galleryImage
               ? `url(${image})`
               : `url(${design.backgroundImage})`,

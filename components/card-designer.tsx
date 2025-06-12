@@ -174,7 +174,7 @@ export function CardDesigner({
           <CardPreview
             design={cardDesign}
             galleryImage={gallery}
-            groupImage={design?.image}
+            groupImage={design?.base + design?.image}
             groupCreator={design?.creator_name}
             onTextPositionChange={handleTextPositionChange}
             isDraggable={currentStep === "design"}

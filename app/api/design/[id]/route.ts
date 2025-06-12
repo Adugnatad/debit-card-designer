@@ -11,7 +11,7 @@ export async function GET(
 
   try {
     const design: Design = await getDesign(id);
-    return NextResponse.json(design);
+    return NextResponse.json({ ...design, base: process.env.BASE_URL });
   } catch (error: any) {
     console;
     return NextResponse.json(
