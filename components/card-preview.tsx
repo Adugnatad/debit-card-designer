@@ -98,6 +98,25 @@ export const CardPreview = forwardRef(
       }
     }, [galleryImage]);
 
+    useEffect(() => {
+      if (groupImage) {
+        const fetchGroupImage = async () => {
+          try {
+            const response = await fetch(
+              `/api/group-image?imageUrl=${encodeURIComponent(groupImage)}`
+            );
+            if (!response.ok) throw new Error("Failed to fetch group image");
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            setImage(url);
+          } catch (error) {
+            console.error("Error fetching group image:", error);
+          }
+        };
+        fetchGroupImage();
+      }
+    }, [groupImage]);
+
     const handleDrag = (
       event: MouseEvent | TouchEvent | PointerEvent,
       info: PanInfo
@@ -196,7 +215,7 @@ export const CardPreview = forwardRef(
           style={{
             backgroundColor: design.backgroundColor,
             backgroundImage: groupImage
-              ? `url(${groupImage})`
+              ? `url(${image})`
               : galleryImage
               ? `url(${image})`
               : `url(${design.backgroundImage})`,

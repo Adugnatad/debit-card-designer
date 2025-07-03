@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 
 export function middleware(request) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-  const cspHeader = ``;
+  // const cspHeader = ``;
 
-  //   const cspHeader = `
+  // const cspHeader = `
   //     default-src 'self';
-  //     script-src 'self' 'unsafe-eval' 'unsafe-inline';
+  //     script-src 'self' 'unsafe-eval' 'unsafe-inline' 'nonce-${nonce}';
   //     style-src 'self' 'unsafe-inline';
   //     img-src 'self' blob: data:;
   //     font-src 'self';
@@ -16,6 +16,19 @@ export function middleware(request) {
   //     frame-ancestors 'none';
   //     upgrade-insecure-requests;
   // `;
+
+  const cspHeader = `
+      default-src 'self';
+      script-src 'self' 'nonce-${nonce}';
+      style-src 'self' 'nonce-${nonce}';
+      img-src 'self';
+      font-src 'self';
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+      frame-ancestors 'none';
+      upgrade-insecure-requests;
+  `;
 
   // Replace newline characters and spaces
   const contentSecurityPolicyHeaderValue = cspHeader
@@ -34,10 +47,13 @@ export function middleware(request) {
       headers: requestHeaders,
     },
   });
+  response.headers.set("x-nonce", nonce);
   response.headers.set(
     "Content-Security-Policy",
     contentSecurityPolicyHeaderValue
   );
+
+  response.cookies.set("nonce", nonce, { httpOnly: false, path: "/" });
 
   return response;
 }
