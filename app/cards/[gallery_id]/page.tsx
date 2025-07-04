@@ -9,41 +9,73 @@ import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { CardDesign } from "@/lib/apis/gallery_apis";
 
+function isValidDesign(obj: any): obj is CardDesign {
+  if (!obj || typeof obj !== "object") return false;
+
+  const isColor = (val: any) =>
+    typeof val === "string" && /^#[0-9a-fA-F]{6}$/.test(val);
+  const isText = (val: any) => typeof val === "string" && val.length < 100;
+  const isCoord = (coord: any) =>
+    coord && typeof coord.x === "number" && typeof coord.y === "number";
+
+  return (
+    ("backgroundImage" in obj
+      ? obj.backgroundImage === null || isText(obj.backgroundImage)
+      : true) &&
+    isColor(obj.backgroundColor) &&
+    isText(obj.customText) &&
+    isColor(obj.textColor) &&
+    isText(obj.fontFamily) &&
+    isCoord(obj.textPosition) &&
+    isCoord(obj.logoPosition) &&
+    isColor(obj.cardDetailsTextColor) &&
+    ("logo" in obj ? obj.logo === null || isText(obj.logo) : true)
+  );
+}
+
 export default function CardDesignPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
-  const [cardDesign, setCardDesign] = useState();
+  const [cardDesign, setCardDesign] = useState<CardDesign | undefined>();
   const [cardId, setCardId] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const id = params.gallery_id as string;
+    const id = params?.gallery_id as string;
 
     if (id === "new") {
       // Create a new design
       router.push("/cards/new");
     } else {
       // Load gallery design
-      const galleryItem = searchParams.get("design");
+      const galleryItem = searchParams?.get("design");
       if (galleryItem) {
-        const parsedDesign = JSON.parse(galleryItem);
-        setCardDesign(parsedDesign);
-        setCardId(id);
-      } else {
-        // Handle case where design doesn't exist
-        toast({
-          title: "Design not found",
-          description:
-            "The requested card design could not be found. Creating a new design instead.",
-          variant: "destructive",
-        });
-        router.push("/cards/new");
+        try {
+          const decoded = decodeURIComponent(galleryItem);
+          const parsed = JSON.parse(decoded);
+
+          if (isValidDesign(parsed)) {
+            setCardDesign(parsed);
+            setCardId(id);
+          } else {
+            throw new Error("Invalid design structure");
+          }
+        } catch (err) {
+          console.error("Invalid design data:", err);
+          toast({
+            title: "Invalid design data",
+            description:
+              "The design information provided is invalid or corrupted.",
+            variant: "destructive",
+          });
+          router.push("/cards/new");
+        }
       }
       setIsLoading(false);
     }
-  }, [params.id, router, toast]);
+  }, [params?.id, router, toast]);
 
   if (isLoading) {
     return (

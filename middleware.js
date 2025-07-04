@@ -20,7 +20,7 @@ export function middleware(request) {
   const cspHeader = `
       default-src 'self';
       script-src 'self' 'nonce-${nonce}';
-      style-src 'self' 'nonce-${nonce}';
+      style-src 'self' 'nonce-${nonce}' ;
       img-src 'self';
       font-src 'self';
       object-src 'none';
