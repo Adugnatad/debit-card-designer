@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import QueryProvider from "@/components/QueryProvider";
 import Script from "next/script";
 import "./globals.css";
+import { headers } from "next/headers";
 
 // const inter = Inter({ subsets: ["latin"] });
 
@@ -18,10 +19,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = headers().get("nonce")?.value || "";
   return (
     <QueryProvider>
       <html lang="en">
-        <body>{children}</body>
+        <body>
+          <Script id="custom" nonce={nonce} strategy="afterInteractive" />
+          {children}
+        </body>
       </html>
     </QueryProvider>
   );
