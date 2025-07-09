@@ -211,7 +211,7 @@ export const CardPreview = forwardRef(
       >
         <div
           ref={cardRef}
-          className="relative w-full aspect-[1.586/1] rounded-xl overflow-hidden shadow-lg "
+          className="relative w-full aspect-[1.586/1] rounded-xl overflow-hidden shadow-lg bg-center bg-[length:100%]"
           style={{
             backgroundColor: design.backgroundColor,
             backgroundImage: groupImage

@@ -14,12 +14,13 @@ export const metadata: Metadata = {
   generator: "v0.dev",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const nonce = headers().get("nonce")?.value || "";
+  const hdrs = await headers();
+  const nonce = hdrs.get("nonce") || "";
   return (
     <QueryProvider>
       <html lang="en">

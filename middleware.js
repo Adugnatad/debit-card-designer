@@ -20,7 +20,10 @@ export function middleware(request) {
   const cspHeader = `
       default-src 'self';
       script-src  'nonce-${nonce}';
-      img-src 'self';
+      script-src-elem 'self' 'nonce-${nonce}' https://maps.googleapis.com https://maps.gstatic.com https://fonts.googleapis.com;
+      style-src-elem 'self' https://fonts.googleapis.com;
+      connect-src 'self' https://maps.googleapis.com;
+      img-src 'self' data: https://maps.googleapis.com https://maps.gstatic.com;
       font-src 'self';
       object-src 'none';
       base-uri 'self';
