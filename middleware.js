@@ -21,6 +21,7 @@ export function middleware(request) {
       default-src 'self';
       script-src  'nonce-${nonce}';
       script-src-elem 'self' 'nonce-${nonce}' https://maps.googleapis.com https://maps.gstatic.com https://fonts.googleapis.com;
+      style-src 'self';
       style-src-elem 'self' https://fonts.googleapis.com;
       connect-src 'self' blob: https://maps.googleapis.com https://fonts.googleapis.com;
       img-src 'self' data: blob: https://maps.googleapis.com https://maps.gstatic.com;
