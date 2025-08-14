@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { CardDesigner } from "@/components/card-designer";
+// import { CardDesigner } from "@/components/card-designer";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
@@ -63,7 +63,7 @@ export default function CardDesignPage() {
             throw new Error("Invalid design structure");
           }
         } catch (err) {
-          console.error("Invalid design data:", err);
+          // console.error("Invalid design data:", err);
           toast({
             title: "Invalid design data",
             description:
@@ -126,10 +126,10 @@ function CardDesignerWrapper({
 }: CardDesignerWrapperProps) {
   return (
     <div className="card-designer-wrapper">
-      <CardDesigner
+      {/* <CardDesigner
         template={design}
         gallery={design?.backgroundImage ?? undefined}
-      />
+      /> */}
     </div>
   );
 }

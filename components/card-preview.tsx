@@ -1,390 +1,308 @@
 "use client";
 
-import {
-  useState,
-  useRef,
-  useEffect,
-  useImperativeHandle,
-  forwardRef,
-} from "react";
-import { motion, type PanInfo } from "framer-motion";
-import { CreditCard } from "lucide-react";
-import type { CardDesign } from "@/components/card-designer";
-// import html2canvas from "html2canvas";
-import * as htmlToImage from "html-to-image";
-import { Button } from "./ui/button";
-import { ResizableBox } from "react-resizable";
-import "react-resizable/css/styles.css";
-import Image from "next/image";
-import axios from "axios";
+import type React from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DesignSnapshot, ImageLayer, TextLayer } from "@/lib/types";
 
-interface CardPreviewProps {
-  design: CardDesign;
-  isTemplate?: boolean;
-  groupImage?: string;
-  galleryImage?: string;
-  groupCreator?: string;
-  onTextPositionChange?: (position: { x: number; y: number }) => void;
-  onLogoPositionChange?: (position: { x: number; y: number }) => void;
-  isDraggable?: boolean;
-  ref?: any;
+const CARD_W = 420;
+const CARD_H = 265;
+const STORAGE_KEY = "virtual-card-designer.v1";
+
+function fontSizeFromHeight(h: number) {
+  return Math.max(10, Math.round(h * 0.6));
 }
 
-export const CardPreview = forwardRef(
-  (
-    {
-      design,
-      isTemplate = false,
-      groupImage,
-      galleryImage,
-      onTextPositionChange,
-    }: CardPreviewProps,
-    ref
-  ) => {
-    const cardRef = useRef<HTMLDivElement>(null);
-    const [position, setPosition] = useState({
-      x: design.textPosition.x,
-      y: design.textPosition.y,
-    });
-    const [logoPosition, setLogoPosition] = useState({
-      x: design.logoPosition.x,
-      y: design.logoPosition.y,
-    });
-    const [logoSize, setLogoSize] = useState({ width: 100, height: 100 });
+export default function CardPreview() {
+  const [snapshot, setSnapshot] = useState<DesignSnapshot | null>(null);
 
-    const [constraints, setConstraints] = useState({
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-    });
+  // console.log("------", snapshot);
 
-    const [image, setImage] = useState<string | null>(null);
-    const BASE_URL = process.env.BASE_URL;
-
-    // Update position when design changes
-    useEffect(() => {
-      setPosition({ x: design.textPosition.x, y: design.textPosition.y });
-    }, [design.textPosition.x, design.textPosition.y]);
-
-    // Set constraints based on card dimensions
-    useEffect(() => {
-      if (cardRef.current) {
-        const { width, height } = cardRef.current.getBoundingClientRect();
-        setConstraints({
-          top: 10,
-          left: 10,
-          right: width - 10,
-          bottom: height - 40, // Increased bottom margin to allow more space
-        });
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as DesignSnapshot;
+        setSnapshot(parsed);
       }
-    }, []);
+    } catch {
+      // ignore
+    }
+  }, []);
 
-    // console.log(galleryImage);
+  const gradientCss = useMemo(() => {
+    if (!snapshot) return "";
+    const { gradient } = snapshot;
+    const stops = [...gradient.stops]
+      .sort((a, b) => a.pos - b.pos)
+      .map((s) => `${s.color} ${s.pos}%`)
+      .join(", ");
+    if (gradient.kind === "linear")
+      return `linear-gradient(${gradient.angle}deg, ${stops})`;
+    return `radial-gradient(circle at center, ${stops})`;
+  }, [snapshot]);
 
-    useEffect(() => {
-      if (galleryImage) {
-        const fetchImage = async () => {
-          try {
-            const response = await fetch(`${BASE_URL}${galleryImage}`);
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            setImage(url);
-          } catch (error) {
-            console.error("Error fetching image:", error);
-          }
-        };
-        fetchImage();
-      }
-    }, [galleryImage]);
-
-    useEffect(() => {
-      if (groupImage) {
-        const fetchGroupImage = async () => {
-          try {
-            const response = await fetch(
-              `/api/group-image?imageUrl=${encodeURIComponent(groupImage)}`
-            );
-            if (!response.ok) throw new Error("Failed to fetch group image");
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            setImage(url);
-          } catch (error) {
-            console.error("Error fetching group image:", error);
-          }
-        };
-        fetchGroupImage();
-      }
-    }, [groupImage]);
-
-    const handleDrag = (
-      event: MouseEvent | TouchEvent | PointerEvent,
-      info: PanInfo
-    ) => {
-      // Update local position state during drag
-      const newPosition = {
-        x: position.x + info.delta.x,
-        y: position.y + info.delta.y,
+  function embossedTextStyle(
+    elementX: number,
+    elementY: number
+  ): React.CSSProperties {
+    if (!snapshot) return {};
+    const embossedShadow =
+      "-1px -1px 0 rgba(255,255,255,0.75), 1px 1px 0 rgba(0,0,0,0.35)";
+    const { bgMode, bgImage, bg, bgColor } = snapshot;
+    if (bgMode === "image" && bgImage) {
+      return {
+        color: "transparent",
+        WebkitTextFillColor: "transparent",
+        backgroundImage: `url(${bgImage})`,
+        backgroundRepeat: "no-repeat",
+        backgroundSize: `${bg.w}px ${bg.h}px`,
+        backgroundPosition: `${bg.x - elementX}px ${bg.y - elementY}px`,
+        WebkitBackgroundClip: "text",
+        backgroundClip: "text",
+        textShadow: embossedShadow,
       };
+    }
+    if (bgMode === "gradient") {
+      return {
+        color: "transparent",
+        WebkitTextFillColor: "transparent",
+        backgroundImage: gradientCss,
+        WebkitBackgroundClip: "text",
+        backgroundClip: "text",
+        textShadow: embossedShadow,
+      };
+    }
+    return { color: bgColor, textShadow: embossedShadow };
+  }
 
-      // Apply constraints manually
-      const constrainedX = Math.max(
-        constraints.left,
-        Math.min(constraints.right, newPosition.x)
-      );
-      const constrainedY = Math.max(
-        constraints.top,
-        Math.min(constraints.bottom, newPosition.y)
-      );
-
-      setPosition({ x: constrainedX, y: constrainedY });
+  const cardStyle: React.CSSProperties = useMemo(() => {
+    const base: React.CSSProperties = {
+      width: CARD_W,
+      height: CARD_H,
+      borderRadius: 16,
+      boxShadow: "0 1px 2px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08)",
+      overflow: "hidden",
+      position: "relative",
+      backgroundColor: snapshot?.bgColor ?? "#E8E5E2",
     };
+    if (!snapshot) return base;
+    if (snapshot.bgMode === "gradient")
+      return { ...base, backgroundImage: gradientCss };
+    return base;
+  }, [snapshot, gradientCss]);
 
-    const handleDragEnd = (
-      event: MouseEvent | TouchEvent | PointerEvent,
-      info: PanInfo
-    ) => {
-      if (onTextPositionChange) {
-        // Pass the final position to the parent component
-        onTextPositionChange(position);
-      }
-    };
-
-    const handleCardScreenshot = async (): Promise<string> => {
-      if (cardRef.current) {
-        // Hide elements that should not be in the screenshot
-        const elementsToHide = cardRef.current.querySelectorAll(
-          ".hide-for-screenshot"
-        );
-        elementsToHide.forEach((el) => {
-          (el as HTMLElement).style.display = "none";
-        });
-
-        // Take the screenshot
-        const canvas = await htmlToImage.toCanvas(cardRef.current);
-        const blob = await new Promise<Blob | null>((resolve) =>
-          canvas.toBlob(resolve, "image/png")
-        );
-
-        // Show the elements again
-        elementsToHide.forEach(
-          (el) => ((el as HTMLElement).style.display = "")
-        );
-
-        if (blob) {
-          return URL.createObjectURL(blob);
-        }
-      }
-      return "";
-    };
-
-    const handleScreenshot = async () => {
-      if (cardRef.current) {
-        // Take the screenshot
-
-        if (cardRef.current) {
-          htmlToImage
-            .toJpeg(cardRef.current, { quality: 0.95 })
-            .then((dataUrl) => {
-              const link = document.createElement("a");
-              link.download = "debit_card_design.jpeg";
-              link.href = dataUrl;
-              link.click();
-            })
-            .catch((error) => {
-              console.error("Failed to generate image:", error);
-            });
-        }
-      }
-    };
-
-    useImperativeHandle(ref, () => ({
-      handleCardScreenshot,
-    }));
-
-    return (
-      <div
-        style={{
-          width: "405px", // Minimum width of a credit card
-          height: "259px", // Minimum height of a credit card
-        }}
-      >
+  return (
+    <Card className="w-full">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Your Card Preview</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {/* Prevent the preview column from squeezing below the card width */}
         <div
-          ref={cardRef}
-          className="relative w-full aspect-[1.586/1] rounded-xl overflow-hidden shadow-lg bg-center bg-[length:100%]"
-          style={{
-            backgroundColor: design.backgroundColor,
-            backgroundImage: groupImage
-              ? `url(${image})`
-              : galleryImage
-              ? `url(${image})`
-              : `url(${design.backgroundImage})`,
-            backgroundSize: "100%",
-            backgroundPosition: "center",
-          }}
+          className="flex items-center justify-center"
+          style={{ minWidth: CARD_W }}
         >
-          {/* Image upload input */}
-          {/* <input type="file" accept="image/*" onChange={handleImageUpload} /> */}
-          {/* Display uploaded image */}
-          {/* {image && (
-            <motion.img
-              src={image}
-              alt="Uploaded"
-              style={{
-                position: "absolute",
-                left: 0,
-                top: 0,
-                x: position.x + 50,
-                y: position.y + 50,
-                // width: imageSize.width,
-                // height: imageSize.height,
-                cursor: "move",
-                userSelect: "none",
-              }}
-              drag
-              dragMomentum={false}
-              dragElastic={0}
-              onDrag={handleDrag}
-              onDragEnd={handleDragEnd}
-            />
-          )} */}
-          <motion.div drag dragMomentum={false}>
-            {/* Bank logo placeholder */}
-            <div className="absolute top-4 right-4  p-2 rounded-md hide-for-screenshot cursor-move">
-              <Image
-                src="/coop_logo.svg"
-                alt="Coop Logo"
-                width={50}
-                height={50}
-              />
-            </div>
-          </motion.div>
-          {/* Chip and contactless symbols */}
-          <div className="absolute top-16 left-6 hide-for-screenshot">
-            <div className="w-10 h-8 bg-yellow-300/90 </div>rounded-md"></div>
-          </div>
-          {/* Card number placeholder */}
           <div
-            style={{
-              display: "inline-block",
-            }}
-            className="absolute bottom-20 left-6 right-6 hide-for-screenshot"
+            className="relative select-none"
+            style={cardStyle}
+            aria-label="Read-only card preview"
           >
-            <div className="flex justify-between">
-              <div className="w-10 h-3 bg-white/50 rounded-sm"></div>
-              <div className="w-10 h-3 bg-white/50 rounded-sm"></div>
-              <div className="w-10 h-3 bg-white/50 rounded-sm"></div>
-              <div className="w-10 h-3 bg-white/50 rounded-sm"></div>
-            </div>
-          </div>
-          {/* Expiry date placeholder */}
-          <div className="absolute bottom-8 left-6 hide-for-screenshot">
-            <div
-              className="text-xs"
-              style={{
-                color: `${design.cardDetailsTextColor}99`,
-                fontFamily: `${design.fontFamily}`,
-              }}
-            >
-              VALID THRU
-            </div>
-            <div
-              className="text-sm"
-              style={{
-                color: design.cardDetailsTextColor,
-                fontStyle: design.cardDetailsTextColor,
-                fontFamily: design.fontFamily,
-              }}
-            >
-              12/28
-            </div>
-          </div>
-          {/* Custom text */}
-          {!groupImage && (
-            <motion.div
-              drag
-              dragMomentum={false}
-              dragElastic={0}
-              onDrag={handleDrag}
-              onDragEnd={handleDragEnd}
-              style={{
-                position: "absolute",
-                left: 0,
-                top: 0,
-                x: position.x,
-                y: position.y,
-                color: design.textColor,
-                fontFamily: design.fontFamily,
-                cursor: "move",
-                userSelect: "none",
-                fontSize: "1.25rem",
-                fontWeight: "bold",
-                textShadow: "0px 1px 2px rgba(0,0,0,0.3)",
-              }}
-            >
-              {design.customText}
-            </motion.div>
-          )}
-          {design.logo && (
-            <motion.div
-              drag
-              dragMomentum={false}
-              onDragEnd={(event, info) => {
-                setLogoPosition({
-                  x: logoPosition.x + info.delta.x,
-                  y: logoPosition.y + info.delta.y,
-                });
-              }}
-              style={{
-                position: "absolute",
-                cursor: "move",
-              }}
-            >
-              <ResizableBox
-                width={logoSize.width}
-                height={logoSize.height}
-                lockAspectRatio
-                resizeHandles={["nw"]}
-                onResizeStop={(_, data) => {
-                  setLogoSize({
-                    width: data.size.width,
-                    height: data.size.height,
-                  });
-                }}
+            {/* Background image if used */}
+            {snapshot?.bgMode === "image" && snapshot.bgImage && (
+              <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  position: "absolute",
+                  left: snapshot.bg.x,
+                  top: snapshot.bg.y,
+                  width: snapshot.bg.w,
+                  height: snapshot.bg.h,
+                  zIndex: 0,
                 }}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={design.logo}
-                  alt="Uploaded"
-                  className="cursor-move"
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    userSelect: "none",
-                    pointerEvents: "none",
-                  }}
+                  src={snapshot.bgImage || "/placeholder.svg"}
+                  alt="Background"
+                  className="h-full w-full object-cover"
+                  draggable={false}
                 />
-              </ResizableBox>
-            </motion.div>
-          )}
-        </div>
-        {!isTemplate && (
-          <>
-            <Button onClick={handleScreenshot} className="mt-4">
-              Take Screenshot
-            </Button>
+              </div>
+            )}
 
-            <p className="text-sm text-gray-500 mt-4">
-              This is a preview of how your card will look. You can drag the
-              text to position it.
-            </p>
-          </>
-        )}
-      </div>
-    );
-  }
-);
+            {/* Sheen and noise overlays */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0"
+              style={{
+                zIndex: 1000,
+                backgroundImage:
+                  "linear-gradient(135deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.08) 30%, rgba(0,0,0,0.10) 70%, rgba(0,0,0,0.25) 100%)",
+                mixBlendMode: "soft-light",
+              }}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 opacity-20"
+              style={{
+                zIndex: 1001,
+                backgroundImage: "url(/images/noise.png)",
+                backgroundRepeat: "repeat",
+                backgroundSize: "128px 128px",
+                mixBlendMode: "overlay",
+              }}
+            />
+
+            {/* Layers */}
+            {snapshot?.layers?.map((layer, index) => {
+              const zIndex = index + 2;
+              if (layer.type === "fixed-chip") {
+                return (
+                  <div
+                    key={layer.id}
+                    className="absolute"
+                    style={{
+                      left: layer.x,
+                      top: layer.y,
+                      width: layer.w,
+                      height: layer.h,
+                      zIndex,
+                    }}
+                    aria-label="Card chip"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/images/chip.png"
+                      alt="EMV chip"
+                      className="h-full w-full object-contain opacity-90"
+                      draggable={false}
+                    />
+                  </div>
+                );
+              }
+              if (layer.type === "fixed-pan") {
+                const x = layer.x ?? 0;
+                const y = layer.y ?? 0;
+                return (
+                  <div
+                    key={layer.id}
+                    className="absolute"
+                    style={{ left: x, top: y, zIndex }}
+                  >
+                    <div
+                      className="font-semibold tracking-widest"
+                      style={{
+                        fontSize: 20,
+                        letterSpacing: "0.12em",
+                        ...embossedTextStyle(x, y),
+                      }}
+                    >
+                      {"4567 1234 5678 9012"}
+                    </div>
+                  </div>
+                );
+              }
+              if (layer.type === "fixed-expiry") {
+                const x = layer.x ?? 0;
+                const y = layer.y ?? 0;
+                return (
+                  <div
+                    key={layer.id}
+                    className="absolute"
+                    style={{ left: x, top: y, zIndex }}
+                  >
+                    <div
+                      className="text-[10px] mb-1"
+                      style={{ opacity: 0.7, ...embossedTextStyle(x, y - 14) }}
+                    >
+                      {"VALID THRU"}
+                    </div>
+                    <div
+                      className="font-semibold tracking-wide"
+                      style={{
+                        fontSize: 14,
+                        letterSpacing: "0.08em",
+                        ...embossedTextStyle(x, y),
+                      }}
+                    >
+                      {"12/29"}
+                    </div>
+                  </div>
+                );
+              }
+              if (layer.type === "text") {
+                const tl = layer as TextLayer;
+                const x = tl.x ?? 0;
+                const y = tl.y ?? 0;
+                const w = tl.w ?? 180;
+                const h = tl.h ?? 48;
+                const justifyContent =
+                  tl.align === "center"
+                    ? "center"
+                    : tl.align === "right"
+                    ? "flex-end"
+                    : "flex-start";
+                return (
+                  <div
+                    key={tl.id}
+                    className="absolute"
+                    style={{ left: x, top: y, width: w, height: h, zIndex }}
+                  >
+                    <div
+                      className="h-full w-full"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent,
+                        fontFamily: tl.fontFamily,
+                        fontWeight: tl.fontWeight,
+                        fontSize: fontSizeFromHeight(h),
+                        lineHeight: 1.1,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        userSelect: "none",
+                        ...embossedTextStyle(x, y),
+                      }}
+                    >
+                      {tl.text}
+                    </div>
+                  </div>
+                );
+              }
+              if (layer.type === "image") {
+                const il = layer as ImageLayer;
+                const x = il.x ?? 0;
+                const y = il.y ?? 0;
+                const w = il.w ?? 120;
+                const h = il.h ?? 80;
+                return (
+                  <div
+                    key={il.id}
+                    className="absolute"
+                    style={{ left: x, top: y, width: w, height: h, zIndex }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={il.src || "/placeholder.svg"}
+                      alt={layer.name}
+                      className="h-full w-full object-contain pointer-events-none select-none"
+                      draggable={false}
+                    />
+                  </div>
+                );
+              }
+              return null;
+            })}
+
+            {!snapshot && (
+              <div className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">
+                No saved design found. Create one on the design page.
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

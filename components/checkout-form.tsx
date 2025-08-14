@@ -1,10 +1,7 @@
-import { useEffect, useState } from "react";
-import { useFormik } from "formik";
-import * as Yup from "yup";
-import type { CardDesign } from "@/components/card-designer";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+"use client";
+
+import { useActionState, useEffect, useState } from "react";
+import { submitCheckout } from "@/app/cards/checkout/actions";
 import {
   Card,
   CardContent,
@@ -12,70 +9,37 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { orderPayload, SendOrderData } from "@/lib/apis/order_api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { LoadingScreen } from "./loading-screen";
-import { useParams, useRouter, usePathname } from "next/navigation";
+import { validationSchema } from "@/schema/order-schema";
+import { useFormik } from "formik";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import MapComponent from "./map-component";
-import { Location } from "@/lib/apis/map_apis";
+import { Checkbox } from "./ui/checkbox";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import type { Location } from "@/lib/apis/map_apis";
+import { useParams, usePathname, useRouter } from "next/navigation";
+import { orderPayload, SendOrderData } from "@/lib/apis/order_api";
+import {
+  confirmInvitationOrder,
+  postOrder,
+  postSendOtp,
+  postVerifyOtp,
+} from "@/hooks/use-confirmInvitationOrder";
+import { LoadingScreen } from "./loading-screen";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "./ui/input-otp";
 
-interface OrderFormProps {
-  design: any;
-  onBackToDesign: () => void;
-  cardDesign: CardDesign;
-  triggerScreenshot: () => Promise<string>;
-}
+export default function CheckoutForm() {
+  const router = useRouter();
+  const params = useParams();
+  const pathname = usePathname();
+  const group_id = params.id as string;
+  const { toast } = useToast();
 
-const validationSchema = Yup.object({
-  fullName: Yup.string()
-    .matches(/^[a-zA-Z\s]+$/, "Full Name must only contain letters and spaces")
-    .max(30, "Full Name must be at most 30 characters")
-    .required("Full Name is required"),
-  email: Yup.string()
-    .email("Invalid email address")
-    .max(30, "Email must be at most 30 characters")
-    .required("Email is required"),
-  phone: Yup.string()
-    .matches(/^(\+251|0)?9\d{8}$/, "Phone number is not valid")
-    .required("Phone number is required"),
-  agreeToTerms: Yup.boolean().oneOf(
-    [true],
-    "You must accept the terms and conditions"
-  ),
-  orderType: Yup.string(),
-  account: Yup.string().required("Account selection is required"),
-  pickup_location: Yup.string().required("Pickup location is required"),
-  groupPhones: Yup.array()
-    .of(Yup.string().matches(/^(\+251|0)?9\d{8}$/, "Phone number is not valid"))
-    .when("orderType", {
-      is: "Group",
-      then: (schema) =>
-        schema.required("At least one phone number is required"),
-      otherwise: (schema) => schema.notRequired(),
-    }),
-});
-
-export function OrderForm({
-  design,
-  onBackToDesign,
-  cardDesign,
-  triggerScreenshot,
-}: OrderFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
@@ -86,106 +50,8 @@ export function OrderForm({
   const [accounts, setAccounts] = useState<
     { id: string; accountNumber: string }[]
   >([]);
-  const { toast } = useToast();
   const [otpSendError, setOtpSendError] = useState("");
   const [resendTimer, setResendTimer] = useState(120);
-  const params = useParams();
-  const router = useRouter();
-  const pathname = usePathname();
-
-  const group_id = params.id as string;
-
-  const fetchLocations = async (): Promise<Location[]> => {
-    const res = await fetch("/api/locations");
-    if (!res.ok) throw new Error("Failed to fetch locations");
-    return res.json();
-  };
-
-  const postOrder = async (payload: orderPayload) => {
-    const formData = new FormData();
-
-    formData.append("name", payload.name);
-    if (payload.email) formData.append("email", payload.email);
-    formData.append("requestType", payload.requestType);
-    formData.append("accountNumber", payload.accountNumber);
-    formData.append("pickup_location", payload.pickup_location);
-    formData.append("user_id", payload.user_id);
-
-    if (payload.image) {
-      const response = await fetch(payload.image);
-      const blob = await response.blob();
-      const file = new File([blob], "design.jpg", { type: blob.type });
-      formData.append("image", file);
-    }
-
-    if (payload.list_of_phoneNumbers?.length) {
-      payload.list_of_phoneNumbers.forEach((phone, index) => {
-        formData.append(`list_of_phoneNumbers[${index}]`, phone);
-      });
-    }
-
-    const res = await fetch("/api/order", {
-      method: "POST",
-      headers: {
-        "X-Session-Token": payload.session_token,
-      },
-      body: formData,
-    });
-
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || "Failed to submit order");
-    }
-
-    return res.json();
-  };
-
-  const confirmInvitationOrder = async (payload: SendOrderData) => {
-    const res = await fetch("/api/invitation-confirm", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || "Failed to confirm invitation");
-    }
-
-    return res.json();
-  };
-
-  const postSendOtp = async (phoneNumber: string) => {
-    const res = await fetch("/api/send-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phoneNumber }),
-    });
-
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || "Failed to send OTP");
-    }
-
-    return res.json(); // { id, message }
-  };
-
-  const postVerifyOtp = async (id: string, otp: string) => {
-    const res = await fetch("/api/verify-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, otp }),
-    });
-
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || "Failed to verify OTP");
-    }
-
-    return res.json(); // { id, accounts, session_token }
-  };
 
   useEffect(() => {
     if (resendTimer > 0) {
@@ -197,6 +63,58 @@ export function OrderForm({
   const handleResendOtp = () => {
     send_otp.mutate({ phoneNumber: formik.values.phone });
   };
+
+  const fetchLocations = async (): Promise<Location[]> => {
+    const res = await fetch("/api/locations");
+    if (!res.ok) throw new Error("Failed to fetch locations");
+    const data = await res.json();
+    // Ensure each location has name, lat, lng
+    return data.map((loc: any) => ({
+      name: loc.name,
+      lat: loc.lat,
+      lng: loc.lng,
+      ...loc,
+    })) as Location[];
+  };
+
+  const locations = useQuery({
+    queryKey: ["location"],
+    queryFn: () => fetchLocations(),
+  });
+
+  const confirmOrder = useMutation({
+    mutationFn: (data: SendOrderData) => confirmInvitationOrder(data),
+    onSuccess: () => {
+      setIsSubmitted(true);
+    },
+    onSettled: () => {
+      setIsSubmitting(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to accept invitation. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const sendOrder = useMutation({
+    mutationFn: (data: orderPayload) => postOrder(data),
+    onSuccess: () => {
+      setIsSubmitted(true);
+    },
+    onSettled: () => {
+      setIsSubmitting(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit order. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const send_otp = useMutation({
     mutationFn: ({ phoneNumber }: { phoneNumber: string }) =>
@@ -227,45 +145,6 @@ export function OrderForm({
     },
   });
 
-  const sendOrder = useMutation({
-    mutationFn: (data: orderPayload) => postOrder(data),
-    onSuccess: () => {
-      setIsSubmitted(true);
-    },
-    onSettled: () => {
-      setIsSubmitting(false);
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to submit order. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const confirmOrder = useMutation({
-    mutationFn: (data: SendOrderData) => confirmInvitationOrder(data),
-    onSuccess: () => {
-      setIsSubmitted(true);
-    },
-    onSettled: () => {
-      setIsSubmitting(false);
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to accept invitation. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const locations = useQuery({
-    queryKey: ["location"],
-    queryFn: () => fetchLocations(),
-  });
-
   const formik = useFormik({
     initialValues: {
       fullName: "",
@@ -279,7 +158,7 @@ export function OrderForm({
     },
     validationSchema,
     onSubmit: async (values) => {
-      // console.log(values);
+      console.log("values are:", values);
       setIsSubmitting(true);
       if (!isOtpVerified) {
         toast({
@@ -290,7 +169,6 @@ export function OrderForm({
         setIsSubmitting(false);
         return;
       }
-
       if (group_id) {
         const sendOrderData: SendOrderData = {
           name: values.fullName,
@@ -309,7 +187,7 @@ export function OrderForm({
           accountNumber: values.account,
           pickup_location: values.pickup_location, // replace with actual location if available
           requestType: values.orderType,
-          image: await triggerScreenshot(),
+          image: "",
           list_of_phoneNumbers: values.groupPhones.filter((phone) => phone),
           user_id: id,
           session_token: sessionToken,
@@ -387,7 +265,8 @@ export function OrderForm({
           <Button
             variant="ghost"
             size="icon"
-            onClick={onBackToDesign}
+            onClick={() => router.back()}
+            // onClick={onBackToDesign}
             className="mr-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -401,38 +280,36 @@ export function OrderForm({
         </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={formik.handleSubmit} className="space-y-4">
-          {Object.keys(design).length === 0 && (
-            <div className="space-y-2">
-              <Label>Order Type</Label>
-              <RadioGroup
-                className="bg-gray-100 p-2 rounded-md"
-                value={formik.values.orderType}
-                onValueChange={(value) => {
-                  formik.setFieldValue("orderType", value);
-                  formik.setFieldValue("groupPhones", [""]);
-                }}
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Individual" id="individual" />
-                  <Label className=" px-2 rounded-md" htmlFor="individual">
-                    Individual
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Group" id="group" />
-                  <Label className=" px-2 rounded-md" htmlFor="group">
-                    Group
-                  </Label>
-                </div>
-              </RadioGroup>
-              {formik.touched.orderType && formik.errors.orderType ? (
-                <div className="text-red-500 text-sm">
-                  {formik.errors.orderType}
-                </div>
-              ) : null}
-            </div>
-          )}
+        <form className="space-y-4" onSubmit={formik.handleSubmit}>
+          <div className="space-y-2">
+            <Label>Order Type</Label>
+            <RadioGroup
+              className="bg-gray-100 p-2 rounded-md"
+              value={formik.values.orderType}
+              onValueChange={(value) => {
+                formik.setFieldValue("orderType", value);
+                formik.setFieldValue("groupPhones", [""]);
+              }}
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Individual" id="individual" />
+                <Label className=" px-2 rounded-md" htmlFor="individual">
+                  Individual
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Group" id="group" />
+                <Label className=" px-2 rounded-md" htmlFor="group">
+                  Group
+                </Label>
+              </div>
+            </RadioGroup>
+            {formik.touched.orderType && formik.errors.orderType ? (
+              <div className="text-red-500 text-sm">
+                {formik.errors.orderType}
+              </div>
+            ) : null}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
@@ -468,9 +345,11 @@ export function OrderForm({
               ) : null}
             </div>
           </div>
-
           <div className="space-y-2 flex flex-col">
-            <Label htmlFor="phone">My Phone Number</Label>
+            <div className="flex justify-between">
+              <Label htmlFor="phone">My Phone Number</Label>
+              <a href="#">Don't have account number?</a>
+            </div>
             <Input
               id="phone"
               name="phone"
@@ -500,7 +379,6 @@ export function OrderForm({
               </Button>
             )}
           </div>
-
           {isOtpVerified && (
             <div className="space-y-2">
               <Label htmlFor="account">Select Account Number</Label>
@@ -596,7 +474,6 @@ export function OrderForm({
               </Button>
             </div>
           )}
-
           <div className="space-y-2">
             <Label>Pickup Branch</Label>
             <div className="w-full bg-gray-200 rounded-md">
@@ -614,7 +491,6 @@ export function OrderForm({
               />
             </div>
           </div>
-
           <div className="flex items-center space-x-2 pt-4">
             <Checkbox
               id="agreeToTerms"
@@ -647,7 +523,6 @@ export function OrderForm({
           </div>
         </form>
       </CardContent>
-
       <Dialog open={isModalVisible} onOpenChange={setModalVisible}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

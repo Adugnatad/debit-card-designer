@@ -48,7 +48,7 @@ const MapComponent = ({
           }
         },
         (error) => {
-          console.error("Error getting user location:", error);
+          // console.error("Error getting user location:", error);
         }
       );
     }

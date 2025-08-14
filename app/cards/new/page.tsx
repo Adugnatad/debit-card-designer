@@ -1,21 +1,33 @@
-import { CardDesigner } from "@/components/card-designer";
-import { Toaster } from "@/components/ui/toaster";
+import CardDesigner from "@/components/design";
 
-export default function newDesign() {
+export default function Page() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Custom Debit Card Designer
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Design your own personalized debit card. Upload images, add text,
-            and choose colors to create a card that's uniquely yours.
-          </p>
-        </div>
+    <main className="min-h-dvh bg-background text-foreground">
+      <div className="mx-auto max-w-7xl p-4 md:p-8">
+        <header className="mb-6 flex items-center justify-between gap-4">
+          <a
+            href="/"
+            className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"
+          >
+            Back to home
+          </a>
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
+              Custom Card Designer
+            </h1>
+            <p className="text-sm text-muted-foreground hidden md:block">
+              Customize a virtual debit/credit card with text, logos, and
+              backgrounds.
+            </p>
+          </div>
+          <a
+            href="/cards/checkout"
+            className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"
+          >
+            Checkout
+          </a>
+        </header>
         <CardDesigner />
-        <Toaster />
       </div>
     </main>
   );
