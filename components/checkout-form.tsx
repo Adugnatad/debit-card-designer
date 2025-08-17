@@ -37,14 +37,14 @@ export default function CheckoutForm() {
   const router = useRouter();
   const params = useParams();
   const pathname = usePathname();
-  const group_id = params.id as string;
   const { toast } = useToast();
+  const group_id = params.id as string;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
   const [error, setError] = useState("");
-  const [isOtpVerified, setIsOtpVerified] = useState(true);
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [id, setId] = useState("");
   const [sessionToken, setSessionToken] = useState("");
   const [accounts, setAccounts] = useState<
@@ -131,6 +131,10 @@ export default function CheckoutForm() {
       setOtpSendError(err.message);
     },
   });
+
+  // const sendSnapShot = useMutation({
+  //   mutationFn: (data: )
+  // })
 
   const verify_otp = useMutation({
     mutationFn: (code: string) => postVerifyOtp(id, code),
@@ -281,35 +285,37 @@ export default function CheckoutForm() {
       </CardHeader>
       <CardContent>
         <form className="space-y-4" onSubmit={formik.handleSubmit}>
-          <div className="space-y-2">
-            <Label>Order Type</Label>
-            <RadioGroup
-              className="bg-gray-100 p-2 rounded-md"
-              value={formik.values.orderType}
-              onValueChange={(value) => {
-                formik.setFieldValue("orderType", value);
-                formik.setFieldValue("groupPhones", [""]);
-              }}
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Individual" id="individual" />
-                <Label className=" px-2 rounded-md" htmlFor="individual">
-                  Individual
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Group" id="group" />
-                <Label className=" px-2 rounded-md" htmlFor="group">
-                  Group
-                </Label>
-              </div>
-            </RadioGroup>
-            {formik.touched.orderType && formik.errors.orderType ? (
-              <div className="text-red-500 text-sm">
-                {formik.errors.orderType}
-              </div>
-            ) : null}
-          </div>
+          {!group_id && (
+            <div className="space-y-2">
+              <Label>Order Type</Label>
+              <RadioGroup
+                className="bg-gray-100 p-2 rounded-md"
+                value={formik.values.orderType}
+                onValueChange={(value) => {
+                  formik.setFieldValue("orderType", value);
+                  formik.setFieldValue("groupPhones", [""]);
+                }}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="Individual" id="individual" />
+                  <Label className=" px-2 rounded-md" htmlFor="individual">
+                    Individual
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="Group" id="group" />
+                  <Label className=" px-2 rounded-md" htmlFor="group">
+                    Group
+                  </Label>
+                </div>
+              </RadioGroup>
+              {formik.touched.orderType && formik.errors.orderType ? (
+                <div className="text-red-500 text-sm">
+                  {formik.errors.orderType}
+                </div>
+              ) : null}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
