@@ -5,7 +5,7 @@ export const sendOtp = async (data: {
 }): Promise<{ id: string; message: string }> => {
   try {
     const response = await axios.post(
-      `${BASE_URL}/api/v1/users/send-otp/`,
+      `${BASE_URL}/users/send-otp`,
       { phone_number: data.phoneNumber },
       {
         headers: {
@@ -34,7 +34,7 @@ export const verifyOtp = async (data: {
 }> => {
   try {
     const response = await axios.post(
-      `${BASE_URL}/api/v1/users/${data.id}/verify-otp/`,
+      `${BASE_URL}/users/${data.id}/verify-otp/`,
       { otp: data.otp },
       {
         headers: {

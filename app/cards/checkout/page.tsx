@@ -1,7 +1,6 @@
 import Link from "next/link";
 import CheckoutForm from "@/components/checkout-form";
 import CardPreview from "@/components/card-preview";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export default function CheckoutPage() {
@@ -27,20 +26,6 @@ export default function CheckoutPage() {
           {/* Right: preview and summary */}
           <div className="space-y-6 md:sticky md:top-4 md:self-start md:max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <CardPreview />
-            {/* <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Virtual Card Design
-                  </span>
-                  <span className="text-sm font-medium">$9.99</span>
-                </div>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-sm">Total</span>
-                  <span className="text-base font-semibold">$9.99</span>
-                </div>
-              </CardContent>
-            </Card> */}
           </div>
         </div>
       </div>

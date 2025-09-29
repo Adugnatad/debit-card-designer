@@ -1,27 +1,30 @@
 "use client";
 
-import { CardDesigner } from "@/components/card-designer";
 import { Toaster } from "@/components/ui/toaster";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { LoadingScreen } from "@/components/loading-screen";
-import { Design } from "@/lib/apis/design_apis";
+import { DesignSnapshot } from "@/lib/types";
+import CheckoutForm from "@/components/checkout-form";
+import CardPreview from "@/components/card-preview";
 
 export default function Designer() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
 
-  const fetchDesign = async (id: string): Promise<Design> => {
+  const fetchDesign = async (id: string): Promise<DesignSnapshot | null> => {
     const response = await fetch(`/api/design/${id}`);
     if (!response.ok) {
       throw new Error("Design not found");
     }
     const data = await response.json();
-    return data;
+    console.log("---- design data in invite page", data.design);
+    const design = data.design as DesignSnapshot;
+    return design;
   };
 
   const design = useQuery({
@@ -57,7 +60,18 @@ export default function Designer() {
             and choose colors to create a card that's uniquely yours.
           </p>
         </div>
-        <CardDesigner design={design.data} />
+
+        <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_520px]">
+          {/* Left: payment form */}
+          <div className="space-y-6">
+            <CheckoutForm />
+          </div>
+
+          {/* Right: preview and summary */}
+          <div className="space-y-6 md:sticky md:top-4 md:self-start md:max-h-[calc(100dvh-2rem)] overflow-y-auto">
+            <CardPreview design={design.data} />
+          </div>
+        </div>
         <Toaster />
       </div>
     </main>

@@ -5,6 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DesignSnapshot, ImageLayer, TextLayer } from "@/lib/types";
 
+interface CardPreviewProps {
+  design?: DesignSnapshot | null;
+}
+
 const CARD_W = 420;
 const CARD_H = 265;
 const STORAGE_KEY = "virtual-card-designer.v1";
@@ -13,16 +17,21 @@ function fontSizeFromHeight(h: number) {
   return Math.max(10, Math.round(h * 0.6));
 }
 
-export default function CardPreview() {
+export default function CardPreview({ design }: CardPreviewProps) {
   const [snapshot, setSnapshot] = useState<DesignSnapshot | null>(null);
 
-  // console.log("------", snapshot);
+  console.log("design snapshot in preview", snapshot);
 
   useEffect(() => {
+    if (design) {
+      setSnapshot(design);
+      return;
+    }
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as DesignSnapshot;
+        console.log("parsed", parsed);
         setSnapshot(parsed);
       }
     } catch {
@@ -122,7 +131,10 @@ export default function CardPreview() {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={snapshot.bgImage || "/placeholder.svg"}
+                  src={
+                    `http://localhost:5000${snapshot.bgImage}` ||
+                    "/placeholder.svg"
+                  }
                   alt="Background"
                   className="h-full w-full object-cover"
                   draggable={false}
@@ -156,7 +168,7 @@ export default function CardPreview() {
             {/* Layers */}
             {snapshot?.layers?.map((layer, index) => {
               const zIndex = index + 2;
-              if (layer.type === "fixed-chip") {
+              if (layer.type && layer.type.replace("_", "-") === "fixed-chip") {
                 return (
                   <div
                     key={layer.id}
@@ -180,7 +192,7 @@ export default function CardPreview() {
                   </div>
                 );
               }
-              if (layer.type === "fixed-pan") {
+              if (layer.type && layer.type.replace("_", "-") === "fixed-pan") {
                 const x = layer.x ?? 0;
                 const y = layer.y ?? 0;
                 return (
@@ -202,7 +214,10 @@ export default function CardPreview() {
                   </div>
                 );
               }
-              if (layer.type === "fixed-expiry") {
+              if (
+                layer.type &&
+                layer.type.replace("_", "-") === "fixed-expiry"
+              ) {
                 const x = layer.x ?? 0;
                 const y = layer.y ?? 0;
                 return (
@@ -283,12 +298,25 @@ export default function CardPreview() {
                     style={{ left: x, top: y, width: w, height: h, zIndex }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={il.src || "/placeholder.svg"}
-                      alt={layer.name}
-                      className="h-full w-full object-contain pointer-events-none select-none"
-                      draggable={false}
-                    />
+                    {layer.name === "Issuer Logo" ? (
+                      <img
+                        src={`${il.src}` || "/images/coop-logo.png"}
+                        alt={layer.name}
+                        className="h-full w-full object-contain pointer-events-none select-none"
+                        draggable={false}
+                      />
+                    ) : (
+                      <img
+                        src={
+                          il.src.startsWith("data")
+                            ? il.src
+                            : `http://localhost:5000${il.src}`
+                        }
+                        alt={layer.name}
+                        className="h-full w-full object-contain pointer-events-none select-none"
+                        draggable={false}
+                      />
+                    )}
                   </div>
                 );
               }

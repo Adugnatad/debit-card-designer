@@ -3,12 +3,13 @@ export interface orderPayload {
   name: string;
   email?: string;
   accountNumber: string;
-  image: any;
+  // image: any;
   list_of_phoneNumbers?: string[];
   pickup_location: string;
   requestType: string;
   user_id: string;
   session_token: string;
+  snapshotId: string;
 }
 
 export interface SendOrderData {
@@ -18,41 +19,21 @@ export interface SendOrderData {
   pickup_location: string;
   group_id: string;
   user_id: string;
-  session_token: string;
+  // session_token: string;
+  // snapshotId: string;
 }
 
-// apis.ts
-//   import { axiosConfig as axios } from "../axios";
 import axios from "axios";
 const BASE_URL = process.env.BASE_URL;
 
 export const submitOrder = async (payload: orderPayload): Promise<void> => {
   try {
-    const formData = new FormData();
-    formData.append("name", payload.name);
-    if (payload.email) {
-      formData.append("email", payload.email);
-    }
-    formData.append("requestType", payload.requestType);
-    formData.append("accountNumber", payload.accountNumber);
-    formData.append("pickup_location", payload.pickup_location);
-    formData.append("image", payload.image);
-
-    if (
-      payload.list_of_phoneNumbers &&
-      payload.list_of_phoneNumbers[0] !== ""
-    ) {
-      payload.list_of_phoneNumbers.forEach((phone, index) => {
-        formData.append(`list_of_phoneNumbers[${index}]`, phone);
-      });
-    }
-
     await axios.post(
-      `${BASE_URL}/api/v1/cards/${payload.user_id}/create-card/`,
-      formData,
+      `${BASE_URL}/cards/${payload.user_id}/create-card`,
+      payload,
       {
         headers: {
-          "Content-Type": "multipart/form-data",
+          // "Content-Type": "multipart/form-data",
           "X-Session-Token": payload.session_token,
         },
       }
@@ -67,19 +48,16 @@ export const confirmInvitation = async (
   payload: SendOrderData
 ): Promise<void> => {
   try {
-    await axios.post(
-      `${BASE_URL}/api/v1/cards/${payload.group_id}/invitation-card-confirm/`,
-      payload,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "X-Session-Token": payload.session_token,
-        },
-      }
-    );
+    await axios.post(`${BASE_URL}/cards/invitation/card/confirm`, payload, {
+      headers: {
+        "Content-Type": "application/json",
+        // "X-Session-Token": payload.session_token,
+      },
+    });
   } catch (error: any) {
-    if (error.response && error.response.data && error.response.data.message) {
-      throw new Error(error.response.data.message);
+    console.log("confirm error", error.response.data);
+    if (error.response && error.response.data && error.response.data.err) {
+      throw new Error(error.response.data.error);
     }
     throw new Error("Failed to confirm invitation");
   }

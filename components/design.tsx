@@ -44,8 +44,6 @@ import { cn } from "@/lib/utils";
 import {
   AnyLayer,
   BgMode,
-  CARD_H,
-  CARD_W,
   DesignSnapshot,
   GradientState,
   GradientStop,
@@ -53,16 +51,86 @@ import {
   STORAGE_KEY,
   TextLayer,
 } from "@/lib/types";
-import {
-  DEFAULT_IMAGE,
-  DEFAULT_TEXT,
-  EXPIRY_TEXT,
-  FIXED_LAYERS,
-  ISSUER_LAYER_ID,
-  PAN_TEXT,
-  SYSTEM_FONTS,
-  uid,
-} from "@/lib/constant";
+
+// Card dimensions (px) — ~85.6 x 53.98 mm ratio
+const CARD_W = 420;
+const CARD_H = 265;
+
+function uid(prefix = "id") {
+  return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+const DEFAULT_TEXT: Omit<TextLayer, "id" | "name" | "type"> = {
+  text: "Your Text",
+  color: "#111111",
+  fontFamily:
+    "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+  fontWeight: 600,
+  align: "left",
+  x: 40,
+  y: 40,
+  w: 180,
+  h: 48,
+  z: 0,
+};
+
+const DEFAULT_IMAGE: Omit<ImageLayer, "id" | "name" | "type" | "src"> = {
+  lockAspectRatio: true,
+  x: 220,
+  y: 40,
+  w: 120,
+  h: 80,
+  z: 0,
+};
+
+const ISSUER_LAYER_ID = "issuer-logo";
+
+const FIXED_LAYERS: AnyLayer[] = [
+  {
+    id: "chip",
+    name: "Chip",
+    type: "fixed-chip",
+    locked: true,
+    x: 36,
+    y: 78,
+    w: 52,
+    h: 40,
+  },
+  {
+    id: "pan",
+    name: "Card Number",
+    type: "fixed-pan",
+    locked: true,
+    x: 36,
+    y: 168,
+  },
+  {
+    id: "exp",
+    name: "Expiry",
+    type: "fixed-expiry",
+    locked: true,
+    x: 36,
+    y: 200,
+  },
+];
+
+const SYSTEM_FONTS = [
+  {
+    label: "System",
+    value:
+      "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+  },
+  { label: "Serif", value: 'Georgia, "Times New Roman", Times, serif' },
+  {
+    label: "Monospace",
+    value:
+      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+  },
+  {
+    label: "Rounded",
+    value: '"Trebuchet MS", "Gill Sans", "Avenir Next", Arial, sans-serif',
+  },
+];
 
 export default function CardDesigner() {
   const { toast } = useToast();
@@ -150,8 +218,8 @@ export default function CardDesigner() {
   };
 
   function addIssuerLogo() {
-    const w = 93;
-    const h = 40;
+    const w = 140;
+    const h = 60;
     const x = CARD_W - w - 16;
     const y = 16;
     const newLayer: ImageLayer = {
@@ -279,6 +347,10 @@ export default function CardDesigner() {
   // Helpers for text rendering based on h
   const fontSizeFromHeight = (h: number) => Math.max(10, Math.round(h * 0.6));
 
+  // PAN and expiry (fixed content)
+  const PAN_TEXT = "4567 1234 5678 9012";
+  const EXPIRY_TEXT = "12/29";
+
   // Emboss utilities
   const embossedShadow =
     "-1px -1px 0 rgba(255,255,255,0.75), 1px 1px 0 rgba(0,0,0,0.35)";
@@ -350,7 +422,7 @@ export default function CardDesigner() {
       link.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.log("Failed to export PNG", err);
+      console.error("Failed to export PNG", err);
     } finally {
       setExporting(false);
     }
@@ -414,7 +486,7 @@ export default function CardDesigner() {
       }
       setSelectedId(null);
     } catch (e) {
-      console.log("Failed to apply snapshot", e);
+      console.error("Failed to apply snapshot", e);
     }
   }
 
@@ -428,7 +500,7 @@ export default function CardDesigner() {
         description: new Date(ts).toLocaleTimeString(),
       });
     } catch (e) {
-      console.log("Save failed", e);
+      console.error("Save failed", e);
       toast({
         title: "Save failed",
         description: "Could not save design.",
@@ -449,7 +521,7 @@ export default function CardDesigner() {
       applySnapshot(parsed);
       if (showToast) toast({ title: "Design loaded" });
     } catch (e) {
-      console.log("Load failed", e);
+      console.error("Load failed", e);
       if (showToast)
         toast({
           title: "Load failed",
@@ -492,7 +564,9 @@ export default function CardDesigner() {
     } catch (e) {
       console.warn("No valid saved design to restore");
     }
+    // Ensure issuer logo is present in the canvas
     addIssuerLogo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -501,7 +575,7 @@ export default function CardDesigner() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(makeSnapshot()));
         setLastSavedAt(Date.now());
       } catch (e) {
-        console.log("Autosave failed", e);
+        console.error("Autosave failed", e);
       }
     }, 600);
     return () => clearTimeout(t);
@@ -800,7 +874,6 @@ export default function CardDesigner() {
               <ul className="max-h-72 overflow-auto divide-y">
                 {layers.map((layer, idx) => {
                   const isSelected = layer.id === selectedId;
-                  if (layer.id === ISSUER_LAYER_ID) return null; // Skip issuer logo layer in list
                   return (
                     <li
                       key={layer.id}
@@ -1003,7 +1076,7 @@ export default function CardDesigner() {
                 </div>
 
                 {/* Color kept for compatibility, but embossed render matches background */}
-                {/* <div className="space-y-2">
+                <div className="space-y-2">
                   <Label htmlFor="text-color">
                     Color (not used in embossed render)
                   </Label>
@@ -1033,13 +1106,13 @@ export default function CardDesigner() {
                       aria-label="Text color hex"
                     />
                   </div>
-                </div> */}
+                </div>
 
                 <div className="space-y-2">
                   <Label>Size</Label>
                   <Slider
                     value={[
-                      fontSizeFromHeight(selectedLayer.h ?? DEFAULT_TEXT.h),
+                      fontSizeFromHeight(selectedLayer.h ?? DEFAULT_TEXT.h!),
                     ]}
                     min={10}
                     max={64}
@@ -1299,7 +1372,7 @@ export default function CardDesigner() {
                     if (layer.type === "text") {
                       const tl = layer as TextLayer;
                       const fontSize = fontSizeFromHeight(
-                        tl.h ?? DEFAULT_TEXT.h
+                        tl.h ?? DEFAULT_TEXT.h!
                       );
                       const x = tl.x ?? DEFAULT_TEXT.x;
                       const y = tl.y ?? DEFAULT_TEXT.y;
@@ -1308,10 +1381,10 @@ export default function CardDesigner() {
                           key={tl.id}
                           bounds="parent"
                           size={{
-                            width: tl.w ?? DEFAULT_TEXT.w,
-                            height: tl.h ?? DEFAULT_TEXT.h,
+                            width: tl.w ?? DEFAULT_TEXT.w!,
+                            height: tl.h ?? DEFAULT_TEXT.h!,
                           }}
-                          position={{ x, y }}
+                          position={{ x: x!, y: y! }}
                           onDragStart={() => setSelectedId(tl.id)}
                           onDragStop={(_, d) =>
                             setLayer(tl.id, (l) => ({
@@ -1362,7 +1435,7 @@ export default function CardDesigner() {
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap",
                               userSelect: "none",
-                              ...embossedTextStyle(x, y),
+                              ...embossedTextStyle(x!, y!),
                             }}
                             onMouseDown={() => setSelectedId(tl.id)}
                           >
@@ -1381,12 +1454,12 @@ export default function CardDesigner() {
                           className={cn(isIssuer && "issuer-logo")}
                           bounds="parent"
                           size={{
-                            width: il.w ?? DEFAULT_IMAGE.w,
-                            height: il.h ?? DEFAULT_IMAGE.h,
+                            width: il.w ?? DEFAULT_IMAGE.w!,
+                            height: il.h ?? DEFAULT_IMAGE.h!,
                           }}
                           position={{
-                            x: il.x ?? DEFAULT_IMAGE.x,
-                            y: il.y ?? DEFAULT_IMAGE.y,
+                            x: il.x ?? DEFAULT_IMAGE.x!,
+                            y: il.y ?? DEFAULT_IMAGE.y!,
                           }}
                           lockAspectRatio={il.lockAspectRatio}
                           onDragStart={() => setSelectedId(il.id)}

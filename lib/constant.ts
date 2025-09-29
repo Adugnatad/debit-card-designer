@@ -1,7 +1,8 @@
-import { AnyLayer, CARD_W, ImageLayer, TextLayer } from "./types";
+import { AnyLayer, ImageLayer, TextLayer } from "./types";
+import { v4 as uuidv4 } from "uuid";
 
 export function uid(prefix = "id") {
-  return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
+  return uuidv4();
 }
 
 // PAN and expiry (fixed content)
@@ -31,11 +32,11 @@ export const DEFAULT_IMAGE: Omit<ImageLayer, "id" | "name" | "type" | "src"> = {
   z: 0,
 };
 
-export const ISSUER_LAYER_ID = "issuer-logo";
+export const ISSUER_LAYER_ID = uid();
 
 export const FIXED_LAYERS: AnyLayer[] = [
   {
-    id: "chip",
+    id: uid(),
     name: "Chip",
     type: "fixed-chip",
     locked: true,
@@ -46,7 +47,7 @@ export const FIXED_LAYERS: AnyLayer[] = [
     z: 0,
   },
   {
-    id: "pan",
+    id: uid(),
     name: "Card Number",
     type: "fixed-pan",
     locked: true,
@@ -57,7 +58,7 @@ export const FIXED_LAYERS: AnyLayer[] = [
     w: 0,
   },
   {
-    id: "exp",
+    id: uid(),
     name: "Expiry",
     type: "fixed-expiry",
     locked: true,
@@ -86,3 +87,31 @@ export const SYSTEM_FONTS = [
     value: '"Trebuchet MS", "Gill Sans", "Avenir Next", Arial, sans-serif',
   },
 ];
+
+export function base64ToFile(base64Data: string, filename: string) {
+  const matches = base64Data.match(/^data:(image\/[a-z]+);base64,(.+)$/);
+  if (!matches) {
+    console.error("Invalid Base64 string");
+    return;
+  }
+  // const arr = base64Data.split(",");
+  // console.log("Base64 data parts:", arr);
+  const mimeType = matches[1]; // e.g., image/png
+  const rawData = matches[2]; // Raw Base64 string
+  const extension = mimeType.split("/")[1]; // e.g., png, jpeg
+  // const mimeMatch = arr[0].match(/:(.*?);/);
+  // console.log("Converting base64 to file:", mimeMatch);
+  // if (!mimeMatch) throw new Error("Invalid base64 string");
+
+  // const mime = mimeMatch[1]; // e.g., "image/png"
+  // const ext = mime.split("/")[1]; // "png" or "jpeg"
+
+  const bstr = atob(rawData);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+
+  return new File([u8arr], `${filename}.${extension}`, { type: mimeType });
+}

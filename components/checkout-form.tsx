@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { submitCheckout } from "@/app/cards/checkout/actions";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -20,7 +20,7 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import MapComponent from "./map-component";
 import { Checkbox } from "./ui/checkbox";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import type { Location } from "@/lib/apis/map_apis";
+import { getLocation } from "@/lib/apis/map_apis";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { orderPayload, SendOrderData } from "@/lib/apis/order_api";
 import {
@@ -38,6 +38,8 @@ export default function CheckoutForm() {
   const params = useParams();
   const pathname = usePathname();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const snapshotId = searchParams.get("id");
   const group_id = params.id as string;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,22 +66,9 @@ export default function CheckoutForm() {
     send_otp.mutate({ phoneNumber: formik.values.phone });
   };
 
-  const fetchLocations = async (): Promise<Location[]> => {
-    const res = await fetch("/api/locations");
-    if (!res.ok) throw new Error("Failed to fetch locations");
-    const data = await res.json();
-    // Ensure each location has name, lat, lng
-    return data.map((loc: any) => ({
-      name: loc.name,
-      lat: loc.lat,
-      lng: loc.lng,
-      ...loc,
-    })) as Location[];
-  };
-
   const locations = useQuery({
     queryKey: ["location"],
-    queryFn: () => fetchLocations(),
+    queryFn: () => getLocation(),
   });
 
   const confirmOrder = useMutation({
@@ -100,7 +89,8 @@ export default function CheckoutForm() {
   });
 
   const sendOrder = useMutation({
-    mutationFn: (data: orderPayload) => postOrder(data),
+    mutationFn: (data: orderPayload) =>
+      postOrder({ ...data, snapshotId: snapshotId || "" }),
     onSuccess: () => {
       setIsSubmitted(true);
     },
@@ -181,7 +171,8 @@ export default function CheckoutForm() {
           pickup_location: values.pickup_location, // replace with actual location if available
           user_id: id,
           group_id: group_id,
-          session_token: sessionToken,
+          // session_token: sessionToken,
+          // snapshotId: snapshotId || "",
         };
         confirmOrder.mutate(sendOrderData);
       } else {
@@ -191,10 +182,11 @@ export default function CheckoutForm() {
           accountNumber: values.account,
           pickup_location: values.pickup_location, // replace with actual location if available
           requestType: values.orderType,
-          image: "",
+          // image: "",
           list_of_phoneNumbers: values.groupPhones.filter((phone) => phone),
           user_id: id,
           session_token: sessionToken,
+          snapshotId: snapshotId || "",
         };
         sendOrder.mutate(sendOrderData);
       }

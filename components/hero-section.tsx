@@ -44,7 +44,7 @@ export function HeroSection() {
                   loading="lazy"
                   decoding="async"
                   className="object-cover"
-                  src="/Card1.png?height=340&width=540&text=University Card"
+                  src="/images/Card1.png?height=340&width=540&text=University Card"
                   style={{
                     position: "absolute",
                     height: "100%",

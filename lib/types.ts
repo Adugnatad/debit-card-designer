@@ -5,13 +5,21 @@ export const CARD_H = 265;
 export type BaseLayer = {
   id: string;
   name: string;
-  type: "text" | "image" | "fixed-chip" | "fixed-pan" | "fixed-expiry";
+  type:
+    | "text"
+    | "image"
+    | "fixed-chip"
+    | "fixed-pan"
+    | "fixed-expiry"
+    | "fixed_chip"
+    | "fixed_pan"
+    | "fixed_expiry";
   locked?: boolean;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  z: number;
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+  z?: number;
 };
 
 export type TextLayer = BaseLayer & {
@@ -31,7 +39,7 @@ export type ImageLayer = BaseLayer & {
 
 export type FixedChipLayer = BaseLayer & { type: "fixed-chip" };
 export type FixedPanLayer = BaseLayer & { type: "fixed-pan" };
-type FixedExpiryLayer = BaseLayer & { type: "fixed-expiry" };
+export type FixedExpiryLayer = BaseLayer & { type: "fixed-expiry" };
 
 export type AnyLayer =
   | TextLayer

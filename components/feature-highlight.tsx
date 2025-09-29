@@ -1,13 +1,17 @@
-import type React from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import type React from "react";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface FeatureHighlightProps {
-  icon: React.ReactNode
-  title: string
-  description: string
+  icon: React.ReactNode;
+  title: string;
+  description: string;
 }
 
-export function FeatureHighlight({ icon, title, description }: FeatureHighlightProps) {
+export function FeatureHighlight({
+  icon,
+  title,
+  description,
+}: FeatureHighlightProps) {
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-6">
@@ -20,6 +24,5 @@ export function FeatureHighlight({ icon, title, description }: FeatureHighlightP
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
-
