@@ -1,22 +1,23 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { sendDesignSnapshot } from "@/hooks/use-confirmInvitationOrder";
+// import { sendDesignSnapshot } from "@/hooks/use-confirmInvitationOrder";
 import { useToast } from "@/hooks/use-toast";
 import { DesignSnapshot, STORAGE_KEY } from "@/lib/types";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { LoadingScreen } from "./loading-screen";
+import { postDesignSnapshot } from "@/hooks/use-postDesignSnapshot";
 
 export default function CheckoutButton() {
   const { toast } = useToast();
   const router = useRouter();
 
   const createDesignSnapshot = useMutation({
-    mutationFn: (data: DesignSnapshot) => {
-      return sendDesignSnapshot(data);
-    },
-
+    // mutationFn: (data: DesignSnapshot) => {
+    //   return sendDesignSnapshot(data);
+    // },
+    mutationFn: (data: DesignSnapshot) => postDesignSnapshot(data),
     onSuccess: (data: any) => {
       console.log("Design snapshot created successfully:", data);
       // ✅ navigate with query param

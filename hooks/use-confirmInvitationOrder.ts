@@ -1,4 +1,4 @@
-"use client";
+// "use client";
 
 import { orderPayload, SendOrderData } from "@/lib/apis/order_api";
 import { baseUrl } from "@/lib/constant";
