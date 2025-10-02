@@ -15,3 +15,12 @@ export const postDesignSnapshot = async (data: DesignSnapshot) => {
 
   return res.json(); // { id, message }
 };
+
+export const fetchLocations = async () => {
+  const res = await fetch("/api/locations");
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to fetch locations");
+  }
+  return res.json();
+};

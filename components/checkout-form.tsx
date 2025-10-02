@@ -32,6 +32,7 @@ import {
 import { LoadingScreen } from "./loading-screen";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "./ui/input-otp";
+import { fetchLocations } from "@/hooks/use-postDesignSnapshot";
 
 export default function CheckoutForm() {
   const router = useRouter();
@@ -68,7 +69,7 @@ export default function CheckoutForm() {
 
   const locations = useQuery({
     queryKey: ["location"],
-    queryFn: () => getLocation(),
+    queryFn: () => fetchLocations(),
   });
 
   const confirmOrder = useMutation({
