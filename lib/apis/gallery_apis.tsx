@@ -1,5 +1,5 @@
 import axios from "axios";
-const BASE_URL = process.env.BASE_URL;
+import { baseUrl } from "../constant";
 
 // types.ts
 export interface CardDesign {
@@ -23,7 +23,7 @@ export interface CardDesign {
 // api.ts
 export const getGalleryDesigns = async (): Promise<CardDesign[]> => {
   try {
-    const response = await axios.get(`${BASE_URL}/api/v1/cards/card-designs/`);
+    const response = await axios.get(`${baseUrl}/cards/card-designs/`);
     return response.data.results;
   } catch (error: any) {
     if (error.response && error.response.data && error.response.data.message) {

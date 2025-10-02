@@ -1,6 +1,10 @@
 import { AnyLayer, ImageLayer, TextLayer } from "./types";
 import { v4 as uuidv4 } from "uuid";
 
+export const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+console.log("Base URL:", baseUrl);
+
 export function uid(prefix = "id") {
   return uuidv4();
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { orderPayload, SendOrderData } from "@/lib/apis/order_api";
+import { baseUrl } from "@/lib/constant";
 import { AnyLayer, DesignSnapshot } from "@/lib/types";
 import axios from "axios";
 
@@ -95,7 +96,7 @@ export const sendDesignSnapshot = async (data: DesignSnapshot) => {
   try {
     const formData = buildDesignSnapshotFormData(data);
     console.log("FormData prepared:", formData);
-    const res = await axios("http://localhost:5000/api/v1/design/snapshots", {
+    const res = await axios(`${baseUrl}/design/snapshots`, {
       method: "POST",
       // headers: { "Content-Type": "application/json" },
       headers: { "Content-Type": "multipart/form-data" },

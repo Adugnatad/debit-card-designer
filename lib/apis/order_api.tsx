@@ -24,12 +24,12 @@ export interface SendOrderData {
 }
 
 import axios from "axios";
-const BASE_URL = process.env.BASE_URL;
+import { baseUrl } from "../constant";
 
 export const submitOrder = async (payload: orderPayload): Promise<void> => {
   try {
     await axios.post(
-      `${BASE_URL}/cards/${payload.user_id}/create-card`,
+      `${baseUrl}/cards/${payload.user_id}/create-card`,
       payload,
       {
         headers: {
@@ -48,7 +48,7 @@ export const confirmInvitation = async (
   payload: SendOrderData
 ): Promise<void> => {
   try {
-    await axios.post(`${BASE_URL}/cards/invitation/card/confirm`, payload, {
+    await axios.post(`${baseUrl}/cards/invitation/card/confirm`, payload, {
       headers: {
         "Content-Type": "application/json",
         // "X-Session-Token": payload.session_token,

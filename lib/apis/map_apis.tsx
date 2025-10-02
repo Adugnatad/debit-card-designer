@@ -1,5 +1,5 @@
 import axios from "axios";
-const BASE_URL = "http://localhost:5000/api/v1";
+import { baseUrl } from "../constant";
 
 // types.ts
 export interface Location {
@@ -11,7 +11,7 @@ export interface Location {
 // api.ts
 export const getLocation = async (): Promise<Location[]> => {
   try {
-    const response = await axios.get(`${BASE_URL}/branches`);
+    const response = await axios.get(`${baseUrl}/branches`);
     if (
       response.status === 200 &&
       response.data &&

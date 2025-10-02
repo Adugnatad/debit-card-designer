@@ -4,6 +4,7 @@ import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DesignSnapshot, ImageLayer, TextLayer } from "@/lib/types";
+import { baseUrl } from "@/lib/constant";
 
 interface CardPreviewProps {
   design?: DesignSnapshot | null;
@@ -132,7 +133,7 @@ export default function CardPreview({ design }: CardPreviewProps) {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={
-                    `http://localhost:5000${snapshot.bgImage}` ||
+                    `${baseUrl?.replace("/api/v1", "")}${snapshot.bgImage}` ||
                     "/placeholder.svg"
                   }
                   alt="Background"
@@ -310,7 +311,7 @@ export default function CardPreview({ design }: CardPreviewProps) {
                         src={
                           il.src.startsWith("data")
                             ? il.src
-                            : `http://localhost:5000${il.src}`
+                            : `${baseUrl?.replace("/api/v1", "")}${il.src}`
                         }
                         alt={layer.name}
                         className="h-full w-full object-contain pointer-events-none select-none"

@@ -1,6 +1,6 @@
 import axios from "axios";
 import { DesignSnapshot } from "../types";
-const BASE_URL = process.env.BASE_URL;
+import { baseUrl } from "../constant";
 
 // types.ts
 // export interface Design {
@@ -13,7 +13,7 @@ const BASE_URL = process.env.BASE_URL;
 // api.ts
 export const getDesign = async (id: string): Promise<DesignSnapshot | null> => {
   try {
-    const response = await axios.get(`${BASE_URL}/cards/${id}/design`);
+    const response = await axios.get(`${baseUrl}/cards/${id}/design`);
     console.log("---- design type", response.data);
     return response.data;
   } catch (error: any) {

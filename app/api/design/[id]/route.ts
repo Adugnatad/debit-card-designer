@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDesign } from "@/lib/apis/design_apis"; // adjust import based on your folder setup
 import { DesignSnapshot } from "@/lib/types";
+import { baseUrl } from "@/lib/constant";
 
 export async function GET(
   request: NextRequest,
@@ -11,7 +12,7 @@ export async function GET(
 
   try {
     const design: DesignSnapshot | null = await getDesign(id);
-    return NextResponse.json({ ...design, base: process.env.BASE_URL });
+    return NextResponse.json({ ...design, base: baseUrl });
   } catch (error: any) {
     console.error("Failed to fetch design:", error);
     return NextResponse.json(
