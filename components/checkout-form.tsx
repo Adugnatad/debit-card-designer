@@ -347,7 +347,12 @@ export default function CheckoutForm() {
           <div className="space-y-2 flex flex-col">
             <div className="flex justify-between">
               <Label htmlFor="phone">My Phone Number</Label>
-              <a href="#">Don't have account number?</a>
+              <a
+                href="https://my.coopbankoromiasc.com/individualaccount"
+                className="text-[#0000ff]"
+              >
+                Don't have account number?
+              </a>
             </div>
             <Input
               id="phone"
