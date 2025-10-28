@@ -3,8 +3,8 @@ import { sendOtp } from "@/lib/apis/otp_api"; // adjust path as needed
 
 export async function POST(req: NextRequest) {
   try {
-    const { phoneNumber } = await req.json();
-    const result = await sendOtp({ phoneNumber });
+    const { phoneNumber, notify } = await req.json();
+    const result = await sendOtp({ phoneNumber, notify });
 
     return NextResponse.json(result, { status: 201 });
   } catch (error: any) {

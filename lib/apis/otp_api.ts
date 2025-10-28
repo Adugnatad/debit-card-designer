@@ -3,11 +3,12 @@ import { baseUrl } from "../constant";
 
 export const sendOtp = async (data: {
   phoneNumber: string;
+  notify: "sms" | "telegram";
 }): Promise<{ id: string; message: string }> => {
   try {
     const response = await axios.post(
       `${baseUrl}/users/send-otp`,
-      { phone_number: data.phoneNumber },
+      { phone_number: data.phoneNumber, notify: data.notify },
       {
         headers: {
           "Content-Type": "application/json",
