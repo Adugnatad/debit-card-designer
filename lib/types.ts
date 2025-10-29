@@ -57,6 +57,7 @@ export type GradientState = {
 };
 export type BgMode = "color" | "gradient" | "image";
 export type DesignSnapshot = {
+  id?: string;
   v: 1;
   bgMode: BgMode;
   bgColor: string;
@@ -65,3 +66,15 @@ export type DesignSnapshot = {
   bg: { x: number; y: number; w: number; h: number; lockAspect: boolean };
   layers: AnyLayer[];
 };
+
+export type GalleryType = {
+  data: DesignSnapshot[]
+  meta: {
+    hasNextPage: boolean,
+    hasPrevPage: boolean,
+    limit: number,
+    page: number,
+    total: number,
+    totalPages: number
+  }
+}

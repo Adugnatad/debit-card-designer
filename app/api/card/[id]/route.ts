@@ -1,8 +1,5 @@
-// app/api/design/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getDesign } from "@/lib/apis/design_apis"; // adjust import based on your folder setup
-import { DesignSnapshot } from "@/lib/types";
-import { baseUrl } from "@/lib/constant";
+import { getCardDesignById } from "@/lib/apis/design_apis";
 
 export async function GET(
   request: NextRequest,
@@ -11,10 +8,9 @@ export async function GET(
   const { id } = await context.params; // ✅ await params
 
   try {
-    const design = await getDesign(id);
+    const design = await getCardDesignById(id);
     return NextResponse.json(design);
   } catch (error: any) {
-    // console.error("Failed to fetch design:", error);
     return NextResponse.json(
       { message: error.message || "Failed to fetch design" },
       { status: 400 }

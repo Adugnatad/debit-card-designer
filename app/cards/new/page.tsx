@@ -5,7 +5,7 @@ export default function Page() {
   return (
     <main className="min-h-dvh bg-background text-foreground">
       <div className="mx-auto max-w-7xl p-4 md:p-8">
-        <header className="mb-6 flex items-center justify-between gap-4">
+        <header className="mb-6 flex items-center gap-4">
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"
@@ -21,7 +21,7 @@ export default function Page() {
               backgrounds.
             </p>
           </div>
-          <CheckoutButton />
+          {/* <CheckoutButton /> */}
         </header>
         <CardDesigner />
       </div>

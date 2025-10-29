@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     if (!response.ok) {
       return NextResponse.json(
         { error: "Failed to fetch image" },
-        { status: 500 }
+        { status: 400 }
       );
     }
     const arrayBuffer = await response.arrayBuffer();
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { error: "Error fetching image" },
-      { status: 500 }
+      { status: 400 }
     );
   }
 }

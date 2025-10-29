@@ -1,5 +1,6 @@
 import axios from "axios";
 import { baseUrl } from "../constant";
+import { GalleryType } from "../types";
 
 // types.ts
 export interface CardDesign {
@@ -21,10 +22,10 @@ export interface CardDesign {
 }
 
 // api.ts
-export const getGalleryDesigns = async (): Promise<CardDesign[]> => {
+export const getGalleryDesigns = async (): Promise<GalleryType> => {
   try {
-    const response = await axios.get(`${baseUrl}/cards/card-designs/`);
-    return response.data.results;
+    const response = await axios.get(`${baseUrl}/gallery`);
+    return response.data as GalleryType;
   } catch (error: any) {
     if (error.response && error.response.data && error.response.data.message) {
       throw new Error(error.response.data.message);

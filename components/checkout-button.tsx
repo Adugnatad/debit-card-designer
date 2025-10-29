@@ -19,7 +19,7 @@ export default function CheckoutButton() {
     // },
     mutationFn: (data: DesignSnapshot) => postDesignSnapshot(data),
     onSuccess: (data: any) => {
-      console.log("Design snapshot created successfully:", data);
+      // console.log("Design snapshot created successfully:", data);
       // ✅ navigate with query param
       router.push(`/cards/checkout?id=${data.id}`);
     },
@@ -37,7 +37,7 @@ export default function CheckoutButton() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as DesignSnapshot;
-        console.log("parsed", parsed);
+        // console.log("parsed", parsed);
         // ✅ trigger mutation
         createDesignSnapshot.mutate(parsed);
       } else {
@@ -48,7 +48,7 @@ export default function CheckoutButton() {
         });
       }
     } catch (e) {
-      console.warn("No valid saved design to restore");
+      // console.warn("No valid saved design to restore");
     }
   };
 

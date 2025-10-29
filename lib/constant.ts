@@ -2,8 +2,8 @@ import { AnyLayer, ImageLayer, TextLayer } from "./types";
 import { v4 as uuidv4 } from "uuid";
 
 export const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+export const imageUrl = baseUrl?.replace("/api/v1", "");
 
-console.log("Base URL:", baseUrl);
 
 export function uid(prefix = "id") {
   return uuidv4();
@@ -95,7 +95,7 @@ export const SYSTEM_FONTS = [
 export function base64ToFile(base64Data: string, filename: string) {
   const matches = base64Data.match(/^data:(image\/[a-z]+);base64,(.+)$/);
   if (!matches) {
-    console.error("Invalid Base64 string");
+    // console.error("Invalid Base64 string");
     return;
   }
   // const arr = base64Data.split(",");

@@ -95,7 +95,7 @@ export const postVerifyOtp = async (id: string, otp: string) => {
 export const sendDesignSnapshot = async (data: DesignSnapshot) => {
   try {
     const formData = buildDesignSnapshotFormData(data);
-    console.log("FormData prepared:", formData);
+    // console.log("FormData prepared:", formData);
     const res = await axios(`${baseUrl}/design/snapshots`, {
       method: "POST",
       // headers: { "Content-Type": "application/json" },
@@ -108,11 +108,11 @@ export const sendDesignSnapshot = async (data: DesignSnapshot) => {
     //   throw new Error(error.message || "Failed to create design");
     // }
 
-    console.log(res.data);
+    // console.log(res.data);
 
     return res.data;
   } catch (error) {
-    console.log("catch error here", error);
+    // console.log("catch error here", error);
     // console.error("Error sending design snapshot:", error);
     throw error;
   }
@@ -143,18 +143,117 @@ export function normalizeDesign(design: DesignSnapshot) {
   return formData;
 }
 
+// export function buildDesignSnapshotFormData(
+//   snapshot: DesignSnapshot
+// ): FormData {
+//   let snapshotLayers: AnyLayer[] = [];
+//   const formData = new FormData();
+//   // console.log("Building FormData for design snapshot:", snapshot);
+//   // Add snapshot-level fields
+//   formData.append("v", String(snapshot.v));
+//   formData.append("bgMode", snapshot.bgMode);
+//   formData.append("bgColor", snapshot.bgColor);
+//   if (snapshot.bgImage) {
+//     // console.log("image is here", snapshot.bgImage);
+//     const matches = snapshot.bgImage.match(/^data:(.+);base64,(.*)$/);
+//     if (!matches) throw new Error("Invalid base64 string");
+
+//     const mimeType = matches[1]; // e.g., "image/png"
+//     const ext = mimeType.split("/")[1]; // "png"
+//     const data = matches[2]; // actual base64 data
+
+//     // Convert base64 → binary → blob
+//     const byteChars = atob(data);
+//     const byteNumbers = new Array(byteChars.length);
+//     for (let i = 0; i < byteChars.length; i++) {
+//       byteNumbers[i] = byteChars.charCodeAt(i);
+//     }
+//     const byteArray = new Uint8Array(byteNumbers);
+//     const blob = new Blob([byteArray], { type: mimeType });
+//     formData.append("bgImage", blob, `upload.${ext}`);
+//   }
+//   formData.append("bg", JSON.stringify(snapshot.bg));
+//   // formData.append("bg_y", String(snapshot.bg.y));
+//   // formData.append("bg_w", String(snapshot.bg.w));
+//   // formData.append("bg_h", String(snapshot.bg.h));
+//   // formData.append("bg_lock_aspect", String(snapshot.bg.lockAspect));
+//   // formData.append("layers", JSON.stringify(snapshot.layers));
+//   formData.append("gradient", JSON.stringify(snapshot.gradient));
+//   console.log("before converting: ", JSON.stringify(snapshot.layers, null, 2));
+
+//   snapshot.layers.forEach((layer, index) => {
+//     // formData.append(`layers[${index}][name]`, layer.name);
+//     // formData.append(`layers[${index}].type`, layer.type);
+//     // formData.append(`layers[${index}].locked`, layer.locked ? "true" : "false");
+//     // formData.append(`layers[${index}].x`, layer.x ? String(layer.x) : "0");
+//     // formData.append(`layers[${index}].y`, layer.y ? String(layer.y) : "0");
+//     // formData.append(`layers[${index}].w`, layer.w ? String(layer.w) : "0");
+//     // formData.append(`layers[${index}].h`, layer.h ? String(layer.h) : "0");
+//     // formData.append(`layers[${index}].z`, layer.z ? String(layer.z) : "0");
+//     // if (layer.type === "text") {
+//     //   if ("text" in layer)
+//     //     formData.append(`layers[${index}].text`, layer.text ?? "");
+//     //   if ("color" in layer)
+//     //     formData.append(`layers[${index}].color`, layer.color ?? "");
+//     //   if ("fontFamily" in layer)
+//     //     formData.append(`layers[${index}].fontFamily`, layer.fontFamily ?? "");
+//     //   if ("fontWeight" in layer)
+//     //     formData.append(
+//     //       `layers[${index}].fontWeight`,
+//     //       String(layer.fontWeight ?? 400)
+//     //     );
+//     //   if ("align" in layer)
+//     //     formData.append(`layers[${index}].align`, layer.align ?? "left");
+//     // }
+
+//     if (layer.type === "image" && layer.src) {
+//       const matches = layer.src.match(/^data:(.+);base64,(.*)$/);
+//       if (matches) {
+//         const mimeType = matches[1]; // e.g., "image/png"
+//         const ext = mimeType.split("/")[1]; // "png"
+//         const data = matches[2]; // actual base64 data
+
+//         // Convert base64 → binary → blob
+//         const byteChars = atob(data);
+//         const byteNumbers = new Array(byteChars.length);
+//         for (let i = 0; i < byteChars.length; i++) {
+//           byteNumbers[i] = byteChars.charCodeAt(i);
+//         }
+//         const byteArray = new Uint8Array(byteNumbers);
+//         const blob = new Blob([byteArray], { type: mimeType });
+//         formData.append(`layerImages`, blob, `layer_${index}.${ext}`);
+//         // formData.delete(`layers[${index}].src`);
+//         // create a new layer without src
+//         // const { src, ...newLayer } = layer;
+
+//         snapshotLayers[index] = { ...layer, src: "" };
+//       } else {
+//         // formData.append(`layers[${index}].src`, layer.src);
+//         snapshotLayers[index] = layer;
+//       }
+//     } else {
+//       snapshotLayers[index] = layer;
+//     }
+//   });
+//   // console.log("snapshotLayers:", JSON.stringify(snapshotLayers, null, 2));
+//   formData.append("layers", JSON.stringify(snapshotLayers));
+//   // formData.forEach((value, key) => {
+//   //   console.log(`FormData Entry: ${key} = ${value}`);
+//   // });
+//   return formData;
+// }
+
+
 export function buildDesignSnapshotFormData(
   snapshot: DesignSnapshot
 ): FormData {
   let snapshotLayers: AnyLayer[] = [];
   const formData = new FormData();
-  // console.log("Building FormData for design snapshot:", snapshot);
-  // Add snapshot-level fields
+
   formData.append("v", String(snapshot.v));
   formData.append("bgMode", snapshot.bgMode);
   formData.append("bgColor", snapshot.bgColor);
-  if (snapshot.bgImage) {
-    // console.log("image is here", snapshot.bgImage);
+  if (snapshot.bgImage && !snapshot.bgImage.includes("/uploads")) {
     const matches = snapshot.bgImage.match(/^data:(.+);base64,(.*)$/);
     if (!matches) throw new Error("Invalid base64 string");
 
@@ -171,42 +270,27 @@ export function buildDesignSnapshotFormData(
     const byteArray = new Uint8Array(byteNumbers);
     const blob = new Blob([byteArray], { type: mimeType });
     formData.append("bgImage", blob, `upload.${ext}`);
+  } else {
+    formData.append("bgImage", snapshot.bgImage as string)
   }
-  formData.append("bg", JSON.stringify(snapshot.bg));
-  // formData.append("bg_y", String(snapshot.bg.y));
-  // formData.append("bg_w", String(snapshot.bg.w));
-  // formData.append("bg_h", String(snapshot.bg.h));
-  // formData.append("bg_lock_aspect", String(snapshot.bg.lockAspect));
-  // formData.append("layers", JSON.stringify(snapshot.layers));
+  const bg = {...snapshot.bg, lockAspect: snapshot.bg.lockAspect ?? false}
+
+  formData.append("bg", JSON.stringify(bg));
+
+  // console.log("bg is", JSON.stringify(snapshot.bg))
+
   formData.append("gradient", JSON.stringify(snapshot.gradient));
-  console.log("before converting: ", JSON.stringify(snapshot.layers, null, 2));
+  // console.log("before converting: ", JSON.stringify(snapshot.layers, null, 2));
 
   snapshot.layers.forEach((layer, index) => {
-    // formData.append(`layers[${index}][name]`, layer.name);
-    // formData.append(`layers[${index}].type`, layer.type);
-    // formData.append(`layers[${index}].locked`, layer.locked ? "true" : "false");
-    // formData.append(`layers[${index}].x`, layer.x ? String(layer.x) : "0");
-    // formData.append(`layers[${index}].y`, layer.y ? String(layer.y) : "0");
-    // formData.append(`layers[${index}].w`, layer.w ? String(layer.w) : "0");
-    // formData.append(`layers[${index}].h`, layer.h ? String(layer.h) : "0");
-    // formData.append(`layers[${index}].z`, layer.z ? String(layer.z) : "0");
-    // if (layer.type === "text") {
-    //   if ("text" in layer)
-    //     formData.append(`layers[${index}].text`, layer.text ?? "");
-    //   if ("color" in layer)
-    //     formData.append(`layers[${index}].color`, layer.color ?? "");
-    //   if ("fontFamily" in layer)
-    //     formData.append(`layers[${index}].fontFamily`, layer.fontFamily ?? "");
-    //   if ("fontWeight" in layer)
-    //     formData.append(
-    //       `layers[${index}].fontWeight`,
-    //       String(layer.fontWeight ?? 400)
-    //     );
-    //   if ("align" in layer)
-    //     formData.append(`layers[${index}].align`, layer.align ?? "left");
-    // }
+
+    const normalizedType = layer.type.replace(/_/g, "-");
+    layer.type = normalizedType as any
+
+    layer.locked = layer.locked ?? false
 
     if (layer.type === "image" && layer.src) {
+      layer.lockAspectRatio = layer.lockAspectRatio ?? false;
       const matches = layer.src.match(/^data:(.+);base64,(.*)$/);
       if (matches) {
         const mimeType = matches[1]; // e.g., "image/png"
@@ -221,24 +305,17 @@ export function buildDesignSnapshotFormData(
         }
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: mimeType });
-        formData.append(`layerImages`, blob, `layer_${index}.${ext}`);
-        // formData.delete(`layers[${index}].src`);
-        // create a new layer without src
-        // const { src, ...newLayer } = layer;
+        formData.append(`layerImages`, blob, `layer_${index}.${ext}`);     
 
         snapshotLayers[index] = { ...layer, src: "" };
       } else {
-        // formData.append(`layers[${index}].src`, layer.src);
         snapshotLayers[index] = layer;
       }
     } else {
       snapshotLayers[index] = layer;
     }
   });
-  // console.log("snapshotLayers:", JSON.stringify(snapshotLayers, null, 2));
   formData.append("layers", JSON.stringify(snapshotLayers));
-  // formData.forEach((value, key) => {
-  //   console.log(`FormData Entry: ${key} = ${value}`);
-  // });
+ 
   return formData;
 }

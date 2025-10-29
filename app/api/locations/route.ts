@@ -10,7 +10,7 @@ export async function GET() {
   } catch (error: any) {
     return NextResponse.json(
       { message: error.message || "Failed to fetch locations" },
-      { status: 500 }
+      { status: 400 }
     );
   }
 }
