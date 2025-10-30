@@ -10,7 +10,6 @@ import { LoadingScreen } from "@/components/loading-screen";
 import { DesignSnapshot } from "@/lib/types";
 import CheckoutForm from "@/components/checkout-form";
 import { CardPreview } from "@/components/card-preview";
-// import CardPreview from "@/components/card-preview";
 
 export default function Designer() {
   const params = useParams();
@@ -23,7 +22,6 @@ export default function Designer() {
       throw new Error("Design not found");
     }
     const data = await response.json();
-    // console.log("---- design data in invite page", data.design);
     const design = data.design as DesignSnapshot;
     return design;
   };

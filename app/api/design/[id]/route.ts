@@ -14,7 +14,6 @@ export async function GET(
     const design = await getDesign(id);
     return NextResponse.json(design);
   } catch (error: any) {
-    // console.error("Failed to fetch design:", error);
     return NextResponse.json(
       { message: error.message || "Failed to fetch design" },
       { status: 400 }

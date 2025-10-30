@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useSearchParams } from 'next/navigation';
 import CheckoutForm from "@/components/checkout-form";
-// import CardPreview from "@/components/card-preview";
 import { Button } from "@/components/ui/button";
 import { CardPreview } from "@/components/card-preview";
 import { DesignSnapshot } from "@/lib/types";
@@ -17,13 +16,11 @@ export default function CheckoutPage() {
   const id = searchParams.get('id');
 
    const fetchDesign = async (id: string): Promise<DesignSnapshot | null> => {
-    // console.log("fetching design", id)
     const response = await fetch(`/api/design/${id}`);
     if (!response.ok) {
       throw new Error("Design not found");
     }
     const data = await response.json();
-    // console.log("---- design data in invite page", data);
     const design = data as DesignSnapshot;
     return design;
   };
@@ -71,14 +68,11 @@ export default function CheckoutPage() {
           </Button>
         </div>
 
-        {/* Make right column wide enough to fit the 420px card without squeezing */}
         <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_520px]">
-          {/* Left: payment form */}
           <div className="space-y-6">
             <CheckoutForm />
           </div>
 
-          {/* Right: preview and summary */}
           <div className="space-y-6 md:sticky md:top-4 md:self-start md:max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <CardPreview design={design.data} />
           </div>

@@ -11,7 +11,6 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    // console.error("Error confirming invitation:", error);
     return NextResponse.json(
       { message: error.message || "Failed to confirm invitation" },
       { status: 400 }

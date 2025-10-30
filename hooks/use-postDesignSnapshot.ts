@@ -9,7 +9,7 @@ export const postDesignSnapshot = async (data: DesignSnapshot) => {
 
   if (!res.ok) {
     const error = await res.json();
-    // console.log("error creating design snapshot", error);
+    // 
     throw new Error(error.message || "Failed to create design snapshot");
   }
 

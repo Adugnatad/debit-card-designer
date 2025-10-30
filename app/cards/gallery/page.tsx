@@ -49,7 +49,7 @@ export default function GalleryPage() {
 
   const handleCreateNew = () => {
     sessionStorage.removeItem("editingCard")
-    router.push("/design")
+    router.push("/cards/new")
   }
 
   if (isLoading) {

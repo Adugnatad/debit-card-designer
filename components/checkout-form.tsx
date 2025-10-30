@@ -20,7 +20,6 @@ import { ArrowLeft, CheckCircle2, MessageCircle, Send } from "lucide-react";
 import MapComponent from "./map-component";
 import { Checkbox } from "./ui/checkbox";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { getLocation } from "@/lib/apis/map_apis";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { orderPayload, SendOrderData } from "@/lib/apis/order_api";
 import {
@@ -161,7 +160,6 @@ export default function CheckoutForm() {
     },
     validationSchema,
     onSubmit: async (values) => {
-      console.log("values are:", values);
       setIsSubmitting(true);
       if (!isOtpVerified) {
         toast({

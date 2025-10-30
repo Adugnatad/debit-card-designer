@@ -98,7 +98,7 @@ export const postVerifyOtp = async (id: string, otp: string) => {
 export const sendDesignSnapshot = async (data: DesignSnapshot) => {
   try {
     const formData = buildDesignSnapshotFormData(data);
-    // console.log("FormData prepared:", formData);
+    // 
     const res = await axios(`${baseUrl}/design/snapshots`, {
       method: "POST",
       // headers: { "Content-Type": "application/json" },
@@ -111,12 +111,12 @@ export const sendDesignSnapshot = async (data: DesignSnapshot) => {
     //   throw new Error(error.message || "Failed to create design");
     // }
 
-    // console.log(res.data);
+    // 
 
     return res.data;
   } catch (error) {
-    // console.log("catch error here", error);
-    // console.error("Error sending design snapshot:", error);
+    // 
+    // 
     throw error;
   }
 };
@@ -151,13 +151,13 @@ export function normalizeDesign(design: DesignSnapshot) {
 // ): FormData {
 //   let snapshotLayers: AnyLayer[] = [];
 //   const formData = new FormData();
-//   // console.log("Building FormData for design snapshot:", snapshot);
+//   // 
 //   // Add snapshot-level fields
 //   formData.append("v", String(snapshot.v));
 //   formData.append("bgMode", snapshot.bgMode);
 //   formData.append("bgColor", snapshot.bgColor);
 //   if (snapshot.bgImage) {
-//     // console.log("image is here", snapshot.bgImage);
+//     // 
 //     const matches = snapshot.bgImage.match(/^data:(.+);base64,(.*)$/);
 //     if (!matches) throw new Error("Invalid base64 string");
 
@@ -182,7 +182,7 @@ export function normalizeDesign(design: DesignSnapshot) {
 //   // formData.append("bg_lock_aspect", String(snapshot.bg.lockAspect));
 //   // formData.append("layers", JSON.stringify(snapshot.layers));
 //   formData.append("gradient", JSON.stringify(snapshot.gradient));
-//   console.log("before converting: ", JSON.stringify(snapshot.layers, null, 2));
+//   
 
 //   snapshot.layers.forEach((layer, index) => {
 //     // formData.append(`layers[${index}][name]`, layer.name);
@@ -238,10 +238,10 @@ export function normalizeDesign(design: DesignSnapshot) {
 //       snapshotLayers[index] = layer;
 //     }
 //   });
-//   // console.log("snapshotLayers:", JSON.stringify(snapshotLayers, null, 2));
+//   // 
 //   formData.append("layers", JSON.stringify(snapshotLayers));
 //   // formData.forEach((value, key) => {
-//   //   console.log(`FormData Entry: ${key} = ${value}`);
+//   //   
 //   // });
 //   return formData;
 // }
@@ -280,10 +280,10 @@ export function buildDesignSnapshotFormData(
 
   formData.append("bg", JSON.stringify(bg));
 
-  // console.log("bg is", JSON.stringify(snapshot.bg))
+  // 
 
   formData.append("gradient", JSON.stringify(snapshot.gradient));
-  // console.log("before converting: ", JSON.stringify(snapshot.layers, null, 2));
+  // 
 
   snapshot.layers.forEach((layer, index) => {
 

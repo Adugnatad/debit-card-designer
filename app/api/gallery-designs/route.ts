@@ -8,7 +8,6 @@ export async function GET() {
     const designs: GalleryType = await getGalleryDesigns();
     return NextResponse.json(designs);
   } catch (error: any) {
-    // console.log("err", error)
     return NextResponse.json({ message: error.message }, { status: 400 });
   }
 }

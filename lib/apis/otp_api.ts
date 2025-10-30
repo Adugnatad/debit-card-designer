@@ -16,10 +16,10 @@ export const sendOtp = async (data: {
       }
     );
 
-    // console.log(response.data);
+    // 
     return response.data;
   } catch (error: any) {
-    // console.log("---- send otp error", error);
+    // 
     if (error.response && error.response.data && error.response.data.message) {
       throw new Error(error.response.data.message);
     }

@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-// import { sendDesignSnapshot } from "@/hooks/use-confirmInvitationOrder";
 import { useToast } from "@/hooks/use-toast";
 import { DesignSnapshot, STORAGE_KEY } from "@/lib/types";
 import { useMutation } from "@tanstack/react-query";
@@ -14,13 +13,8 @@ export default function CheckoutButton() {
   const router = useRouter();
 
   const createDesignSnapshot = useMutation({
-    // mutationFn: (data: DesignSnapshot) => {
-    //   return sendDesignSnapshot(data);
-    // },
     mutationFn: (data: DesignSnapshot) => postDesignSnapshot(data),
     onSuccess: (data: any) => {
-      // console.log("Design snapshot created successfully:", data);
-      // ✅ navigate with query param
       router.push(`/cards/checkout?id=${data.id}`);
     },
     onError: () => {
@@ -37,8 +31,7 @@ export default function CheckoutButton() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as DesignSnapshot;
-        // console.log("parsed", parsed);
-        // ✅ trigger mutation
+    
         createDesignSnapshot.mutate(parsed);
       } else {
         toast({
@@ -48,7 +41,6 @@ export default function CheckoutButton() {
         });
       }
     } catch (e) {
-      // console.warn("No valid saved design to restore");
     }
   };
 

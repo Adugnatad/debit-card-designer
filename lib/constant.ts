@@ -95,16 +95,16 @@ export const SYSTEM_FONTS = [
 export function base64ToFile(base64Data: string, filename: string) {
   const matches = base64Data.match(/^data:(image\/[a-z]+);base64,(.+)$/);
   if (!matches) {
-    // console.error("Invalid Base64 string");
+    // 
     return;
   }
   // const arr = base64Data.split(",");
-  // console.log("Base64 data parts:", arr);
+  // 
   const mimeType = matches[1]; // e.g., image/png
   const rawData = matches[2]; // Raw Base64 string
   const extension = mimeType.split("/")[1]; // e.g., png, jpeg
   // const mimeMatch = arr[0].match(/:(.*?);/);
-  // console.log("Converting base64 to file:", mimeMatch);
+  // 
   // if (!mimeMatch) throw new Error("Invalid base64 string");
 
   // const mime = mimeMatch[1]; // e.g., "image/png"

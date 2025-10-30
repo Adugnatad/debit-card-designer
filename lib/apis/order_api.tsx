@@ -39,7 +39,7 @@ export const submitOrder = async (payload: orderPayload): Promise<void> => {
       }
     );
   } catch (error: any) {
-    // console.log(error.response);
+    // 
     throw new Error("Order failed");
   }
 };
@@ -55,7 +55,7 @@ export const confirmInvitation = async (
       },
     });
   } catch (error: any) {
-    // console.log("confirm error", error.response.data);
+    // 
     if (error.response && error.response.data && error.response.data.err) {
       throw new Error(error.response.data.error);
     }
