@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { validationSchema } from "@/schema/order-schema";
 import { useFormik } from "formik";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, MessageCircle, Send } from "lucide-react";
 import MapComponent from "./map-component";
 import { Checkbox } from "./ui/checkbox";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -55,6 +55,9 @@ export default function CheckoutForm() {
   >([]);
   const [otpSendError, setOtpSendError] = useState("");
   const [resendTimer, setResendTimer] = useState(120);
+  const [verificationMethod, setVerificationMethod] = useState<
+    "sms" | "telegram"
+  >("telegram");
 
   useEffect(() => {
     if (resendTimer > 0) {
@@ -64,7 +67,7 @@ export default function CheckoutForm() {
   }, [resendTimer]);
 
   const handleResendOtp = () => {
-    send_otp.mutate({ phoneNumber: formik.values.phone });
+    send_otp.mutate({ phoneNumber: formik.values.phone, verificationMethod });
   };
 
   const locations = useQuery({
@@ -108,8 +111,13 @@ export default function CheckoutForm() {
   });
 
   const send_otp = useMutation({
-    mutationFn: ({ phoneNumber }: { phoneNumber: string }) =>
-      postSendOtp(phoneNumber),
+    mutationFn: ({
+      phoneNumber,
+      verificationMethod,
+    }: {
+      phoneNumber: string;
+      verificationMethod: "sms" | "telegram";
+    }) => postSendOtp(phoneNumber, verificationMethod),
     onMutate: () => {
       setResendTimer(120);
       setError("");
@@ -372,15 +380,57 @@ export default function CheckoutForm() {
               </div>
             )}
             {formik.values.phone && !formik.errors.phone && !isOtpVerified && (
-              <Button
-                className="self-end"
-                type="button"
-                onClick={() =>
-                  send_otp.mutate({ phoneNumber: formik.values.phone })
-                }
-              >
-                Verify
-              </Button>
+              <div className="flex items-center justify-between pt-2">
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-foreground mb-3">
+                    Verification Method
+                  </label>
+                  <div className="flex gap-3 bg-muted p-1 rounded-lg w-fit">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setVerificationMethod("sms");
+                      }}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all ${
+                        verificationMethod === "sms"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Send className="w-4 h-4" />
+                      SMS
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setVerificationMethod("telegram");
+                      }}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all ${
+                        verificationMethod === "telegram"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Telegram
+                    </button>
+                  </div>
+                </div>
+                <Button
+                  className="self-end"
+                  type="button"
+                  onClick={() =>
+                    send_otp.mutate({
+                      phoneNumber: formik.values.phone,
+                      verificationMethod,
+                    })
+                  }
+                >
+                  Verify
+                </Button>
+              </div>
             )}
           </div>
           {isOtpVerified && (
