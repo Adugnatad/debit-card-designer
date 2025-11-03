@@ -148,8 +148,6 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
   const router = useRouter()
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
-  const isEditMode = !!cardId || !!initialDesign
-
 
   // Background mode & controls
   const [bgMode, setBgMode] = useState<BgMode>("color");
@@ -398,8 +396,8 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
         WebkitTextFillColor: "transparent",
         backgroundImage: `url(${bgImage})`,
         backgroundRepeat: "no-repeat",
-        backgroundSize: `${bg.w}px ${bg.h}px`,
-        backgroundPosition: `${bg.x - elementX}px ${bg.y - elementY}px`,
+        backgroundSize: `${bg?.w}px ${bg?.h}px`,
+        backgroundPosition: `${bg?.x - elementX}px ${bg?.y - elementY}px`,
         WebkitBackgroundClip: "text",
         backgroundClip: "text",
         textShadow: embossedShadow,
@@ -1282,8 +1280,8 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                   {/* Background image layer (only when in image mode) */}
                   {bgMode === "image" && bgImage && (
                     <Rnd
-                      size={{ width: bg.w, height: bg.h }}
-                      position={{ x: bg.x, y: bg.y }}
+                      size={{ width: bg?.w, height: bg?.h }}
+                      position={{ x: bg?.x, y: bg?.y }}
                       onDragStop={(_, d) =>
                         setBg((prev) => ({
                           ...prev,
@@ -1297,11 +1295,11 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                           y: Math.round(pos.y),
                           w: Math.round(ref.offsetWidth),
                           h: Math.round(ref.offsetHeight),
-                          lockAspect: bg.lockAspect,
+                          lockAspect: bg?.lockAspect,
                         });
                       }}
                       bounds="parent"
-                      lockAspectRatio={bg.lockAspect}
+                      lockAspectRatio={bg?.lockAspect}
                       style={{ zIndex: 0 }}
                       enableUserSelectHack={false}
                     >
@@ -1353,10 +1351,10 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                           className="absolute"
                           data-fixed="true"
                           style={{
-                            left: layer.x,
-                            top: layer.y,
-                            width: layer.w,
-                            height: layer.h,
+                            left: layer?.x,
+                            top: layer?.y,
+                            width: layer?.w,
+                            height: layer?.h,
                             ...commonStyle,
                           }}
                           aria-label="Card chip"

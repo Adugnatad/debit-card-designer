@@ -128,10 +128,10 @@ export const CardPreview = forwardRef<CardPreviewHandle, CardPreviewProps>(
             <div
               style={{
                 position: "absolute",
-                left: design.bg.x,
-                top: design.bg.y,
-                width: design.bg.w,
-                height: design.bg.h,
+                left: design.bg?.x,
+                top: design.bg?.y,
+                width: design.bg?.w,
+                height: design.bg?.h,
                 zIndex: 0,
               }}
             >
@@ -155,10 +155,10 @@ export const CardPreview = forwardRef<CardPreviewHandle, CardPreviewProps>(
                   className="absolute"
                   data-layer-id="chip"
                   style={{
-                    left: layer.x,
-                    top: layer.y,
-                    width: layer.w,
-                    height: layer.h,
+                    left: layer?.x,
+                    top: layer?.y,
+                    width: layer?.w,
+                    height: layer?.h,
                     zIndex,
                   }}
                   aria-label="Card chip"
@@ -174,8 +174,8 @@ export const CardPreview = forwardRef<CardPreviewHandle, CardPreviewProps>(
               );
             }
             if (layer.type && layer.type.replace("_", "-") === "fixed-pan") {
-              const x = layer.x ?? 0;
-              const y = layer.y ?? 0;
+              const x = layer?.x ?? 0;
+              const y = layer?.y ?? 0;
               return (
                 <div
                   key={layer.id}
@@ -197,11 +197,11 @@ export const CardPreview = forwardRef<CardPreviewHandle, CardPreviewProps>(
               );
             }
             if (layer.type && layer.type.replace("_", "-") === "fixed-expiry") {
-              const x = layer.x ?? 0;
-              const y = layer.y ?? 0;
+              const x = layer?.x ?? 0;
+              const y = layer?.y ?? 0;
               return (
                 <div
-                  key={layer.id}
+                  key={layer?.id}
                   className="absolute"
                   style={{ left: x, top: y, zIndex }}
                   data-layer-id="chip"
@@ -227,19 +227,19 @@ export const CardPreview = forwardRef<CardPreviewHandle, CardPreviewProps>(
             }
             if (layer.type === "text") {
               const tl = layer as TextLayer;
-              const x = tl.x ?? 0;
-              const y = tl.y ?? 0;
-              const w = tl.w ?? 180;
-              const h = tl.h ?? 48;
+              const x = tl?.x ?? 0;
+              const y = tl?.y ?? 0;
+              const w = tl?.w ?? 180;
+              const h = tl?.h ?? 48;
               const justifyContent =
-                tl.align === "center"
+                tl?.align === "center"
                   ? "center"
-                  : tl.align === "right"
+                  : tl?.align === "right"
                   ? "flex-end"
                   : "flex-start";
               return (
                 <div
-                  key={tl.id}
+                  key={tl?.id}
                   className="absolute"
                   style={{ left: x, top: y, width: w, height: h, zIndex }}
                 >
@@ -249,8 +249,8 @@ export const CardPreview = forwardRef<CardPreviewHandle, CardPreviewProps>(
                       display: "flex",
                       alignItems: "center",
                       justifyContent,
-                      fontFamily: tl.fontFamily,
-                      fontWeight: tl.fontWeight,
+                      fontFamily: tl?.fontFamily,
+                      fontWeight: tl?.fontWeight,
                       fontSize: fontSizeFromHeight(h),
                       lineHeight: 1.1,
                       whiteSpace: "nowrap",
@@ -267,10 +267,10 @@ export const CardPreview = forwardRef<CardPreviewHandle, CardPreviewProps>(
             }
             if (layer.type === "image") {
               const il = layer as ImageLayer;
-              const x = il.x ?? 0;
-              const y = il.y ?? 0;
-              const w = il.w ?? 120;
-              const h = il.h ?? 80;
+              const x = il?.x ?? 0;
+              const y = il?.y ?? 0;
+              const w = il?.w ?? 120;
+              const h = il?.h ?? 80;
               return (
                 <div
                   key={il.id}
