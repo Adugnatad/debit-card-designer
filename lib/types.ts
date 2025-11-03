@@ -63,18 +63,23 @@ export type DesignSnapshot = {
   bgColor: string;
   gradient: GradientState;
   bgImage: string | null;
-  bg: { x: number; y: number; w: number; h: number; lockAspect: boolean };
+  // bg: { x: number; y: number; w: number; h: number; lockAspect: boolean };
+  bgX: number;
+  bgY: number;
+  bgW: number;
+  bgH: number;
+  bgLockAspect: boolean;
   layers: AnyLayer[];
 };
 
 export type GalleryType = {
-  data: DesignSnapshot[]
+  data: DesignSnapshot[];
   meta: {
-    hasNextPage: boolean,
-    hasPrevPage: boolean,
-    limit: number,
-    page: number,
-    total: number,
-    totalPages: number
-  }
-}
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+    page: number;
+    total: number;
+    totalPages: number;
+  };
+};

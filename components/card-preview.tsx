@@ -73,15 +73,16 @@ export const CardPreview = forwardRef<CardPreviewHandle, CardPreviewProps>(
       if (!design) return {};
       const embossedShadow =
         "-1px -1px 0 rgba(255,255,255,0.75), 1px 1px 0 rgba(0,0,0,0.35)";
-      const { bgMode, bgImage, bg, bgColor } = design;
+      const { bgMode, bgImage, bgColor, bgX, bgY, bgW, bgH } = design;
       if (bgMode === "image" && bgImage) {
+        // console.log("----bg", bg)
         return {
           color: "transparent",
           WebkitTextFillColor: "transparent",
           backgroundImage: `url(${bgImage})`,
           backgroundRepeat: "no-repeat",
-          backgroundSize: `${bg.w}px ${bg.h}px`,
-          backgroundPosition: `${bg.x - elementX}px ${bg.y - elementY}px`,
+          backgroundSize: `${bgW}px ${bgH}px`,
+          backgroundPosition: `${bgX - elementX}px ${bgY - elementY}px`,
           WebkitBackgroundClip: "text",
           backgroundClip: "text",
           textShadow: embossedShadow,
@@ -128,10 +129,10 @@ export const CardPreview = forwardRef<CardPreviewHandle, CardPreviewProps>(
             <div
               style={{
                 position: "absolute",
-                left: design.bg?.x,
-                top: design.bg?.y,
-                width: design.bg?.w,
-                height: design.bg?.h,
+                left: design.bgX,
+                top: design.bgY,
+                width: design.bgW,
+                height: design.bgH,
                 zIndex: 0,
               }}
             >
