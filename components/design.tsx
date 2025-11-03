@@ -497,7 +497,11 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
       bgColor,
       gradient,
       bgImage,
-      bg,
+      bgX: bg.x,
+      bgY: bg.y,
+      bgH: bg.h,
+      bgW: bg.w,
+      bgLockAspect: bg.lockAspect,
       layers,
     };
   }
@@ -508,7 +512,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
       setBgColor(s.bgColor);
       setGradient(s.gradient);
       setBgImage(s.bgImage);
-      setBg(s.bg);
+      setBg({x: s.bgX, y: s.bgY, w: s.bgW, h: s.bgH, lockAspect: s.bgLockAspect});
       // basic validation to avoid empty/invalid arrays
       if (Array.isArray(s.layers) && s.layers.length > 0) {
         setLayers(s.layers as AnyLayer[]);
