@@ -1,4 +1,3 @@
-// Card dimensions (px) — ~85.6 x 53.98 mm ratio
 export const CARD_W = 420;
 export const CARD_H = 265;
 
@@ -63,12 +62,7 @@ export type DesignSnapshot = {
   bgColor: string;
   gradient: GradientState;
   bgImage: string | null;
-  // bg: { x: number; y: number; w: number; h: number; lockAspect: boolean };
-  bgX: number;
-  bgY: number;
-  bgW: number;
-  bgH: number;
-  bgLockAspect: boolean;
+  bg: { x: number; y: number; w: number; h: number; lockAspect: boolean };
   layers: AnyLayer[];
 };
 

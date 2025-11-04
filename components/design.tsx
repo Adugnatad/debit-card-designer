@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -148,6 +149,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
   const router = useRouter()
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
+  const isEditMode = !!cardId || !!initialDesign
 
   // Background mode & controls
   const [bgMode, setBgMode] = useState<BgMode>("color");
@@ -347,6 +349,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
 
   // Gradient CSS
   const gradientCss = useMemo(() => {
+    if(!gradient) return
     const stops = [...gradient.stops]
       .sort((a, b) => a.pos - b.pos)
       .map((s) => `${s.color} ${s.pos}%`)
@@ -396,8 +399,8 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
         WebkitTextFillColor: "transparent",
         backgroundImage: `url(${bgImage})`,
         backgroundRepeat: "no-repeat",
-        backgroundSize: `${bg?.w}px ${bg?.h}px`,
-        backgroundPosition: `${bg?.x - elementX}px ${bg?.y - elementY}px`,
+        backgroundSize: `${bg.w}px ${bg.h}px`,
+        backgroundPosition: `${bg.x - elementX}px ${bg.y - elementY}px`,
         WebkitBackgroundClip: "text",
         backgroundClip: "text",
         textShadow: embossedShadow,
@@ -454,6 +457,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
       link.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
+      console.error("Failed to export PNG", err);
     } finally {
       setExporting(false);
     }
@@ -491,28 +495,45 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
   };
 
   function makeSnapshot(): DesignSnapshot {
-    return {
-      v: 1,
-      bgMode,
-      bgColor,
-      gradient,
-      bgImage,
-      bgX: bg.x,
-      bgY: bg.y,
-      bgH: bg.h,
-      bgW: bg.w,
-      bgLockAspect: bg.lockAspect,
-      layers,
-    };
+    const storedData = {} as DesignSnapshot 
+    storedData.v = 1;
+    storedData.bgMode = bgMode;
+    storedData.layers = layers
+    if(bgMode === "color") {
+      storedData.bgColor = bgColor;
+    } else if(bgMode === "gradient") {
+      storedData.gradient = gradient;
+    } else if(bgMode === "image") {
+      storedData.bgImage = bgImage;
+      storedData.bg = bg;
+    }
+
+    return storedData
+    // return {
+    //   v: 1,
+    //   bgMode,
+    //   bgColor,
+    //   gradient,
+    //   bgImage,
+    //   bg,
+    //   layers,
+    // };
   }
 
   function applySnapshot(s: DesignSnapshot) {
     try {
       setBgMode(s.bgMode);
       setBgColor(s.bgColor);
-      setGradient(s.gradient);
+      setGradient(s.gradient ?? {
+    kind: "linear",
+    angle: 45,
+    stops: [
+      { id: uid("stop"), color: "#ffffff", pos: 0 },
+      { id: uid("stop"), color: "#d6d3d1", pos: 100 },
+    ],
+  });
       setBgImage(s.bgImage);
-      setBg({x: s.bgX, y: s.bgY, w: s.bgW, h: s.bgH, lockAspect: s.bgLockAspect});
+      setBg(s.bg);
       // basic validation to avoid empty/invalid arrays
       if (Array.isArray(s.layers) && s.layers.length > 0) {
         setLayers(s.layers as AnyLayer[]);
@@ -521,6 +542,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
       }
       setSelectedId(null);
     } catch (e) {
+      console.error("Failed to apply snapshot", e);
     }
   }
 
@@ -534,6 +556,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
         description: new Date(ts).toLocaleTimeString(),
       });
     } catch (e) {
+      console.error("Save failed", e);
       toast({
         title: "Save failed",
         description: "Could not save design.",
@@ -554,6 +577,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
       applySnapshot(parsed);
       if (showToast) toast({ title: "Design loaded" });
     } catch (e) {
+      console.error("Load failed", e);
       if (showToast)
         toast({
           title: "Load failed",
@@ -577,7 +601,6 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
     setBgImage(null);
     setBg({ x: 0, y: 0, w: CARD_W, h: CARD_H, lockAspect: false });
     setLayers([...FIXED_LAYERS]);
-    addIssuerLogo();
     setSelectedId(null);
     localStorage.removeItem(STORAGE_KEY);
     setLastSavedAt(null);
@@ -585,9 +608,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
   }
 
   useEffect(() => {
-    // Attempt auto-restore on first mount
-    try {
-      if(initialDesign) {
+    if(initialDesign) {
         applySnapshot(initialDesign)
         setLastSavedAt(Date.now())
         toast({title: "Design loaded"})
@@ -595,24 +616,12 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw) as DesignSnapshot;
-          
-          // const updatedData = parsed.layers.filter(layer => )
-          const checkIssuer = parsed.layers.filter(layer => layer.name === "Issuer Logo")
-          
           applySnapshot(parsed);
           setLastSavedAt(Date.now());
           toast({ title: "Restored saved design" });
-          if (!checkIssuer) addIssuerLogo()
         }
-
-        // 
-        // addIssuerLogo();
+        addIssuerLogo();
       }
-      
-    } catch (e) {
-    }
-    // Ensure issuer logo is present in the canvas
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -621,20 +630,18 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
         localStorage.setItem(STORAGE_KEY, JSON.stringify(makeSnapshot()));
         setLastSavedAt(Date.now());
       } catch (e) {
-        // 
+        console.error("Autosave failed", e);
       }
     }, 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bgMode, bgColor, gradient, bgImage, bg, layers]);
 
-
   const handleSubmit = () => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(STORAGE_KEY)
       if (raw) {
         const parsed = JSON.parse(raw) as DesignSnapshot
-        createMutation.mutate(parsed)
+          createMutation.mutate(parsed)
       } else {
         toast({
           title: "No saved design",
@@ -642,12 +649,9 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
           variant: "destructive",
         })
       }
-    } catch (e) {
-    }
   }
 
   const isLoading = createMutation.isPending
-
   return (
     <div className="grid gap-6 md:grid-cols-[360px_minmax(0,1fr)]">
       {/* Tools Panel */}
@@ -715,7 +719,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                 <div className="space-y-2">
                   <Label>Gradient type</Label>
                   <Select
-                    value={gradient.kind}
+                    value={gradient?.kind}
                     onValueChange={(v: "linear" | "radial") =>
                       setGradient((g) => ({ ...g, kind: v }))
                     }
@@ -758,16 +762,16 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
             {/* Gradient controls */}
             {bgMode === "gradient" && (
               <div className="space-y-4">
-                {gradient.kind === "linear" && (
+                {gradient?.kind === "linear" && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label>Direction ({gradient.angle}°)</Label>
+                      <Label>Direction ({gradient?.angle}°)</Label>
                       <span className="text-xs text-muted-foreground">
                         0° = to right
                       </span>
                     </div>
                     <Slider
-                      value={[gradient.angle]}
+                      value={[gradient?.angle]}
                       min={0}
                       max={360}
                       step={1}
@@ -792,7 +796,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                   </div>
 
                   <div className="space-y-3">
-                    {[...gradient.stops]
+                    {[...gradient?.stops]
                       .sort((a, b) => a.pos - b.pos)
                       .map((stop) => (
                         <div key={stop.id} className="rounded-md border p-3">
@@ -823,7 +827,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                                 size="icon"
                                 className="h-8 w-8 text-destructive"
                                 onClick={() => removeStop(stop.id)}
-                                disabled={gradient.stops.length <= 2}
+                                disabled={gradient?.stops.length <= 2}
                                 title="Remove stop"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -1268,8 +1272,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                 </Button>
                 <Button size="sm" onClick={handleSubmit} disabled={isLoading} className="gap-2">
                     <Send className="h-4 w-4" />
-                    {/* {createMutation.isPending ?  "Creating..." : "Submit"} */}
-                    {isLoading ? "Loading..." : "Checkout"}
+                    {isLoading ? "loading..." : "Checkout"}
                   </Button>
               </div>
             </CardHeader>
@@ -1284,8 +1287,8 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                   {/* Background image layer (only when in image mode) */}
                   {bgMode === "image" && bgImage && (
                     <Rnd
-                      size={{ width: bg?.w, height: bg?.h }}
-                      position={{ x: bg?.x, y: bg?.y }}
+                      size={{ width: bg.w, height: bg.h }}
+                      position={{ x: bg.x, y: bg.y }}
                       onDragStop={(_, d) =>
                         setBg((prev) => ({
                           ...prev,
@@ -1299,11 +1302,11 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                           y: Math.round(pos.y),
                           w: Math.round(ref.offsetWidth),
                           h: Math.round(ref.offsetHeight),
-                          lockAspect: bg?.lockAspect,
+                          lockAspect: bg.lockAspect,
                         });
                       }}
                       bounds="parent"
-                      lockAspectRatio={bg?.lockAspect}
+                      lockAspectRatio={bg.lockAspect}
                       style={{ zIndex: 0 }}
                       enableUserSelectHack={false}
                     >
@@ -1355,10 +1358,10 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                           className="absolute"
                           data-fixed="true"
                           style={{
-                            left: layer?.x,
-                            top: layer?.y,
-                            width: layer?.w,
-                            height: layer?.h,
+                            left: layer.x,
+                            top: layer.y,
+                            width: layer.w,
+                            height: layer.h,
                             ...commonStyle,
                           }}
                           aria-label="Card chip"
@@ -1581,4 +1584,6 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
     </div>
   );
 }
+
+
 

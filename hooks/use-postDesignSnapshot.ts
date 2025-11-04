@@ -9,11 +9,10 @@ export const postDesignSnapshot = async (data: DesignSnapshot) => {
 
   if (!res.ok) {
     const error = await res.json();
-    // 
     throw new Error(error.message || "Failed to create design snapshot");
   }
 
-  return res.json(); // { id, message }
+  return res.json();
 };
 
 export const fetchLocations = async () => {
@@ -31,6 +30,6 @@ export const fetchGallery = async () => {
     const error = await res.json();
     throw new Error(error.message || "Failed to fetch locations");
   }
-  const data: GalleryType = await res.json()
+  const data: GalleryType = await res.json();
   return data;
 };
