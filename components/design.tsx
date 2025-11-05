@@ -31,7 +31,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -190,12 +189,12 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
 
   const createMutation = useMutation({
     mutationFn: (data: DesignSnapshot) => postDesignSnapshot(data),
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: "Design Created",
         description: "The card design has been successfully created.",
       })
-      router.push(`/cards/checkout?id=${data.id}`);
+      router.push("/gallery")
     },
     onError: (error) => {
       toast({
@@ -205,6 +204,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
       })
     },
   })
+
 
   const onUpload = async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -374,14 +374,11 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
     if (bgMode === "gradient") {
       return { ...base, backgroundImage: gradientCss };
     }
-    // image mode uses <img> RND; color mode is base
     return base;
   }, [bgColor, bgMode, gradientCss]);
 
-  // Helpers for text rendering based on h
   const fontSizeFromHeight = (h: number) => Math.max(10, Math.round(h * 0.6));
 
-  // PAN and expiry (fixed content)
   const PAN_TEXT = "4567 1234 5678 9012";
   const EXPIRY_TEXT = "12/29";
 
@@ -393,7 +390,6 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
     elementY: number
   ): React.CSSProperties {
     if (bgMode === "image" && bgImage) {
-      // Clip the background image into the text, aligned to the card image
       return {
         color: "transparent",
         WebkitTextFillColor: "transparent",
@@ -509,15 +505,6 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
     }
 
     return storedData
-    // return {
-    //   v: 1,
-    //   bgMode,
-    //   bgColor,
-    //   gradient,
-    //   bgImage,
-    //   bg,
-    //   layers,
-    // };
   }
 
   function applySnapshot(s: DesignSnapshot) {
@@ -556,7 +543,6 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
         description: new Date(ts).toLocaleTimeString(),
       });
     } catch (e) {
-      console.error("Save failed", e);
       toast({
         title: "Save failed",
         description: "Could not save design.",
@@ -577,7 +563,6 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
       applySnapshot(parsed);
       if (showToast) toast({ title: "Design loaded" });
     } catch (e) {
-      console.error("Load failed", e);
       if (showToast)
         toast({
           title: "Load failed",
@@ -609,19 +594,20 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
 
   useEffect(() => {
     if(initialDesign) {
-        applySnapshot(initialDesign)
-        setLastSavedAt(Date.now())
-        toast({title: "Design loaded"})
-      } else {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw) as DesignSnapshot;
-          applySnapshot(parsed);
-          setLastSavedAt(Date.now());
-          toast({ title: "Restored saved design" });
-        }
-        addIssuerLogo();
+      applySnapshot(initialDesign)
+      setLastSavedAt(Date.now())
+      toast({title: "Design loaded"})
+    } else {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as DesignSnapshot;
+        console.log("parsed", parsed)
+        applySnapshot(parsed);
+        setLastSavedAt(Date.now());
+        toast({ title: "Restored saved design" });
       }
+      addIssuerLogo();
+    }
   }, []);
 
   useEffect(() => {
@@ -634,14 +620,13 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
       }
     }, 600);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bgMode, bgColor, gradient, bgImage, bg, layers]);
 
   const handleSubmit = () => {
     const raw = localStorage.getItem(STORAGE_KEY)
       if (raw) {
         const parsed = JSON.parse(raw) as DesignSnapshot
-          createMutation.mutate(parsed)
+        createMutation.mutate(parsed)
       } else {
         toast({
           title: "No saved design",
@@ -652,6 +637,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
   }
 
   const isLoading = createMutation.isPending
+
   return (
     <div className="grid gap-6 md:grid-cols-[360px_minmax(0,1fr)]">
       {/* Tools Panel */}
@@ -985,7 +971,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => moveLayer(layer.id, "down")}
-                          disabled={layer.locked}
+                          disabled={layer.locked || layer.id === ISSUER_LAYER_ID}
                           title="Send backward"
                           aria-label="Send backward"
                         >
@@ -996,7 +982,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => moveLayer(layer.id, "up")}
-                          disabled={layer.locked}
+                          disabled={layer.locked || layer.id === ISSUER_LAYER_ID}
                           title="Bring forward"
                           aria-label="Bring forward"
                         >
@@ -1007,7 +993,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => moveLayer(layer.id, "back")}
-                          disabled={layer.locked}
+                          disabled={layer.locked || layer.id === ISSUER_LAYER_ID}
                           title="Send to back"
                           aria-label="Send to back"
                         >
@@ -1018,7 +1004,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => moveLayer(layer.id, "front")}
-                          disabled={layer.locked}
+                          disabled={layer.locked || layer.id === ISSUER_LAYER_ID}
                           title="Bring to front"
                           aria-label="Bring to front"
                         >
@@ -1029,7 +1015,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                           size="icon"
                           className="h-8 w-8 text-destructive"
                           onClick={() => deleteLayer(layer.id)}
-                          disabled={layer.locked}
+                          disabled={layer.locked || layer.id === ISSUER_LAYER_ID}
                           title="Delete layer"
                           aria-label="Delete layer"
                         >
@@ -1272,7 +1258,8 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                 </Button>
                 <Button size="sm" onClick={handleSubmit} disabled={isLoading} className="gap-2">
                     <Send className="h-4 w-4" />
-                    {isLoading ? "loading..." : "Checkout"}
+                    {/* {createMutation.isPending ?  "Creating..." : "Submit"} */}
+                    {isLoading ? (isEditMode ? "Updating..." : "Creating...") : isEditMode ? "Update" : "Submit"}
                   </Button>
               </div>
             </CardHeader>
@@ -1584,6 +1571,3 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
     </div>
   );
 }
-
-
-
