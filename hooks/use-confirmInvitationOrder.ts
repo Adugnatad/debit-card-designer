@@ -62,7 +62,10 @@ export const postOrder = async (payload: orderPayload) => {
   return res.json();
 };
 
-export const postSendOtp = async (phoneNumber: string) => {
+export const postSendOtp = async (
+  phoneNumber: string,
+  verificationMethod: "sms" | "telegram"
+) => {
   const res = await fetch("/api/send-otp", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
