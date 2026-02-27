@@ -1,3 +1,4 @@
+"use client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -27,8 +28,11 @@ import { HeroSection } from "@/components/hero-section";
 import { CardSelector } from "@/components/card-selector";
 import { FeatureHighlight } from "@/components/feature-highlight";
 import Link from "next/link";
+import { SpinToWinModal } from "@/components/spin-to-win-modal";
+import { useState } from "react";
 
 export default function AffinityCardPage() {
+  const [isSpinModalOpen, setIsSpinModalOpen] = useState(false);
   return (
     <div className="min-h-screen bg-white">
       <main>
@@ -73,6 +77,33 @@ export default function AffinityCardPage() {
 
               {/* Card Selector */}
               <CardSelector />
+
+              {/* Spin to Win Section */}
+              {/* <div className="mt-8 bg-white rounded-xl shadow-lg p-8 border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
+                      🎡 Spin to Win
+                    </h3>
+                    <p className="text-gray-700 mb-4">
+                      Get a chance to win a <strong>FREE custom card</strong> or
+                      other amazing prizes! Spin once per day for a chance to
+                      win discounts, free shipping, priority support, and more.
+                    </p>
+                    <p className="text-sm text-gray-600 mb-4">
+                      No purchase necessary. One spin per day. Limited time
+                      offer.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => setIsSpinModalOpen(true)}
+                    size="lg"
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold px-8 py-6 text-lg shadow-lg"
+                  >
+                    🎡 Try Your Luck!
+                  </Button>
+                </div>
+              </div> */}
 
               {/* Features Section */}
               <div className="mt-16">
@@ -658,6 +689,10 @@ export default function AffinityCardPage() {
           </div>
         </div>
       </footer>
+      <SpinToWinModal
+        isOpen={isSpinModalOpen}
+        onOpenChange={setIsSpinModalOpen}
+      />
     </div>
   );
 }
