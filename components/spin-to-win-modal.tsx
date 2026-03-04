@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { SpinWheel } from "./spin-wheel";
+import { useRouter } from "next/navigation";
 
 interface SpinToWinModalProps {
   isOpen: boolean;
@@ -28,6 +29,8 @@ export function SpinToWinModal({ isOpen, onOpenChange }: SpinToWinModalProps) {
   const [spinResult, setSpinResult] = useState<SpinResult | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const router = useRouter();
 
   useEffect(() => {
     // Check if user has already spun today (from localStorage for demo)
@@ -122,8 +125,7 @@ export function SpinToWinModal({ isOpen, onOpenChange }: SpinToWinModalProps) {
                 </Button>
                 <Button
                   onClick={() => {
-                    // In production, redirect to claim/checkout flow
-                    alert(`Redirecting to claim ${spinResult.prize}...`);
+                    router.push(`/cards/gallery`);
                     handleSpinAgainTomorrow();
                   }}
                   className="flex-1"

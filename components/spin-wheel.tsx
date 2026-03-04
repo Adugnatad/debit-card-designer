@@ -11,13 +11,11 @@ interface Prize {
 
 const PRIZES: Prize[] = [
   { id: 1, name: "Free Custom Card", color: "#FFD700" },
-  { id: 2, name: "$50 Discount", color: "#FF6B6B" },
-  { id: 3, name: "Free Shipping", color: "#4ECDC4" },
-  { id: 4, name: "$25 Discount", color: "#45B7D1" },
-  { id: 5, name: "20% Off Next Card", color: "#96CEB4" },
-  { id: 6, name: "Free Design Service", color: "#FFEAA7" },
-  { id: 7, name: "Priority Support", color: "#DDA15E" },
-  { id: 8, name: "Try Again Tomorrow", color: "#BC6C25" },
+  { id: 2, name: "Card Top up", color: "#FF6B6B" },
+  { id: 3, name: "1% Cashback on first 50 Transactions", color: "#4ECDC4" },
+  { id: 4, name: "20% Off Next Card", color: "#96CEB4" },
+  { id: 5, name: "Priority Support", color: "#DDA15E" },
+  { id: 6, name: "Try Again Tomorrow", color: "#BC6C25" },
 ];
 
 const SEGMENT_ANGLE = 360 / PRIZES.length; // 45 degrees per segment
