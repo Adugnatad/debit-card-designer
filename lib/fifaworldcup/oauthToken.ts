@@ -4,11 +4,11 @@
  */
 
 const DEFAULT_TOKEN_URL =
-  "https://controlplane-apim-uat.coopbankoromiasc.com/oauth2/token";
+  "https://developer.coopbankoromiasc.com/oauth2/token";
 
 /** Same value as curl: Authorization: Basic <base64> */
 const DEFAULT_AUTHORIZATION_BASIC =
-  "Basic VG5QckFUbHI4cDZyc09NaVNDaUx5eGZvc184YTpyNkNKYW9JN3YweUNFczhHWTdDM0ZpdjFkbzBh";
+  "Basic YmUwODVKVTJJNWR2ZkFzVE5IbTJlSXk1SjFnYTpaSHdwRl9aUGxtS1VPR05MaUJmOF84eHVWeVlh";
 
 type CachedToken = {
   accessToken: string;
