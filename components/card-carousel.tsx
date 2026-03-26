@@ -17,7 +17,7 @@ const cards: CardDesign[] = [
     id: 1,
     title: "Sunset Panorama",
     image: "/Card.jpg",
-    cardholder: "GELETA ABATE FULAS",
+    cardholder: "DANIEL ADUGNA GIRMA",
     cardNumber: "1234 5678 6789 1234",
   },
   {

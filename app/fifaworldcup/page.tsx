@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Alert,
@@ -28,6 +29,7 @@ import {
 } from "@/lib/fifaworldcup/fifaToast";
 import { Toaster } from "react-hot-toast";
 export default function FifaWorldCupPage() {
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
   const [activeStep, setActiveStep] = useState(0);
   const [accountNumber, setAccountNumber] = useState("");
@@ -113,6 +115,16 @@ export default function FifaWorldCupPage() {
 
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const raw = searchParams.get("account");
+    if (!raw) return;
+    // Supports values like ?account=1010... or ?account="1010..."
+    const normalized = raw.replace(/['"]/g, "").replace(/\D/g, "").slice(0, 13);
+    if (!/^\d{13}$/.test(normalized)) return;
+    setAccountNumber(normalized);
+    setAccountTouched(false);
+  }, [searchParams]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -772,10 +784,14 @@ export default function FifaWorldCupPage() {
                         variant="body2"
                         sx={{
                           textAlign: "center",
-                          color: "#334155",
-                          fontSize: { xs: "0.8125rem", sm: "0.875rem" },
-                          fontWeight: 500,
-                          mt: 0.25,
+                          color: "#000000",
+                          fontSize: { xs: "0.85rem", sm: "0.92rem" },
+                          fontWeight: 700,
+                          mt: 0.5,
+                          px: 1.5,
+                          py: 1,
+                          borderRadius: "10px",
+                          backgroundColor: "#e0f2fe",
                         }}
                       >
                         Don&apos;t have a coop bank account?{" "}
@@ -785,15 +801,17 @@ export default function FifaWorldCupPage() {
                           target="_blank"
                           rel="noreferrer"
                           sx={{
-                            color: "#00adef",
+                            color: "#15803d",
                             cursor: "pointer",
                             textDecoration: "underline",
                             textUnderlineOffset: "3px",
-                            fontWeight: 700,
+                            fontWeight: 800,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.02em",
                             transition: "all 0.2s ease",
                             display: "inline",
                             "&:hover": {
-                              color: "#4dc8f0",
+                              color: "#166534",
                             },
                           }}
                         >
