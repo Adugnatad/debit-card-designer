@@ -5,7 +5,7 @@ import {
 import type { RequestNewCardGatewayBody } from "./cardRequestTypes";
 import { serializeRequestNewCardGatewayBody } from "./cardRequestUtils";
 
-const DEFAULT_BASE = "https://externalgateway-apim-uat.coopbankoromiasc.com";
+const DEFAULT_BASE = "https://internalgateway-apim.coopbankoromiasc.com";
 
 function gatewayBase(): string {
   return process.env.FIFA_WORLD_CUP_GATEWAY_BASE_URL?.trim() || DEFAULT_BASE;

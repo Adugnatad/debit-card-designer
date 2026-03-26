@@ -4,7 +4,7 @@ import {
 } from "./oauthToken";
 
 const DEFAULT_SEND_OTP_URL =
-  "https://externalgateway-apim-uat.coopbankoromiasc.com/soufle/1.0.0/sendOtp";
+  "https://internalgateway-apim.coopbankoromiasc.com/soufle/1.0.0/sendOtp";
 
 export type SendOtpResult = {
   ok: boolean;

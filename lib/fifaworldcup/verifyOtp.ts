@@ -4,7 +4,7 @@ import {
 } from "./oauthToken";
 
 const DEFAULT_VERIFY_OTP_URL =
-  "https://externalgateway-apim-uat.coopbankoromiasc.com/soufle/1.0.0/verifyOtp";
+  "https://internalgateway-apim.coopbankoromiasc.com/soufle/1.0.0/verifyOtp";
 
 export type VerifyOtpResult = {
   ok: boolean;

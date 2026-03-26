@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 const DEFAULT_REQUEST_URL =
-  "https://externalgateway-apim-uat.coopbankoromiasc.com/prepaidcard/1.0.0/requestNewCard";
+  "https://internalgateway-apim.coopbankoromiasc.com/prepaidcard/1.0.0/requestNewCard";
 
 export function getRequestNewCardUrl(): string {
   return (
