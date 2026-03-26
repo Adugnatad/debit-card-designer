@@ -205,5 +205,5 @@ export async function requestNewCardFlowServer(
     };
   }
 
-  return { ok: true };
+  return { ok: true, gatewayData: cardRes.data };
 }

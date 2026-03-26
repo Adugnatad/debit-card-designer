@@ -57,5 +57,5 @@ export type RequestNewCardFlowInput = {
 };
 
 export type RequestNewCardFlowServerResult =
-  | { ok: true }
+  | { ok: true; gatewayData: unknown }
   | { ok: false; step: "customer" | "card"; message?: string };

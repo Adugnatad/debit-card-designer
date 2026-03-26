@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Box, Button, Grid, Skeleton, Typography } from "@mui/material";
 import { LocateFixed } from "lucide-react";
 import { BranchList } from "./BranchList";
@@ -23,6 +23,7 @@ export function BranchSelectorContainer({
   onContinue: () => void | Promise<void>;
   continueLoading?: boolean;
 }) {
+  const continueAreaRef = useRef<HTMLDivElement | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -96,6 +97,17 @@ export function BranchSelectorContainer({
       ),
     [selectedBranch]
   );
+
+  useEffect(() => {
+    if (!hasSelectedBranch) return;
+    const t = setTimeout(() => {
+      continueAreaRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 120);
+    return () => clearTimeout(t);
+  }, [hasSelectedBranch]);
 
   useEffect(() => {
     if (!selectedBranch && filtered.length > 0) onBranchSelect(filtered[0]);
@@ -236,35 +248,37 @@ export function BranchSelectorContainer({
         </Grid>
       </Grid>
 
-      <Button
-        variant="contained"
-        disabled={!hasSelectedBranch || continueLoading}
-        onClick={() => void onContinue()}
-        sx={{
-          backgroundColor: "#00adef",
-          "&:hover": {
-            backgroundColor: "#4dc8f0",
-            transform: "translateY(-1px)",
-            boxShadow: "0 4px 12px rgba(0, 173, 239, 0.3)",
-          },
-          "&:active": {
-            backgroundColor: "#7dd3fc",
-            transform: "translateY(0)",
-          },
-          "&.Mui-disabled": {
-            background: "rgba(0, 173, 239, 0.3)",
-            color: "rgba(255, 255, 255, 0.7)",
-          },
-          height: { xs: "44px", sm: "48px" },
-          borderRadius: "12px",
-          textTransform: "none",
-          fontSize: { xs: "0.9375rem", sm: "1rem" },
-          fontWeight: 700,
-          transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-        }}
-      >
-        {continueLoading ? "Submitting…" : "Continue"}
-      </Button>
+      <Box ref={continueAreaRef}>
+        <Button
+          variant="contained"
+          disabled={!hasSelectedBranch || continueLoading}
+          onClick={() => void onContinue()}
+          sx={{
+            backgroundColor: "#00adef",
+            "&:hover": {
+              backgroundColor: "#4dc8f0",
+              transform: "translateY(-1px)",
+              boxShadow: "0 4px 12px rgba(0, 173, 239, 0.3)",
+            },
+            "&:active": {
+              backgroundColor: "#7dd3fc",
+              transform: "translateY(0)",
+            },
+            "&.Mui-disabled": {
+              background: "rgba(0, 173, 239, 0.3)",
+              color: "rgba(255, 255, 255, 0.7)",
+            },
+            height: { xs: "44px", sm: "48px" },
+            borderRadius: "12px",
+            textTransform: "none",
+            fontSize: { xs: "0.9375rem", sm: "1rem" },
+            fontWeight: 700,
+            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
+        >
+          {continueLoading ? "Submitting…" : "Continue"}
+        </Button>
+      </Box>
     </Box>
   );
 }

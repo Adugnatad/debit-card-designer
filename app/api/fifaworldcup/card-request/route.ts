@@ -103,11 +103,7 @@ export async function POST(req: NextRequest) {
           { status: 422 }
         );
       }
-      return NextResponse.json({
-        success: true,
-        step: "ok",
-        error: "",
-      } satisfies CardRequestResponse);
+      return NextResponse.json(cardRes.data);
     }
 
     const accountNumber =
@@ -192,11 +188,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      step: "ok",
-      error: "",
-    } satisfies CardRequestResponse);
+    return NextResponse.json(result.gatewayData);
   } catch (e: unknown) {
     const message =
       e instanceof Error && e.message.trim()
