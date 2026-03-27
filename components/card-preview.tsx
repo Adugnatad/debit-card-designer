@@ -185,7 +185,7 @@ export const CardPreview = forwardRef<CardPreviewHandle, CardPreviewProps>(
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`${imageUrl}${design.bgImage}` || "/placeholder.svg"}
+                src={`/api/image/${design.bgImage}` || "/placeholder.svg"}
                 alt="Background"
                 className="h-full w-full object-cover"
                 draggable={false}
@@ -338,7 +338,7 @@ export const CardPreview = forwardRef<CardPreviewHandle, CardPreviewProps>(
                       src={
                         il.src.startsWith("data")
                           ? il.src
-                          : `${imageUrl}${il.src}`
+                          : `/api/image/${il.src}`
                       }
                       alt={layer.name}
                       className="h-full w-full object-contain pointer-events-none select-none"
