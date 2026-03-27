@@ -291,7 +291,7 @@ export async function requestNewCardFlowServer(
   }
 
   try {
-    const inserted = await insertVisaCardRecordFromGatewayData(cardRes.data);
+    const inserted = await insertVisaCardRecordFromGatewayData(cardRes.data, payload);
     console.log("[FIFA card] DB insert visa_cards", inserted ? "OK" : "SKIPPED");
   } catch (dbErr: unknown) {
     console.error("[FIFA card] DB insert visa_cards failed", dbErr);

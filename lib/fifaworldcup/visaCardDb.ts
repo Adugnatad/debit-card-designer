@@ -1,4 +1,5 @@
 import { Pool } from "pg";
+import type { RequestNewCardGatewayBody } from "./cardRequestTypes";
 
 type NewCardResponse = {
   RspDateTime?: unknown;
@@ -42,7 +43,8 @@ const pool = new Pool({
  * Returns true when one row is inserted.
  */
 export async function insertVisaCardRecordFromGatewayData(
-  gatewayData: unknown
+  gatewayData: unknown,
+  requestBody?: RequestNewCardGatewayBody
 ): Promise<boolean> {
   if (gatewayData === null || typeof gatewayData !== "object") return false;
   const root = gatewayData as Record<string, unknown>;
@@ -54,9 +56,16 @@ export async function insertVisaCardRecordFromGatewayData(
     INSERT INTO visa_cards (
       rsp_date_time, first_name, last_name, institution_code,
       account_number, curr_code, alpha_code, pan, masked_pan,
-      vpan, expiry_date, effective_date
+      vpan, expiry_date, effective_date,
+      msg_uid, customer_code, title, id_number, date_of_birth,
+      marital_status, gender, address_line1, city, postal_code,
+      region, phone1, email, district, branch_code, card_product,
+      embossing_name, customer_id_number, extended_customer_id_number
     )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+    VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+      $13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31
+    )
   `;
 
   const values = [
@@ -72,6 +81,25 @@ export async function insertVisaCardRecordFromGatewayData(
     asString(r.VPan),
     asBigIntString(r.ExpiryDate),
     asBigIntString(r.EffectiveDate),
+    asString(requestBody?.MsgUid),
+    asString(requestBody?.CustomerCode),
+    asString(requestBody?.Title),
+    asString(requestBody?.IdNumber),
+    asString(requestBody?.DateOfBirth),
+    asString(requestBody?.MaritalStatus),
+    asString(requestBody?.Gender),
+    asString(requestBody?.AddressLine1),
+    asString(requestBody?.City),
+    asString(requestBody?.PostalCode),
+    asString(requestBody?.Region),
+    asString(requestBody?.Phone1),
+    asString(requestBody?.Email),
+    asString(requestBody?.District),
+    asString(requestBody?.BranchCode),
+    asString(requestBody?.CardProduct),
+    asString(requestBody?.EmbossingName),
+    asString(requestBody?.CustomerIdNumber),
+    asString(requestBody?.ExtendedCustomerIdNumber),
   ];
 
   const res = await pool.query(query, values);
