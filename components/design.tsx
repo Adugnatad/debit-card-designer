@@ -208,13 +208,39 @@ export default function CardDesigner({
     },
   });
 
-  const onUpload = async (file: File): Promise<string> => {
+  const onUpload = async (file: File | Blob): Promise<string> => {
+    const normalizedFile =
+      file instanceof File
+        ? file
+        : new File([file], "bg-image", { type: file.type || "image/png" });
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(normalizedFile);
     });
+  };
+
+  const resolveBgImage = async (src: string | null): Promise<string | null> => {
+    if (!src) return null;
+    if (src.startsWith("data:")) return src;
+
+    const isUploadPath = src.startsWith("/upload") || src.includes("upload");
+    if (!isUploadPath) return src;
+
+    const apiPath = src.startsWith("/api/")
+      ? src
+      : `/api/image${src.startsWith("/") ? "" : "/"}${src}`;
+    const res = await fetch(apiPath);
+    if (!res.ok) {
+      console.error("Failed to fetch background image", {
+        apiPath,
+        status: res.status,
+      });
+      return src;
+    }
+    const blob = await res.blob();
+    return onUpload(blob);
   };
 
   const addTextLayer = () => {
@@ -509,7 +535,7 @@ export default function CardDesigner({
     return storedData;
   }
 
-  function applySnapshot(s: DesignSnapshot) {
+  async function applySnapshot(s: DesignSnapshot) {
     try {
       setBgMode(s.bgMode);
       setBgColor(s.bgColor);
@@ -523,8 +549,12 @@ export default function CardDesigner({
           ],
         },
       );
-      setBgImage(s.bgImage);
-      setBg(s.bg);
+      const resolvedBgImage =
+        s.bgMode === "image" && s.bgImage
+          ? await resolveBgImage(s.bgImage)
+          : (s.bgImage ?? null);
+      setBgImage(resolvedBgImage);
+      setBg(s.bg ?? { x: 0, y: 0, w: CARD_W, h: CARD_H, lockAspect: false });
       // basic validation to avoid empty/invalid arrays
       if (Array.isArray(s.layers) && s.layers.length > 0) {
         setLayers(s.layers as AnyLayer[]);
@@ -555,7 +585,7 @@ export default function CardDesigner({
     }
   }
 
-  function loadFromLocalStorage(showToast = true) {
+  async function loadFromLocalStorage(showToast = true) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
@@ -564,7 +594,7 @@ export default function CardDesigner({
         return;
       }
       const parsed = JSON.parse(raw) as DesignSnapshot;
-      applySnapshot(parsed);
+      await applySnapshot(parsed);
       if (showToast) toast({ title: "Design loaded" });
     } catch (e) {
       if (showToast)
@@ -597,21 +627,24 @@ export default function CardDesigner({
   }
 
   useEffect(() => {
-    if (initialDesign) {
-      applySnapshot(initialDesign);
-      setLastSavedAt(Date.now());
-      toast({ title: "Design loaded" });
-    } else {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as DesignSnapshot;
-        console.log("parsed", parsed);
-        applySnapshot(parsed);
+    const initialize = async () => {
+      if (initialDesign) {
+        await applySnapshot(initialDesign);
         setLastSavedAt(Date.now());
-        toast({ title: "Restored saved design" });
+        toast({ title: "Design loaded" });
+      } else {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as DesignSnapshot;
+          console.log("parsed", parsed);
+          await applySnapshot(parsed);
+          setLastSavedAt(Date.now());
+          toast({ title: "Restored saved design" });
+        }
+        addIssuerLogo();
       }
-      addIssuerLogo();
-    }
+    };
+    initialize();
   }, []);
 
   useEffect(() => {
