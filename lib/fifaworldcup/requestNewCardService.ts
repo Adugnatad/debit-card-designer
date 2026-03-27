@@ -27,7 +27,7 @@ import { isSoufleGatewayLogicalFailure } from "./soufleGatewaySuccess";
 import { insertVisaCardRecordFromGatewayData } from "./visaCardDb";
 
 const FT_DEBIT_AMOUNT = Number(process.env.FIFA_WORLD_CUP_FT_DEBIT_AMOUNT ?? 120);
-const FT_NARRATIVE = "CBORddddETAA";
+const FT_NARRATIVE_FALLBACK = "CBORddddETAA";
 const CARD_PRODUCT_DEFAULT = "403";
 const CARD_PRODUCT_SPECIAL = "404";
 const SPECIAL_CATEGORY_IDS = new Set([
@@ -87,6 +87,20 @@ function parseBalanceNumber(v: unknown): number | null {
   if (typeof v !== "string") return null;
   const n = Number(v.replace(/,/g, "").trim());
   return Number.isFinite(n) ? n : null;
+}
+
+function narrativeFromCardResponse(cardData: unknown): string {
+  if (cardData === null || typeof cardData !== "object" || Array.isArray(cardData)) {
+    return FT_NARRATIVE_FALLBACK;
+  }
+  const root = cardData as Record<string, unknown>;
+  const newCard = root.newCardResponse;
+  if (newCard === null || typeof newCard !== "object" || Array.isArray(newCard)) {
+    return FT_NARRATIVE_FALLBACK;
+  }
+  const pan = (newCard as Record<string, unknown>).Pan;
+  if (typeof pan === "string" && pan.trim()) return pan.trim();
+  return FT_NARRATIVE_FALLBACK;
 }
 
 export type CustomerInfoStepResult =
@@ -287,10 +301,11 @@ export async function requestNewCardFlowServer(
     "[FIFA card] card request OK — now charging account"
   );
 
+  const narrative = narrativeFromCardResponse(cardRes.data);
   const ftBody: FtVisaCardGatewayBody = {
     messageId: generateFundTransferMessageId(),
     debitAmount: FT_DEBIT_AMOUNT,
-    narrative: FT_NARRATIVE,
+    narrative,
     debitAccount: accountNumber,
   };
 
