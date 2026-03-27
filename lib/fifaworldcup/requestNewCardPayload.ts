@@ -50,7 +50,7 @@ export function buildRequestNewCardBody(accountNumber: string): Record<string, s
     BranchCode:
       process.env.FIFA_WORLD_CUP_CARD_BRANCH?.trim() || "10104",
     CardProduct:
-      process.env.FIFA_WORLD_CUP_CARD_PRODUCT?.trim() || "402",
+      process.env.FIFA_WORLD_CUP_CARD_PRODUCT?.trim() || "403",
     EmbossingName: emboss,
     CustomerIdNumber: accountNumber,
     ExtendedCustomerIdNumber: accountNumber,

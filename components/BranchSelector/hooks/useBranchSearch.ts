@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SEARCH_DEBOUNCE_MS } from "../constants";
 import type { Branch } from "../types";
-import { searchBranches } from "../utils/branchSearchIndex";
+import {
+  buildBranchSearchIndex,
+  searchIndexedBranches,
+} from "../utils/branchSearchIndex";
 
 export const useBranchSearch = (branches: Branch[]) => {
   const [query, setQuery] = useState("");
@@ -14,7 +17,11 @@ export const useBranchSearch = (branches: Branch[]) => {
     return () => clearTimeout(t);
   }, [query]);
 
-  const filtered = searchBranches(branches, debounced);
+  const indexed = useMemo(() => buildBranchSearchIndex(branches), [branches]);
+  const filtered = useMemo(
+    () => searchIndexedBranches(indexed, debounced),
+    [indexed, debounced]
+  );
   return { query, setQuery, filtered };
 };
 

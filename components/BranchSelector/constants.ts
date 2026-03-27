@@ -4,6 +4,7 @@ export const SELECTED_ZOOM = 14;
 export const SEARCH_DEBOUNCE_MS = 300;
 export const MAP_CONTAINER_STYLE = { width: "100%", height: "100%" };
 export const LIST_MAX_HEIGHT = 360;
+export const MAP_MAX_MARKERS = 300;
 export const BRAND_COLORS = {
   primary: "#00adef",
   primaryHover: "#0096c9",
@@ -19,5 +20,5 @@ export const CLUSTER_OPTIONS = {
 
 // Static backend/map config for branch selector flow
 export const BRANCH_BACKEND_BASE_URL = "https://coopengage.coopbankoromiasc.com";
-export const GOOGLE_MAPS_API_KEY = "AIzaSyDW3fAhdsWgt18Ra2GDtJzXXILpDhBocfU";
+export const GOOGLE_MAPS_API_KEY = "AIzaSyCgNHw8Dx5xHOGOCpyrWAWt-7nzCp2k6E4";
 

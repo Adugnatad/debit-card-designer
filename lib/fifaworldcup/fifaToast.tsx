@@ -30,6 +30,17 @@ export function fifaToastSomethingWrong() {
   );
 }
 
+export function fifaToastError(message: string) {
+  toast.custom(
+    () => (
+      <div style={cardStyle("#ef4444")} role="status">
+        {message}
+      </div>
+    ),
+    { duration: 4500, position: "top-right" }
+  );
+}
+
 /** Brand cyan (#00adef) at reduced opacity — matches FIFA UI, not green. */
 const SUCCESS_ACCENT = "rgba(0, 173, 239, 0.45)";
 

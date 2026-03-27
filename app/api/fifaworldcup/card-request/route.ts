@@ -19,8 +19,9 @@ export const dynamic = "force-dynamic";
 
 type CardRequestResponse = {
   success: boolean;
-  step: "validation" | "auth" | "customer" | "card" | "server" | "ok";
+  step: "validation" | "auth" | "customer" | "fund" | "card" | "server" | "ok";
   error: string;
+  details?: unknown;
 };
 
 function toGatewayBody(
@@ -94,16 +95,24 @@ export async function POST(req: NextRequest) {
     if (directGatewayBody) {
       const cardRes = await postFifaRequestNewCard(directGatewayBody, access_token);
       if (!cardRes.ok || isSoufleGatewayLogicalFailure(cardRes.data)) {
+        if (cardRes.data && typeof cardRes.data === "object") {
+          return NextResponse.json(cardRes.data, { status: 422 });
+        }
         return NextResponse.json(
           {
             success: false,
             step: "card",
             error: "Card request failed",
+            details: cardRes.data,
           } satisfies CardRequestResponse,
           { status: 422 }
         );
       }
-      return NextResponse.json(cardRes.data);
+      return NextResponse.json(
+        cardRes.data && typeof cardRes.data === "object"
+          ? cardRes.data
+          : { success: true }
+      );
     }
 
     const accountNumber =
@@ -178,6 +187,9 @@ export async function POST(req: NextRequest) {
         step: result.step,
         message: msg,
       });
+      if (result.data && typeof result.data === "object") {
+        return NextResponse.json(result.data, { status: 422 });
+      }
       return NextResponse.json(
         {
           success: false,
@@ -188,7 +200,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(result.gatewayData);
+    return NextResponse.json(
+      result.data && typeof result.data === "object"
+        ? result.data
+        : { success: true }
+    );
   } catch (e: unknown) {
     const message =
       e instanceof Error && e.message.trim()

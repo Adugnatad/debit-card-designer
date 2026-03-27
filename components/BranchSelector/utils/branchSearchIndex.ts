@@ -13,22 +13,32 @@ const toTerms = (branch: Branch) =>
     .join(" ")
     .toLowerCase();
 
-export const searchBranches = (branches: Branch[], query: string) => {
-  const q = query.trim().toLowerCase();
-  if (!q) return branches;
+export type IndexedBranch = {
+  branch: Branch;
+  terms: string;
+};
 
-  return [...branches]
-    .map((b) => {
-      const t = toTerms(b);
-      const starts = t.startsWith(q) ? 2 : 0;
-      const contains = t.includes(q) ? 1 : 0;
-      return { b, score: starts + contains };
+export const buildBranchSearchIndex = (branches: Branch[]): IndexedBranch[] =>
+  branches.map((branch) => ({ branch, terms: toTerms(branch) }));
+
+export const searchIndexedBranches = (
+  indexed: IndexedBranch[],
+  query: string
+) => {
+  const q = query.trim().toLowerCase();
+  if (!q) return indexed.map((x) => x.branch);
+
+  return [...indexed]
+    .map((x) => {
+      const starts = x.terms.startsWith(q) ? 2 : 0;
+      const contains = x.terms.includes(q) ? 1 : 0;
+      return { branch: x.branch, score: starts + contains };
     })
     .filter((x) => x.score > 0)
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
-      return (a.b.distance ?? Infinity) - (b.b.distance ?? Infinity);
+      return (a.branch.distance ?? Infinity) - (b.branch.distance ?? Infinity);
     })
-    .map((x) => x.b);
+    .map((x) => x.branch);
 };
 

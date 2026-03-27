@@ -1,19 +1,17 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useRef, useCallback, useMemo } from "react";
 import { Alert, Box, Button } from "@mui/material";
 import {
   GoogleMap,
-  InfoWindowF,
   MarkerF,
-  MarkerClustererF,
   useLoadScript,
 } from "@react-google-maps/api";
 import {
   DEFAULT_CENTER,
   DEFAULT_ZOOM,
-  CLUSTER_OPTIONS,
   GOOGLE_MAPS_API_KEY,
+  MAP_MAX_MARKERS,
   MAP_CONTAINER_STYLE,
 } from "./constants";
 import type { Branch } from "./types";
@@ -34,6 +32,7 @@ export function BranchMap({
   userLocation: { lat: number; lng: number } | null;
   onSelectBranch: (branch: Branch) => void;
 }) {
+  const mapRef = useRef<any>(null);
   const apiKey = GOOGLE_MAPS_API_KEY;
   const { isLoaded, loadError } = useLoadScript({ googleMapsApiKey: apiKey });
 
@@ -51,6 +50,14 @@ export function BranchMap({
     () => branches.filter((b) => isFiniteLatLng(b.lat, b.lng)),
     [branches]
   );
+  const mapBranches = useMemo(() => {
+    if (safeBranches.length <= MAP_MAX_MARKERS) return safeBranches;
+    const limited = safeBranches.slice(0, MAP_MAX_MARKERS);
+    if (safeSelected && !limited.some((b) => b.id === safeSelected.id)) {
+      return [safeSelected, ...limited.slice(0, MAP_MAX_MARKERS - 1)];
+    }
+    return limited;
+  }, [safeBranches, safeSelected]);
 
   const mapCenter = useMemo(
     () =>
@@ -128,6 +135,16 @@ export function BranchMap({
     };
   }, [isLoaded]);
 
+  const handleMapLoad = useCallback((map: any) => {
+    mapRef.current = map;
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current || !safeSelected) return;
+    mapRef.current.panTo({ lat: safeSelected.lat, lng: safeSelected.lng });
+    mapRef.current.setZoom(14);
+  }, [safeSelected]);
+
   if (!apiKey) {
     return <Alert severity="error">Google Maps key missing: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</Alert>;
   }
@@ -141,6 +158,7 @@ export function BranchMap({
         center={mapCenter}
         zoom={safeSelected ? 14 : DEFAULT_ZOOM}
         options={mapOptions}
+        onLoad={handleMapLoad}
       >
         {userLocation && isFiniteLatLng(userLocation.lat, userLocation.lng) && (
           <MarkerF
@@ -148,84 +166,29 @@ export function BranchMap({
             icon={userLocationIcon}
           />
         )}
-        <MarkerClustererF options={CLUSTER_OPTIONS}>
-          {(clusterer) => (
-            <>
-              {safeBranches.map((branch) => (
-                <MarkerF
-                  key={branch.id}
-                  clusterer={clusterer}
-                  position={{ lat: branch.lat, lng: branch.lng }}
-                  icon={
-                    safeSelected?.id === branch.id
-                      ? selectedMarkerIcon
-                      : markerIcon
-                  }
-                  animation={
-                    safeSelected?.id === branch.id && (globalThis as any).google
-                      ? (globalThis as any).google.maps.Animation.DROP
-                      : undefined
-                  }
-                  onClick={() => onSelectBranch(branch)}
-                />
-              ))}
-            </>
-          )}
-        </MarkerClustererF>
+        {mapBranches
+          .filter((branch) => !safeSelected || branch.id !== safeSelected.id)
+          .map((branch) => (
+            <MarkerF
+              key={branch.id}
+              position={{ lat: branch.lat, lng: branch.lng }}
+              icon={markerIcon}
+              onClick={() => onSelectBranch(branch)}
+            />
+          ))}
 
         {safeSelected && (
-          <InfoWindowF
+          <MarkerF
+            key={`selected-${safeSelected.id}`}
             position={{ lat: safeSelected.lat, lng: safeSelected.lng }}
-            onCloseClick={() => onSelectBranch(safeSelected)}
-            options={{ maxWidth: 220 }}
-          >
-            <Box sx={{ width: 200, p: 0.5, overflow: "hidden" }}>
-              <Box sx={{ fontWeight: 800, color: "#0f4f73", mb: 0.55, fontSize: "0.92rem" }}>
-                {safeSelected.companyName || "Branch"}
-              </Box>
-              <Box
-                sx={{
-                  color: "#334155",
-                  fontSize: "0.78rem",
-                  mb: 0.45,
-                  lineHeight: 1.3,
-                  wordBreak: "break-word",
-                  overflowWrap: "anywhere",
-                }}
-              >
-                📍 {safeSelected.nameAddress || ""}
-              </Box>
-              <Box
-                sx={{
-                  color: "#334155",
-                  fontSize: "0.78rem",
-                  mb: 0.8,
-                  lineHeight: 1.3,
-                  wordBreak: "break-word",
-                  overflowWrap: "anywhere",
-                }}
-              >
-                📞 {safeSelected.phone || "-"}
-              </Box>
-              <Button
-                size="small"
-                variant="contained"
-                fullWidth
-                sx={{
-                  backgroundColor: "#00adef",
-                  "&:hover": { backgroundColor: "#0098d1" },
-                  height: 30,
-                  borderRadius: 1,
-                  fontWeight: 700,
-                  letterSpacing: "0.015em",
-                  fontSize: "0.72rem",
-                }}
-                onClick={() => onSelectBranch(safeSelected)}
-              >
-                Select This Branch
-              </Button>
-            </Box>
-          </InfoWindowF>
+            icon={selectedMarkerIcon}
+            animation={
+              (globalThis as any).google
+                ? (globalThis as any).google.maps.Animation.DROP
+                : undefined
+            }
+            onClick={() => onSelectBranch(safeSelected)}
+          />
         )}
       </GoogleMap>
     </Box>

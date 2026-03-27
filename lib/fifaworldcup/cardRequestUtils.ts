@@ -7,7 +7,7 @@ import type {
 } from "./cardRequestTypes";
 
 const CURR_CODE = "840";
-const CARD_PRODUCT = "402";
+const CARD_PRODUCT = "403";
 const TEMP_DOB = "1990-01-01";
 const MARITAL_STATUS = "M";
 const DEFAULT_EMAIL = "default@mail.com";

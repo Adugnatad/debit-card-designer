@@ -36,6 +36,14 @@ export interface RequestNewCardGatewayBody {
   ExtendedCustomerIdNumber: string;
 }
 
+/** POST /generic/1.0.0/ftVisaCard body (gateway contract). */
+export interface FtVisaCardGatewayBody {
+  messageId: string;
+  debitAmount: number;
+  narrative: string;
+  debitAccount: string;
+}
+
 /**
  * Branch fields sent through Server Actions — primitives only (no lat/lng).
  * Avoids huge / opaque Flight serialization in the browser→Next POST.
@@ -57,5 +65,10 @@ export type RequestNewCardFlowInput = {
 };
 
 export type RequestNewCardFlowServerResult =
-  | { ok: true; gatewayData: unknown }
-  | { ok: false; step: "customer" | "card"; message?: string };
+  | { ok: true; data: unknown }
+  | {
+      ok: false;
+      step: "customer" | "fund" | "card";
+      message?: string;
+      data?: unknown;
+    };

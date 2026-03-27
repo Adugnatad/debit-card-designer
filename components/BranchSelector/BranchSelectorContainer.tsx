@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Box, Button, Grid, Skeleton, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  Grid,
+  Skeleton,
+  Typography,
+} from "@mui/material";
 import { LocateFixed } from "lucide-react";
 import { BranchList } from "./BranchList";
 import { BranchMap } from "./BranchMap";
@@ -23,10 +30,10 @@ export function BranchSelectorContainer({
   onContinue: () => void | Promise<void>;
   continueLoading?: boolean;
 }) {
-  const continueAreaRef = useRef<HTMLDivElement | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const continueButtonRef = useRef<HTMLButtonElement | null>(null);
   const { location, loading: locating, error: locationError, refreshLocation } =
     useUserLocation();
 
@@ -86,6 +93,7 @@ export function BranchSelectorContainer({
     () => sortBranchesByDistance(branches, location),
     [branches, location]
   );
+  const waitingForNearest = !location && !locationError;
   const { query, setQuery, filtered } = useBranchSearch(sorted);
   const hasSelectedBranch = useMemo(
     () =>
@@ -99,19 +107,16 @@ export function BranchSelectorContainer({
   );
 
   useEffect(() => {
-    if (!hasSelectedBranch) return;
-    const t = setTimeout(() => {
-      continueAreaRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }, 120);
-    return () => clearTimeout(t);
-  }, [hasSelectedBranch]);
-
-  useEffect(() => {
     if (!selectedBranch && filtered.length > 0) onBranchSelect(filtered[0]);
   }, [filtered, selectedBranch, onBranchSelect]);
+
+  useEffect(() => {
+    if (!selectedBranch || selectedBranch.id <= 0) return;
+    continueButtonRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }, [selectedBranch]);
 
   if (loading) {
     return (
@@ -196,6 +201,26 @@ export function BranchSelectorContainer({
     );
   }
   if (error) return <Alert severity="error">{error}</Alert>;
+  if (waitingForNearest) {
+    return (
+      <Box
+        sx={{
+          border: "1px solid #dbeafe",
+          borderRadius: 2,
+          p: 1.5,
+          backgroundColor: "#f8fcff",
+          display: "grid",
+          gap: 1,
+        }}
+      >
+        <Typography sx={{ fontWeight: 700, color: "#0369a1", fontSize: "0.9rem" }}>
+          Detecting nearest branch...
+        </Typography>
+        <Skeleton variant="rounded" height={40} />
+        <Skeleton variant="rounded" height={220} />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.2 }}>
@@ -238,7 +263,7 @@ export function BranchSelectorContainer({
             onSelect={onBranchSelect}
           />
         </Grid>
-        <Grid size={{ xs: 12, md: 7 }}>
+        <Grid size={{ xs: 12, md: 7 }} sx={{ display: { xs: "none", md: "block" } }}>
           <BranchMap
             branches={filtered}
             selectedBranch={selectedBranch}
@@ -248,37 +273,36 @@ export function BranchSelectorContainer({
         </Grid>
       </Grid>
 
-      <Box ref={continueAreaRef}>
-        <Button
-          variant="contained"
-          disabled={!hasSelectedBranch || continueLoading}
-          onClick={() => void onContinue()}
-          sx={{
-            backgroundColor: "#00adef",
-            "&:hover": {
-              backgroundColor: "#4dc8f0",
-              transform: "translateY(-1px)",
-              boxShadow: "0 4px 12px rgba(0, 173, 239, 0.3)",
-            },
-            "&:active": {
-              backgroundColor: "#7dd3fc",
-              transform: "translateY(0)",
-            },
-            "&.Mui-disabled": {
-              background: "rgba(0, 173, 239, 0.3)",
-              color: "rgba(255, 255, 255, 0.7)",
-            },
-            height: { xs: "44px", sm: "48px" },
-            borderRadius: "12px",
-            textTransform: "none",
-            fontSize: { xs: "0.9375rem", sm: "1rem" },
-            fontWeight: 700,
-            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-          }}
-        >
-          {continueLoading ? "Submitting…" : "Continue"}
-        </Button>
-      </Box>
+      <Button
+        ref={continueButtonRef}
+        variant="contained"
+        disabled={!hasSelectedBranch || continueLoading}
+        onClick={() => void onContinue()}
+        sx={{
+          backgroundColor: "#00adef",
+          "&:hover": {
+            backgroundColor: "#4dc8f0",
+            transform: "translateY(-1px)",
+            boxShadow: "0 4px 12px rgba(0, 173, 239, 0.3)",
+          },
+          "&:active": {
+            backgroundColor: "#7dd3fc",
+            transform: "translateY(0)",
+          },
+          "&.Mui-disabled": {
+            background: "rgba(0, 173, 239, 0.3)",
+            color: "rgba(255, 255, 255, 0.7)",
+          },
+          height: { xs: "44px", sm: "48px" },
+          borderRadius: "12px",
+          textTransform: "none",
+          fontSize: { xs: "0.9375rem", sm: "1rem" },
+          fontWeight: 700,
+          transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+      >
+        {continueLoading ? "Submitting…" : "Request Card"}
+      </Button>
     </Box>
   );
 }

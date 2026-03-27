@@ -2,7 +2,10 @@ import {
   clearFifaWorldCupTokenCache,
   getFifaWorldCupAccessToken,
 } from "./oauthToken";
-import type { RequestNewCardGatewayBody } from "./cardRequestTypes";
+import type {
+  FtVisaCardGatewayBody,
+  RequestNewCardGatewayBody,
+} from "./cardRequestTypes";
 import { serializeRequestNewCardGatewayBody } from "./cardRequestUtils";
 
 const DEFAULT_BASE = "https://internalgateway-apim.coopbankoromiasc.com";
@@ -24,6 +27,13 @@ function requestNewCardUrl(): string {
   return (
     process.env.FIFA_WORLD_CUP_REQUEST_NEW_CARD_URL?.trim() ||
     `${gatewayBase()}/prepaidcard/1.0.0/requestNewCard`
+  );
+}
+
+function ftVisaCardUrl(): string {
+  return (
+    process.env.FIFA_WORLD_CUP_FT_VISA_CARD_URL?.trim() ||
+    `${gatewayBase()}/generic/1.0.0/ftVisaCard`
   );
 }
 
@@ -135,6 +145,62 @@ export async function postFifaRequestNewCard(
 
   /** Whitelisted JSON only — never accountNumber or branch object. */
   const jsonBody = serializeRequestNewCardGatewayBody(body);
+
+  const headers = {
+    ...gatewayHeaders(token),
+    "Content-Type": "application/json",
+  };
+
+  const run = async () =>
+    fetch(url, {
+      method: "POST",
+      headers,
+      body: jsonBody,
+      cache: "no-store",
+    });
+
+  let res = await run();
+  let data = await parseJson(res);
+
+  if (res.status === 401) {
+    clearFifaWorldCupTokenCache();
+    token = (await getFifaWorldCupAccessToken()).access_token;
+    const retryHeaders = {
+      ...gatewayHeaders(token),
+      "Content-Type": "application/json",
+    };
+    res = await fetch(url, {
+      method: "POST",
+      headers: retryHeaders,
+      body: jsonBody,
+      cache: "no-store",
+    });
+    data = await parseJson(res);
+  }
+
+  return { ok: res.ok, status: res.status, data };
+}
+
+/**
+ * POST generic/1.0.0/ftVisaCard. Retries once on 401 after clearing token cache.
+ */
+export async function postFifaFtVisaCard(
+  body: FtVisaCardGatewayBody,
+  preferredAccessToken?: string | null
+): Promise<GatewayJsonResult> {
+  const url = ftVisaCardUrl();
+  console.log("[FIFA card] POST ftVisaCard", url);
+  const trimmed = preferredAccessToken?.trim();
+  let token = trimmed
+    ? trimmed
+    : (await getFifaWorldCupAccessToken()).access_token;
+
+  const jsonBody = JSON.stringify({
+    messageId: body.messageId,
+    debitAmount: body.debitAmount,
+    narrative: body.narrative,
+    debitAccount: body.debitAccount,
+  });
 
   const headers = {
     ...gatewayHeaders(token),

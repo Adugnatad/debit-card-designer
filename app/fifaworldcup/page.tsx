@@ -24,6 +24,7 @@ import {
   parseCustomerDetailsRecordForCard,
 } from "@/lib/fifaworldcup/cardRequestUtils";
 import {
+  fifaToastError,
   fifaToastSomethingWrong,
   fifaToastSuccess,
 } from "@/lib/fifaworldcup/fifaToast";
@@ -177,6 +178,11 @@ export default function FifaWorldCupPage() {
     };
   }, [activeStep, clearCupLoopTimers, measureAndStartCupFlight]);
 
+  useEffect(() => {
+    if (activeStep !== 3) return;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [activeStep]);
+
   const formatOtpTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -309,6 +315,17 @@ export default function FifaWorldCupPage() {
         fifaToastSomethingWrong();
         return;
       }
+      const balanceRaw = infoJson.customerDetails?.balance;
+      const balance =
+        typeof balanceRaw === "number" && Number.isFinite(balanceRaw)
+          ? balanceRaw
+          : typeof balanceRaw === "string"
+            ? Number(balanceRaw.replace(/,/g, "").trim())
+            : Number.NaN;
+      if (!Number.isFinite(balance) || balance <= 120) {
+        fifaToastError("Insufficient balance");
+        return;
+      }
       const normalized = parseCustomerDetailsRecordForCard(
         infoJson.customerDetails ?? {},
         acct
@@ -319,6 +336,25 @@ export default function FifaWorldCupPage() {
         return;
       }
       const composedPayload = buildRequestNewCardBody(normalized, selectedBranch);
+      const specialCategoryIds = new Set([
+        "6052",
+        "6064",
+        "6060",
+        "6501",
+        "6500",
+        "1500",
+        "6050",
+      ]);
+      const categoryIdRaw = infoJson.customerDetails?.categoryId;
+      const categoryId =
+        typeof categoryIdRaw === "string"
+          ? categoryIdRaw.trim()
+          : typeof categoryIdRaw === "number" && Number.isFinite(categoryIdRaw)
+            ? String(categoryIdRaw)
+            : "";
+      composedPayload.CardProduct = specialCategoryIds.has(categoryId)
+        ? "404"
+        : "403";
       // Hard enforce branch-derived values from selector (never from customer/account info).
       composedPayload.BranchCode = selectedBranch.branchCode
         .trim()
@@ -331,7 +367,15 @@ export default function FifaWorldCupPage() {
           "Content-Type": "application/json",
           ...authHeaders,
         },
-        body: JSON.stringify(composedPayload),
+        body: JSON.stringify({
+          accountNumber: acct,
+          branchId: selectedBranch.id,
+          branchCode: selectedBranch.branchCode,
+          district: selectedBranch.district ?? null,
+          customerDetails: infoJson.customerDetails,
+          // Keep preview payload for debugging, but server pipeline remains source of truth.
+          composedPayload,
+        }),
       });
       const cardResult = (await res.json()) as {
         success: boolean;
@@ -366,19 +410,19 @@ export default function FifaWorldCupPage() {
         transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="pointer-events-none absolute -top-24 left-1/2 h-[140vh] w-[540px] -translate-x-1/2 bg-gradient-to-b from-cyan-100/45 via-sky-200/25 to-transparent blur-3xl"
+        className="pointer-events-none absolute -top-24 left-1/2 h-[140vh] w-[33.75rem] -translate-x-1/2 bg-gradient-to-b from-cyan-100/45 via-sky-200/25 to-transparent blur-3xl"
         animate={{ rotate: [-8, 8, -8], opacity: [0.28, 0.52, 0.28] }}
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
       />
 
       <div className="relative flex items-center justify-center">
         <motion.div
-          className="absolute h-[360px] w-[360px] rounded-full border-2 border-[#f4c542]/45"
+          className="absolute h-[22.5rem] w-[22.5rem] rounded-full border-2 border-[#f4c542]/45"
           animate={{ scale: [0.84, 1.12], opacity: [0.42, 0] }}
           transition={{ duration: 2.3, repeat: Infinity, ease: "easeOut" }}
         />
         <motion.div
-          className="absolute h-[305px] w-[305px] rounded-full border-2 border-[#ffcf57]/42"
+          className="absolute h-[19.0625rem] w-[19.0625rem] rounded-full border-2 border-[#ffcf57]/42"
           animate={{ scale: [0.88, 1.1], opacity: [0.38, 0] }}
           transition={{
             duration: 2.3,
@@ -412,7 +456,7 @@ export default function FifaWorldCupPage() {
             alt="FIFA World Cup loader"
             width={250}
             height={250}
-            className="relative h-auto w-[250px] drop-shadow-[0_0_30px_rgba(245,185,66,0.24)]"
+            className="relative h-auto w-[15.625rem] drop-shadow-[0_0_1.875rem_rgba(245,185,66,0.24)]"
             priority
           />
         </motion.div>
@@ -433,7 +477,7 @@ export default function FifaWorldCupPage() {
       <iframe
         src="/"
         title="Card homepage background"
-        className="pointer-events-none absolute inset-0 h-full w-full scale-[1.02] blur-[7px] brightness-[0.65] saturate-[0.9]"
+        className="pointer-events-none absolute inset-0 h-full w-full scale-[1.02] blur-[0.4375rem] brightness-[0.65] saturate-[0.9]"
       />
       {/* Modal background dim + glare (premium "glass" shine) */}
       <div className="absolute inset-0 bg-slate-900/78" />
@@ -443,7 +487,7 @@ export default function FifaWorldCupPage() {
         transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="pointer-events-none absolute top-0 left-[-35%] h-full w-[70%] rotate-6 bg-[linear-gradient(90deg,transparent_0%,rgba(0,173,239,0.16)_45%,rgba(0,173,239,0.07)_60%,transparent_100%)] blur-[1px]"
+        className="pointer-events-none absolute top-0 left-[-35%] h-full w-[70%] rotate-6 bg-[linear-gradient(90deg,transparent_0%,rgba(0,173,239,0.16)_45%,rgba(0,173,239,0.07)_60%,transparent_100%)] blur-[0.0625rem]"
         animate={{ x: [0, 260, 0] }}
         transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
       />
@@ -490,7 +534,7 @@ export default function FifaWorldCupPage() {
               width={58}
               height={58}
               priority
-              className="drop-shadow-[0_0_18px_rgba(245,185,66,0.35)]"
+              className="drop-shadow-[0_0_1.125rem_rgba(245,185,66,0.35)]"
             />
           </div>
         </motion.div>
@@ -521,19 +565,19 @@ export default function FifaWorldCupPage() {
                     <motion.div
                       animate={{ y: [0, -3, 0] }}
                       transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
-                      className="flex h-[56px] items-center"
+                      className="flex h-[3.5rem] items-center"
                     >
                       <Image
                         src="/CARD-TO-CUP/cooplogo.png"
                         alt="Coop Bank of Oromia"
                         width={136}
                         height={32}
-                        className="h-auto w-[104px] md:w-[136px]"
+                        className="h-auto w-[6.5rem] md:w-[8.5rem]"
                         priority
                       />
                     </motion.div>
 
-                    <div className="relative h-[2px] w-10 overflow-hidden rounded-full bg-sky-100 md:w-16">
+                    <div className="relative h-[0.125rem] w-10 overflow-hidden rounded-full bg-sky-100 md:w-16">
                       <motion.div
                         className="absolute inset-y-0 left-[-40%] w-[45%] bg-gradient-to-r from-transparent via-sky-500/70 to-transparent"
                         animate={{ x: ["0%", "220%"] }}
@@ -552,7 +596,7 @@ export default function FifaWorldCupPage() {
                         repeat: cupFlyingToHeader ? 0 : Infinity,
                         ease: "easeInOut",
                       }}
-                      className="relative flex h-[56px] items-center"
+                      className="relative flex h-[3.5rem] items-center"
                     >
                       <motion.div
                         className="absolute inset-0 rounded-full bg-amber-300/30 blur-xl"
@@ -576,13 +620,13 @@ export default function FifaWorldCupPage() {
                           alt="FIFA World Cup"
                           width={72}
                           height={72}
-                          className="relative h-auto w-[54px] md:w-[72px] drop-shadow-[0_0_22px_rgba(245,185,66,0.45)]"
+                          className="relative h-auto w-[3.375rem] md:w-[4.5rem] drop-shadow-[0_0_1.375rem_rgba(245,185,66,0.45)]"
                           priority
                         />
                       </div>
                     </motion.div>
 
-                    <div className="relative h-[2px] w-10 overflow-hidden rounded-full bg-sky-100 md:w-16">
+                    <div className="relative h-[0.125rem] w-10 overflow-hidden rounded-full bg-sky-100 md:w-16">
                       <motion.div
                         className="absolute inset-y-0 left-[-40%] w-[45%] bg-gradient-to-r from-transparent via-sky-500/70 to-transparent"
                         animate={{ x: ["0%", "220%"] }}
@@ -593,14 +637,14 @@ export default function FifaWorldCupPage() {
                     <motion.div
                       animate={{ y: [0, -3, 0] }}
                       transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
-                      className="flex h-[56px] items-center"
+                      className="flex h-[3.5rem] items-center"
                     >
                       <Image
                         src="/CARD-TO-CUP/visa.png"
                         alt="Visa"
                         width={136}
                         height={40}
-                        className="h-auto w-[90px] md:w-[136px]"
+                        className="h-auto w-[5.625rem] md:w-[8.5rem]"
                         priority
                       />
                     </motion.div>
@@ -611,7 +655,7 @@ export default function FifaWorldCupPage() {
                   animate={{ opacity: [0.78, 1, 0.78] }}
                   transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  <p className="text-sm font-extrabold tracking-[0.04em] text-transparent bg-clip-text bg-gradient-to-r from-[#00adef] via-[#00adef] to-[#1434cb] drop-shadow-[0_1px_10px_rgba(20,52,203,0.25)] md:text-lg">
+                  <p className="text-sm font-extrabold tracking-[0.04em] text-transparent bg-clip-text bg-gradient-to-r from-[#00adef] via-[#00adef] to-[#1434cb] drop-shadow-[0_0.0625rem_0.625rem_rgba(20,52,203,0.25)] md:text-lg">
                     From Card to World Cup!
                   </p>
                   <Alert
@@ -629,7 +673,7 @@ export default function FifaWorldCupPage() {
                         fontSize: { xs: "1.15rem", sm: "1.35rem" },
                         mr: { xs: 0.75, sm: 1 },
                         alignSelf: "flex-start",
-                        mt: { xs: "2px", sm: 0 },
+                        mt: { xs: "0.125rem", sm: 0 },
                       },
                     }}
                   >
@@ -649,7 +693,7 @@ export default function FifaWorldCupPage() {
                     p: { xs: 2, sm: 2.5 },
                     borderRadius: 2.5,
                     backgroundColor: "#ffffff",
-                    border: "1px solid #e0f2fe",
+                    border: "0.0625rem solid #e0f2fe",
                   }}
                 >
                   {activeStep === 0 && (
@@ -696,18 +740,18 @@ export default function FifaWorldCupPage() {
                             transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                             "& fieldset": {
                               borderColor: "#e5e7eb",
-                              borderWidth: "1.5px",
+                              borderWidth: "0.09375rem",
                             },
                             "&:hover fieldset": {
                               borderColor: "#00adef",
-                              borderWidth: "1.5px",
+                              borderWidth: "0.09375rem",
                             },
                             "&.Mui-focused fieldset": {
                               borderColor: "#00adef",
-                              borderWidth: "2px",
-                              boxShadow: "0 0 0 3px rgba(0, 173, 239, 0.1)",
+                              borderWidth: "0.125rem",
+                              boxShadow: "0 0 0 0.1875rem rgba(0, 173, 239, 0.1)",
                             },
-                            height: { xs: "44px", sm: "48px" },
+                            height: { xs: "2.75rem", sm: "3rem" },
                             fontSize: { xs: "0.9375rem", sm: "1rem" },
                           },
                           "& .MuiFormHelperText-root": {
@@ -727,16 +771,16 @@ export default function FifaWorldCupPage() {
                         fullWidth
                         disableElevation
                         sx={{
-                          height: { xs: "44px", sm: "48px" },
-                          borderRadius: "12px",
+                          height: { xs: "2.75rem", sm: "3rem" },
+                          borderRadius: "0.75rem",
                           textTransform: "none",
                           fontSize: { xs: "0.9375rem", sm: "1rem" },
                           fontWeight: 600,
                           backgroundColor: "#00adef",
                           "&:hover": {
                             backgroundColor: "#4dc8f0",
-                            transform: "translateY(-1px)",
-                            boxShadow: "0 4px 12px rgba(0, 173, 239, 0.3)",
+                            transform: "translateY(-0.0625rem)",
+                            boxShadow: "0 0.25rem 0.75rem rgba(0, 173, 239, 0.3)",
                           },
                           "&:active": {
                             backgroundColor: "#7dd3fc",
@@ -790,7 +834,7 @@ export default function FifaWorldCupPage() {
                           mt: 0.5,
                           px: 1.5,
                           py: 1,
-                          borderRadius: "10px",
+                          borderRadius: "0.625rem",
                           backgroundColor: "#e0f2fe",
                         }}
                       >
@@ -804,7 +848,7 @@ export default function FifaWorldCupPage() {
                             color: "#15803d",
                             cursor: "pointer",
                             textDecoration: "underline",
-                            textUnderlineOffset: "3px",
+                            textUnderlineOffset: "0.1875rem",
                             fontWeight: 800,
                             textTransform: "uppercase",
                             letterSpacing: "0.02em",
@@ -905,18 +949,18 @@ export default function FifaWorldCupPage() {
                             transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                             "& fieldset": {
                               borderColor: "#e5e7eb",
-                              borderWidth: "1.5px",
+                              borderWidth: "0.09375rem",
                             },
                             "&:hover fieldset": {
                               borderColor: "#00adef",
-                              borderWidth: "1.5px",
+                              borderWidth: "0.09375rem",
                             },
                             "&.Mui-focused fieldset": {
                               borderColor: "#00adef",
-                              borderWidth: "2px",
-                              boxShadow: "0 0 0 3px rgba(0, 173, 239, 0.1)",
+                              borderWidth: "0.125rem",
+                              boxShadow: "0 0 0 0.1875rem rgba(0, 173, 239, 0.1)",
                             },
-                            height: { xs: "44px", sm: "48px" },
+                            height: { xs: "2.75rem", sm: "3rem" },
                             fontSize: { xs: "0.9375rem", sm: "1rem" },
                           },
                           "& .MuiFormHelperText-root": {
@@ -942,16 +986,16 @@ export default function FifaWorldCupPage() {
                         fullWidth
                         disableElevation
                         sx={{
-                          height: { xs: "44px", sm: "48px" },
-                          borderRadius: "12px",
+                          height: { xs: "2.75rem", sm: "3rem" },
+                          borderRadius: "0.75rem",
                           textTransform: "none",
                           fontSize: { xs: "0.9375rem", sm: "1rem" },
                           fontWeight: 600,
                           backgroundColor: "#00adef",
                           "&:hover": {
                             backgroundColor: "#4dc8f0",
-                            transform: "translateY(-1px)",
-                            boxShadow: "0 4px 12px rgba(0, 173, 239, 0.3)",
+                            transform: "translateY(-0.0625rem)",
+                            boxShadow: "0 0.25rem 0.75rem rgba(0, 173, 239, 0.3)",
                           },
                           "&:active": {
                             backgroundColor: "#7dd3fc",
@@ -1002,8 +1046,8 @@ export default function FifaWorldCupPage() {
                         textAlign: "center",
                         py: { xs: 1.5, sm: 2.4 },
                         px: { xs: 0.5, sm: 1.2 },
-                        borderRadius: "14px",
-                        border: "1px solid #dbeafe",
+                        borderRadius: "0.875rem",
+                        border: "0.0625rem solid #dbeafe",
                         background:
                           "linear-gradient(180deg, rgba(242,254,255,0.95) 0%, rgba(255,255,255,1) 100%)",
                       }}
@@ -1027,12 +1071,12 @@ export default function FifaWorldCupPage() {
                           }}
                         >
                           <motion.div
-                            className="absolute h-[88px] w-[88px] rounded-full border-2 border-[#f4c542]/55"
+                            className="absolute h-[5.5rem] w-[5.5rem] rounded-full border-2 border-[#f4c542]/55"
                             animate={{ scale: [0.95, 1.04], opacity: [0.45, 0] }}
                             transition={{ duration: 2.8, repeat: Infinity, ease: "easeOut" }}
                           />
                           <motion.div
-                            className="absolute h-[66px] w-[66px] rounded-full border-2 border-[#f4c542]/48"
+                            className="absolute h-[4.125rem] w-[4.125rem] rounded-full border-2 border-[#f4c542]/48"
                             animate={{ scale: [0.96, 1.02], opacity: [0.28, 0] }}
                             transition={{
                               duration: 2.8,
@@ -1068,32 +1112,32 @@ export default function FifaWorldCupPage() {
                               animate={{
                                 opacity: [0.88, 1, 0.9],
                                 filter: [
-                                  "drop-shadow(0 0 6px rgba(245,185,66,0.26))",
-                                  "drop-shadow(0 0 10px rgba(245,185,66,0.34))",
-                                  "drop-shadow(0 0 7px rgba(245,185,66,0.26))",
+                                  "drop-shadow(0 0 0.375rem rgba(245,185,66,0.26))",
+                                  "drop-shadow(0 0 0.625rem rgba(245,185,66,0.34))",
+                                  "drop-shadow(0 0 0.4375rem rgba(245,185,66,0.26))",
                                 ],
                               }}
                               transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
                             >
                               <motion.div
-                              className="relative grid h-[68px] w-[68px] place-items-center rounded-full border border-amber-200/90 bg-[radial-gradient(circle_at_50%_70%,#ffffff_0%,#fff8e8_32%,#f4c542_64%,#c9871b_100%)] shadow-[0_0_10px_rgba(245,185,66,0.30)]"
+                              className="relative grid h-[4.25rem] w-[4.25rem] place-items-center rounded-full border border-amber-200/90 bg-[radial-gradient(circle_at_50%_70%,#ffffff_0%,#fff8e8_32%,#f4c542_64%,#c9871b_100%)] shadow-[0_0_0.625rem_rgba(245,185,66,0.30)]"
                                 animate={{ scale: [1, 1.02, 1] }}
                                 transition={{ duration: 2.1, repeat: Infinity, ease: "easeInOut" }}
                               >
                                 <motion.div
-                                className="absolute inset-[4px] rounded-full border border-amber-100/70"
+                                className="absolute inset-[0.25rem] rounded-full border border-amber-100/70"
                                   animate={{ opacity: [0.25, 0.55, 0.25] }}
                                   transition={{ duration: 1.9, repeat: Infinity, ease: "easeInOut" }}
                                 />
                                 <motion.div
-                                className="absolute left-[15%] top-[14%] h-[30%] w-[15%] rounded-full bg-white/80 blur-[1px]"
+                                className="absolute left-[15%] top-[14%] h-[30%] w-[15%] rounded-full bg-white/80 blur-[0.0625rem]"
                                 animate={{ opacity: [0.28, 0.55, 0.28], scale: [1, 1.03, 1] }}
                                   transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
                                 />
                               <div
                                 ref={successCupRef}
                                 style={{ opacity: cupMovedToHeader || cupFlyingToHeader ? 0 : 1 }}
-                                className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center drop-shadow-[0_0_18px_rgba(245,185,66,0.35)]"
+                                className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center drop-shadow-[0_0_1.125rem_rgba(245,185,66,0.35)]"
                               >
                                 <Image
                                   src="/CARD-TO-CUP/cup.png"
@@ -1119,7 +1163,7 @@ export default function FifaWorldCupPage() {
                           WebkitBackgroundClip: "text",
                           WebkitTextFillColor: "transparent",
                           color: "transparent",
-                          textShadow: "0 0 22px rgba(245,185,66,0.18)",
+                          textShadow: "0 0 1.375rem rgba(245,185,66,0.18)",
                         }}
                       >
                         Successfully submitted.
@@ -1160,9 +1204,9 @@ export default function FifaWorldCupPage() {
                     <Box
                       sx={{
                         position: "relative",
-                        borderRadius: "14px",
+                        borderRadius: "0.875rem",
                         overflow: "hidden",
-                        border: "1px solid #dbeafe",
+                        border: "0.0625rem solid #dbeafe",
                         background:
                           "linear-gradient(135deg, rgba(0,173,239,0.08) 0%, rgba(20,52,203,0.06) 100%)",
                         height: { xs: 165, sm: 210 },
@@ -1174,18 +1218,22 @@ export default function FifaWorldCupPage() {
                           initial={false}
                           animate={{
                             opacity: currentSlide === index ? 1 : 0,
-                            scale: currentSlide === index ? 1 : 1.04,
+                            scale: currentSlide === index ? 1.08 : 1.16,
                           }}
-                          transition={{ duration: 0.55, ease: "easeInOut" }}
+                          transition={{ duration: 1.15, ease: [0.22, 1, 0.36, 1] }}
                           className="absolute inset-0"
-                          style={{ pointerEvents: "none" }}
+                          style={{
+                            pointerEvents: "none",
+                            transformOrigin: "center center",
+                            willChange: "transform, opacity",
+                          }}
                         >
                           <Image
                             src={src}
                             alt={`Card slide ${index + 1}`}
                             fill
                             className="object-cover"
-                            sizes="(max-width: 640px) 100vw, 720px"
+                            sizes="(max-width: 40rem) 100vw, 45rem"
                             priority={index === 0}
                           />
                         </motion.div>
@@ -1201,9 +1249,9 @@ export default function FifaWorldCupPage() {
                           gap: 0.75,
                           px: 1,
                           py: 0.5,
-                          borderRadius: "999px",
+                          borderRadius: "999rem",
                           background: "rgba(15, 23, 42, 0.25)",
-                          backdropFilter: "blur(6px)",
+                          backdropFilter: "blur(0.375rem)",
                         }}
                       >
                         {slideImages.map((_, index) => (
@@ -1213,7 +1261,7 @@ export default function FifaWorldCupPage() {
                             sx={{
                               width: 8,
                               height: 8,
-                              borderRadius: "999px",
+                              borderRadius: "999rem",
                               cursor: "pointer",
                               transition: "all 0.2s ease",
                               backgroundColor:
@@ -1231,9 +1279,9 @@ export default function FifaWorldCupPage() {
                 <Box
                   sx={{
                     mt: 1.5,
-                    mx: { xs: "-16px", md: "-28px" },
+                    mx: { xs: "-1rem", md: "-1.75rem" },
                     py: 0.75,
-                    borderTop: "1px solid #e5e7eb",
+                    borderTop: "0.0625rem solid #e5e7eb",
                     textAlign: "center",
                   }}
                 >
