@@ -56,11 +56,10 @@ import { useRouter } from "next/navigation";
 import { imageUrl } from "@/lib/constant";
 import { postDesignSnapshot } from "@/hooks/use-postDesignSnapshot";
 
-
 interface CardDesignerProps {
-  cardId?: string
-  initialDesign?: DesignSnapshot
-  onSuccess?: () => void
+  cardId?: string;
+  initialDesign?: DesignSnapshot;
+  onSuccess?: () => void;
 }
 
 // Card dimensions (px) — ~85.6 x 53.98 mm ratio
@@ -143,12 +142,16 @@ const SYSTEM_FONTS = [
   },
 ];
 
-export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardDesignerProps) {
+export default function CardDesigner({
+  cardId,
+  initialDesign,
+  onSuccess,
+}: CardDesignerProps) {
   const { toast } = useToast();
-  const router = useRouter()
+  const router = useRouter();
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
-  const isEditMode = !!cardId || !!initialDesign
+  const isEditMode = !!cardId || !!initialDesign;
 
   // Background mode & controls
   const [bgMode, setBgMode] = useState<BgMode>("color");
@@ -184,7 +187,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
 
   const selectedLayer = useMemo(
     () => layers.find((l) => l.id === selectedId),
-    [layers, selectedId]
+    [layers, selectedId],
   );
 
   const createMutation = useMutation({
@@ -193,26 +196,51 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
       toast({
         title: "Design Created",
         description: "The card design has been successfully created.",
-      })
-      router.push(`/cards/checkout?id=${data.id}`)
+      });
+      router.push(`/cards/checkout?id=${data.id}`);
     },
     onError: (error) => {
       toast({
         title: "Creation Failed",
         description: "Failed to create the design. Please try again.",
         variant: "destructive",
-      })
+      });
     },
-  })
+  });
 
-
-  const onUpload = async (file: File): Promise<string> => {
+  const onUpload = async (file: File | Blob): Promise<string> => {
+    const normalizedFile =
+      file instanceof File
+        ? file
+        : new File([file], "bg-image", { type: file.type || "image/png" });
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(normalizedFile);
     });
+  };
+
+  const resolveBgImage = async (src: string | null): Promise<string | null> => {
+    if (!src) return null;
+    if (src.startsWith("data:")) return src;
+
+    const isUploadPath = src.startsWith("/upload") || src.includes("upload");
+    if (!isUploadPath) return src;
+
+    const apiPath = src.startsWith("/api/")
+      ? src
+      : `/api/image${src.startsWith("/") ? "" : "/"}${src}`;
+    const res = await fetch(apiPath);
+    if (!res.ok) {
+      console.error("Failed to fetch background image", {
+        apiPath,
+        status: res.status,
+      });
+      return src;
+    }
+    const blob = await res.blob();
+    return onUpload(blob);
   };
 
   const addTextLayer = () => {
@@ -233,7 +261,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
       src = await onUpload(file);
     } else {
       const input = document.getElementById(
-        "logo-file-input"
+        "logo-file-input",
       ) as HTMLInputElement | null;
       input?.click();
       return;
@@ -284,7 +312,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
 
   const moveLayer = (
     id: string,
-    direction: "up" | "down" | "front" | "back"
+    direction: "up" | "down" | "front" | "back",
   ) => {
     setLayers((prev) => {
       const idx = prev.findIndex((l) => l.id === id);
@@ -329,7 +357,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
 
   const handleBgUploadClick = () => {
     const input = document.getElementById(
-      "bg-file-input"
+      "bg-file-input",
     ) as HTMLInputElement | null;
     input?.click();
   };
@@ -349,7 +377,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
 
   // Gradient CSS
   const gradientCss = useMemo(() => {
-    if(!gradient) return
+    if (!gradient) return;
     const stops = [...gradient.stops]
       .sort((a, b) => a.pos - b.pos)
       .map((s) => `${s.color} ${s.pos}%`)
@@ -387,7 +415,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
     "-1px -1px 0 rgba(255,255,255,0.75), 1px 1px 0 rgba(0,0,0,0.35)";
   function embossedTextStyle(
     elementX: number,
-    elementY: number
+    elementY: number,
   ): React.CSSProperties {
     if (bgMode === "image" && bgImage) {
       return {
@@ -425,7 +453,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
     setExporting(true);
     // Wait a frame so the exporting styles (no radius) apply before capture
     await new Promise<void>((resolve) =>
-      requestAnimationFrame(() => resolve())
+      requestAnimationFrame(() => resolve()),
     );
 
     try {
@@ -463,7 +491,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
   const addGradientStop = () => {
     const lastPos = Math.min(
       100,
-      Math.max(0, (gradient.stops[gradient.stops.length - 1]?.pos ?? 100) - 0)
+      Math.max(0, (gradient.stops[gradient.stops.length - 1]?.pos ?? 100) - 0),
     );
     setGradient((g) => ({
       ...g,
@@ -491,36 +519,42 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
   };
 
   function makeSnapshot(): DesignSnapshot {
-    const storedData = {} as DesignSnapshot 
+    const storedData = {} as DesignSnapshot;
     storedData.v = 1;
     storedData.bgMode = bgMode;
-    storedData.layers = layers
-    if(bgMode === "color") {
+    storedData.layers = layers;
+    if (bgMode === "color") {
       storedData.bgColor = bgColor;
-    } else if(bgMode === "gradient") {
+    } else if (bgMode === "gradient") {
       storedData.gradient = gradient;
-    } else if(bgMode === "image") {
+    } else if (bgMode === "image") {
       storedData.bgImage = bgImage;
       storedData.bg = bg;
     }
 
-    return storedData
+    return storedData;
   }
 
-  function applySnapshot(s: DesignSnapshot) {
+  async function applySnapshot(s: DesignSnapshot) {
     try {
       setBgMode(s.bgMode);
       setBgColor(s.bgColor);
-      setGradient(s.gradient ?? {
-    kind: "linear",
-    angle: 45,
-    stops: [
-      { id: uid("stop"), color: "#ffffff", pos: 0 },
-      { id: uid("stop"), color: "#d6d3d1", pos: 100 },
-    ],
-  });
-      setBgImage(s.bgImage);
-      setBg(s.bg);
+      setGradient(
+        s.gradient ?? {
+          kind: "linear",
+          angle: 45,
+          stops: [
+            { id: uid("stop"), color: "#ffffff", pos: 0 },
+            { id: uid("stop"), color: "#d6d3d1", pos: 100 },
+          ],
+        },
+      );
+      const resolvedBgImage =
+        s.bgMode === "image" && s.bgImage
+          ? await resolveBgImage(s.bgImage)
+          : (s.bgImage ?? null);
+      setBgImage(resolvedBgImage);
+      setBg(s.bg ?? { x: 0, y: 0, w: CARD_W, h: CARD_H, lockAspect: false });
       // basic validation to avoid empty/invalid arrays
       if (Array.isArray(s.layers) && s.layers.length > 0) {
         setLayers(s.layers as AnyLayer[]);
@@ -551,7 +585,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
     }
   }
 
-  function loadFromLocalStorage(showToast = true) {
+  async function loadFromLocalStorage(showToast = true) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
@@ -560,7 +594,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
         return;
       }
       const parsed = JSON.parse(raw) as DesignSnapshot;
-      applySnapshot(parsed);
+      await applySnapshot(parsed);
       if (showToast) toast({ title: "Design loaded" });
     } catch (e) {
       if (showToast)
@@ -593,21 +627,24 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
   }
 
   useEffect(() => {
-    if(initialDesign) {
-      applySnapshot(initialDesign)
-      setLastSavedAt(Date.now())
-      toast({title: "Design loaded"})
-    } else {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as DesignSnapshot;
-        console.log("parsed", parsed)
-        applySnapshot(parsed);
+    const initialize = async () => {
+      if (initialDesign) {
+        await applySnapshot(initialDesign);
         setLastSavedAt(Date.now());
-        toast({ title: "Restored saved design" });
+        toast({ title: "Design loaded" });
+      } else {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as DesignSnapshot;
+          console.log("parsed", parsed);
+          await applySnapshot(parsed);
+          setLastSavedAt(Date.now());
+          toast({ title: "Restored saved design" });
+        }
+        addIssuerLogo();
       }
-      addIssuerLogo();
-    }
+    };
+    initialize();
   }, []);
 
   useEffect(() => {
@@ -623,20 +660,20 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
   }, [bgMode, bgColor, gradient, bgImage, bg, layers]);
 
   const handleSubmit = () => {
-    const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) {
-        const parsed = JSON.parse(raw) as DesignSnapshot
-        createMutation.mutate(parsed)
-      } else {
-        toast({
-          title: "No saved design",
-          description: "Please save your design before submitting.",
-          variant: "destructive",
-        })
-      }
-  }
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as DesignSnapshot;
+      createMutation.mutate(parsed);
+    } else {
+      toast({
+        title: "No saved design",
+        description: "Please save your design before submitting.",
+        variant: "destructive",
+      });
+    }
+  };
 
-  const isLoading = createMutation.isPending
+  const isLoading = createMutation.isPending;
 
   return (
     <div className="grid gap-6 md:grid-cols-[360px_minmax(0,1fr)]">
@@ -935,7 +972,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                       key={layer.id}
                       className={cn(
                         "flex items-center gap-2 p-2 text-sm hover:bg-accent/50 focus-within:bg-accent/50",
-                        isSelected && "bg-accent/60"
+                        isSelected && "bg-accent/60",
                       )}
                     >
                       <button
@@ -971,7 +1008,9 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => moveLayer(layer.id, "down")}
-                          disabled={layer.locked || layer.id === ISSUER_LAYER_ID}
+                          disabled={
+                            layer.locked || layer.id === ISSUER_LAYER_ID
+                          }
                           title="Send backward"
                           aria-label="Send backward"
                         >
@@ -982,7 +1021,9 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => moveLayer(layer.id, "up")}
-                          disabled={layer.locked || layer.id === ISSUER_LAYER_ID}
+                          disabled={
+                            layer.locked || layer.id === ISSUER_LAYER_ID
+                          }
                           title="Bring forward"
                           aria-label="Bring forward"
                         >
@@ -993,7 +1034,9 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => moveLayer(layer.id, "back")}
-                          disabled={layer.locked || layer.id === ISSUER_LAYER_ID}
+                          disabled={
+                            layer.locked || layer.id === ISSUER_LAYER_ID
+                          }
                           title="Send to back"
                           aria-label="Send to back"
                         >
@@ -1004,7 +1047,9 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => moveLayer(layer.id, "front")}
-                          disabled={layer.locked || layer.id === ISSUER_LAYER_ID}
+                          disabled={
+                            layer.locked || layer.id === ISSUER_LAYER_ID
+                          }
                           title="Bring to front"
                           aria-label="Bring to front"
                         >
@@ -1015,7 +1060,9 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                           size="icon"
                           className="h-8 w-8 text-destructive"
                           onClick={() => deleteLayer(layer.id)}
-                          disabled={layer.locked || layer.id === ISSUER_LAYER_ID}
+                          disabled={
+                            layer.locked || layer.id === ISSUER_LAYER_ID
+                          }
                           title="Delete layer"
                           aria-label="Delete layer"
                         >
@@ -1252,15 +1299,24 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                     <SelectItem value="3">Export 3x</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button size="sm" onClick={exportAsPng} disabled={exporting || isLoading}>
+                <Button
+                  size="sm"
+                  onClick={exportAsPng}
+                  disabled={exporting || isLoading}
+                >
                   <Download className="mr-2 h-4 w-4" />
                   {exporting ? "Exporting..." : "Export PNG"}
                 </Button>
-                <Button size="sm" onClick={handleSubmit} disabled={isLoading} className="gap-2">
-                    <Send className="h-4 w-4" />
-                    {createMutation.isPending ?  "Creating..." : "Checkout"}
-                    {/* {isLoading ? (isEditMode ? "Updating..." : "Creating...") : isEditMode ? "Update" : "Submit"} */}
-                  </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSubmit}
+                  disabled={isLoading}
+                  className="gap-2"
+                >
+                  <Send className="h-4 w-4" />
+                  {createMutation.isPending ? "Creating..." : "Checkout"}
+                  {/* {isLoading ? (isEditMode ? "Updating..." : "Creating...") : isEditMode ? "Update" : "Submit"} */}
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -1299,7 +1355,11 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={bgImage.includes("upload") ? `${imageUrl}${bgImage}` : bgImage}
+                        src={
+                          bgImage.includes("upload")
+                            ? `/api/image/${bgImage}`
+                            : bgImage
+                        }
                         alt="Background"
                         className="h-full w-full object-cover"
                         draggable={false}
@@ -1364,7 +1424,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                       );
                     }
 
-                    if (normalizedType === "fixed-pan" ) {
+                    if (normalizedType === "fixed-pan") {
                       const x = layer.x ?? 0;
                       const y = layer.y ?? 0;
                       return (
@@ -1434,7 +1494,7 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                     if (layer.type === "text") {
                       const tl = layer as TextLayer;
                       const fontSize = fontSizeFromHeight(
-                        tl.h ?? DEFAULT_TEXT.h!
+                        tl.h ?? DEFAULT_TEXT.h!,
                       );
                       const x = tl.x ?? DEFAULT_TEXT.x;
                       const y = tl.y ?? DEFAULT_TEXT.y;
@@ -1470,8 +1530,8 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                             border: exporting
                               ? "none"
                               : isSelected
-                              ? "2px solid var(--ring)"
-                              : "1px dashed rgba(0,0,0,0.15)",
+                                ? "2px solid var(--ring)"
+                                : "1px dashed rgba(0,0,0,0.15)",
                             borderRadius: 8,
                             background: "transparent",
                             padding: 4,
@@ -1487,8 +1547,8 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                                 tl.align === "center"
                                   ? "center"
                                   : tl.align === "right"
-                                  ? "flex-end"
-                                  : "flex-start",
+                                    ? "flex-end"
+                                    : "flex-start",
                               fontFamily: tl.fontFamily,
                               fontWeight: tl.fontWeight,
                               fontSize,
@@ -1550,7 +1610,11 @@ export default function CardDesigner({ cardId, initialDesign, onSuccess }: CardD
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={il.src.includes("uploads") ? `${imageUrl}${il.src}` : il.src}
+                            src={
+                              il.src.includes("uploads")
+                                ? `${imageUrl}${il.src}`
+                                : il.src
+                            }
                             alt="Logo layer"
                             className="h-full w-full object-contain pointer-events-none select-none"
                             draggable={false}

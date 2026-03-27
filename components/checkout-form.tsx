@@ -56,7 +56,7 @@ export default function CheckoutForm() {
   const [resendTimer, setResendTimer] = useState(120);
   const [verificationMethod, setVerificationMethod] = useState<
     "sms" | "telegram"
-  >("telegram");
+  >("sms");
 
   useEffect(() => {
     if (resendTimer > 0) {
@@ -379,7 +379,7 @@ export default function CheckoutForm() {
             )}
             {formik.values.phone && !formik.errors.phone && !isOtpVerified && (
               <div className="flex items-center justify-between pt-2">
-                <div className="mb-6">
+                {/* <div className="mb-6">
                   <label className="block text-sm font-medium text-foreground mb-3">
                     Verification Method
                   </label>
@@ -415,7 +415,7 @@ export default function CheckoutForm() {
                       Telegram
                     </button>
                   </div>
-                </div>
+                </div> */}
                 <Button
                   className="self-end"
                   type="button"
@@ -451,7 +451,7 @@ export default function CheckoutForm() {
                     <option key={account.id} value={account.accountNumber}>
                       {account.accountNumber}
                     </option>
-                  )
+                  ),
                 )}
               </select>
               {formik.touched.account && formik.errors.account ? (
@@ -484,7 +484,7 @@ export default function CheckoutForm() {
                       size="icon"
                       onClick={() => {
                         const newGroupPhones = formik.values.groupPhones.filter(
-                          (_, i) => i !== index
+                          (_, i) => i !== index,
                         );
                         formik.setFieldValue("groupPhones", newGroupPhones);
                       }}
