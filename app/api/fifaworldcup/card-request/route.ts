@@ -24,6 +24,18 @@ type CardRequestResponse = {
   details?: unknown;
 };
 
+function responseCodeOf(data: unknown): string | null {
+  if (data === null || typeof data !== "object" || Array.isArray(data)) return null;
+  const v = (data as Record<string, unknown>).ResponseCode;
+  return typeof v === "string" && v.trim() ? v.trim() : null;
+}
+
+function statusForGatewayCardFailure(data: unknown): number {
+  const code = responseCodeOf(data);
+  if (code === "CD012") return 503;
+  return 417;
+}
+
 function toGatewayBody(
   body: Record<string, unknown>
 ): RequestNewCardGatewayBody | null {
@@ -95,8 +107,9 @@ export async function POST(req: NextRequest) {
     if (directGatewayBody) {
       const cardRes = await postFifaRequestNewCard(directGatewayBody, access_token);
       if (!cardRes.ok || isSoufleGatewayLogicalFailure(cardRes.data)) {
+        const failStatus = statusForGatewayCardFailure(cardRes.data);
         if (cardRes.data && typeof cardRes.data === "object") {
-          return NextResponse.json(cardRes.data, { status: 422 });
+          return NextResponse.json(cardRes.data, { status: failStatus });
         }
         return NextResponse.json(
           {
@@ -105,7 +118,7 @@ export async function POST(req: NextRequest) {
             error: "Card request failed",
             details: cardRes.data,
           } satisfies CardRequestResponse,
-          { status: 422 }
+          { status: failStatus }
         );
       }
       return NextResponse.json(
@@ -187,8 +200,9 @@ export async function POST(req: NextRequest) {
         step: result.step,
         message: msg,
       });
+      const failStatus = statusForGatewayCardFailure(result.data);
       if (result.data && typeof result.data === "object") {
-        return NextResponse.json(result.data, { status: 422 });
+        return NextResponse.json(result.data, { status: failStatus });
       }
       return NextResponse.json(
         {
@@ -196,7 +210,7 @@ export async function POST(req: NextRequest) {
           step: result.step,
           error: msg,
         } satisfies CardRequestResponse,
-        { status: 422 }
+        { status: failStatus }
       );
     }
 

@@ -395,7 +395,7 @@ export default function FifaWorldCupPage() {
           cardResult
         );
         if (cardResult.ResponseCode === "CD012") {
-          fifaToastError("You have already requested a card");
+          fifaToastError("You have already requested a card!");
         } else {
           fifaToastSomethingWrong();
         }
