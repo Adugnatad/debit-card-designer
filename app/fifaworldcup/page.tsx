@@ -381,6 +381,8 @@ export default function FifaWorldCupPage() {
         success: boolean;
         step?: string;
         error?: string;
+        ResponseCode?: string;
+        ResponseDescription?: string;
       };
       if (res.ok && cardResult.success) {
         fifaToastSuccess("Card request submitted successfully");
@@ -392,7 +394,11 @@ export default function FifaWorldCupPage() {
           `error=${cardResult.error ?? res.statusText}`,
           cardResult
         );
-        fifaToastSomethingWrong();
+        if (cardResult.ResponseCode === "CD012") {
+          fifaToastError("You have already requested a card");
+        } else {
+          fifaToastSomethingWrong();
+        }
       }
     } catch (err) {
       console.error("[FIFA card] card-request fetch threw", err);
