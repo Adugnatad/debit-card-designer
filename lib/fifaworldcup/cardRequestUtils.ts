@@ -21,6 +21,11 @@ export function mapGender(gender: string | undefined | null): string {
   return "M";
 }
 
+/** Trim and uppercase for FirstName / LastName / EmbossingName on prepaid card requests. */
+export function uppercaseGatewayName(value: string): string {
+  return value.trim().toUpperCase();
+}
+
 /** MALE → Mr, FEMALE → Ms (case-insensitive); otherwise Mr. */
 export function mapTitle(gender: string | undefined | null): string {
   const g = (gender ?? "").trim().toUpperCase();
@@ -353,14 +358,16 @@ export function buildRequestNewCardBody(
   const district = (branch.district ?? "").trim();
   const email =
     customer.email.trim() !== "" ? customer.email.trim() : DEFAULT_EMAIL;
-  const embossing = `${customer.firstName} ${customer.lastName}`.trim();
+  const firstName = uppercaseGatewayName(customer.firstName);
+  const lastName = uppercaseGatewayName(customer.lastName);
+  const embossing = `${firstName} ${lastName}`.trim();
 
   return {
     MsgUid: uuidv4(),
     CustomerCode: customer.customerId,
     Title: title,
-    FirstName: customer.firstName,
-    LastName: customer.lastName,
+    FirstName: firstName,
+    LastName: lastName,
     IdNumber: customer.customerId,
     DateOfBirth: TEMP_DOB,
     MaritalStatus: MARITAL_STATUS,
@@ -392,8 +399,8 @@ export function serializeRequestNewCardGatewayBody(
     MsgUid: body.MsgUid,
     CustomerCode: body.CustomerCode,
     Title: body.Title,
-    FirstName: body.FirstName,
-    LastName: body.LastName,
+    FirstName: uppercaseGatewayName(body.FirstName),
+    LastName: uppercaseGatewayName(body.LastName),
     IdNumber: body.IdNumber,
     DateOfBirth: body.DateOfBirth,
     MaritalStatus: body.MaritalStatus,
@@ -408,7 +415,7 @@ export function serializeRequestNewCardGatewayBody(
     CurrCode: body.CurrCode,
     BranchCode: body.BranchCode,
     CardProduct: body.CardProduct,
-    EmbossingName: body.EmbossingName,
+    EmbossingName: uppercaseGatewayName(body.EmbossingName),
     CustomerIdNumber: body.CustomerIdNumber,
     ExtendedCustomerIdNumber: body.ExtendedCustomerIdNumber,
   };

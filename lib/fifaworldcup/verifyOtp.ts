@@ -2,9 +2,9 @@ import {
   clearFifaWorldCupTokenCache,
   getFifaWorldCupAccessToken,
 } from "./oauthToken";
+import { FIFA_INTERNAL_GATEWAY_BASE_URL } from "./fifaWorldCupConstants";
 
-const DEFAULT_VERIFY_OTP_URL =
-  "https://internalgateway-apim.coopbankoromiasc.com/soufle/1.0.0/verifyOtp";
+const DEFAULT_VERIFY_OTP_URL = `${FIFA_INTERNAL_GATEWAY_BASE_URL}/soufle/1.0.0/verifyOtp`;
 
 export type VerifyOtpResult = {
   ok: boolean;

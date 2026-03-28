@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 
-const DEFAULT_REQUEST_URL =
-  "https://internalgateway-apim.coopbankoromiasc.com/prepaidcard/1.0.0/requestNewCard";
+import { FIFA_INTERNAL_GATEWAY_BASE_URL } from "./fifaWorldCupConstants";
+
+const DEFAULT_REQUEST_URL = `${FIFA_INTERNAL_GATEWAY_BASE_URL}/prepaidcard/1.0.0/requestNewCard`;
 
 export function getRequestNewCardUrl(): string {
   return (

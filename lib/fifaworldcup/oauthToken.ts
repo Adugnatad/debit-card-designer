@@ -3,12 +3,10 @@
  * Credentials must be set via env in production; see FIFA_WORLD_CUP_* vars.
  */
 
-const DEFAULT_TOKEN_URL =
-  "https://developer.coopbankoromiasc.com/oauth2/token";
-
-/** Same value as curl: Authorization: Basic <base64> */
-const DEFAULT_AUTHORIZATION_BASIC =
-  "Basic YmUwODVKVTJJNWR2ZkFzVE5IbTJlSXk1SjFnYTpaSHdwRl9aUGxtS1VPR05MaUJmOF84eHVWeVlh";
+import {
+  FIFA_OAUTH_AUTHORIZATION_BASIC,
+  FIFA_OAUTH_TOKEN_URL,
+} from "./fifaWorldCupConstants";
 
 type CachedToken = {
   accessToken: string;
@@ -33,14 +31,14 @@ type TokenResponse = {
 
 function getTokenUrl(): string {
   return (
-    process.env.FIFA_WORLD_CUP_OAUTH_TOKEN_URL?.trim() || DEFAULT_TOKEN_URL
+    process.env.FIFA_WORLD_CUP_OAUTH_TOKEN_URL?.trim() || FIFA_OAUTH_TOKEN_URL
   );
 }
 
 function getAuthorizationHeader(): string {
   const fromEnv = process.env.FIFA_WORLD_CUP_OAUTH_AUTHORIZATION?.trim();
   if (fromEnv) return fromEnv;
-  return DEFAULT_AUTHORIZATION_BASIC;
+  return FIFA_OAUTH_AUTHORIZATION_BASIC;
 }
 
 async function requestNewToken(): Promise<TokenResponse> {
