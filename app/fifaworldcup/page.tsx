@@ -29,9 +29,19 @@ import {
   fifaToastSuccess,
 } from "@/lib/fifaworldcup/fifaToast";
 import { Toaster } from "react-hot-toast";
+
+import { FIFA_CUP_LOADER_SRC } from "./fifaLoaderAsset";
+
+/** Avoid a flash if the image is cached and loads instantly. */
+const LOADER_MIN_VISIBLE_MS = 400;
+/** Never block the app if the asset fails or hangs. */
+const LOADER_SAFETY_MAX_MS = 12_000;
+
 export default function FifaWorldCupPage() {
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
+  const [cupLoaderReady, setCupLoaderReady] = useState(false);
+  const loaderMountTimeRef = useRef<number | null>(null);
   const [activeStep, setActiveStep] = useState(0);
   const [accountNumber, setAccountNumber] = useState("");
   const [otpCode, setOtpCode] = useState("");
@@ -110,12 +120,22 @@ export default function FifaWorldCupPage() {
   }, [fifaWorldCupAuth.error]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1600);
-
-    return () => clearTimeout(timer);
+    loaderMountTimeRef.current = Date.now();
   }, []);
+
+  useEffect(() => {
+    const safety = setTimeout(() => setCupLoaderReady(true), LOADER_SAFETY_MAX_MS);
+    return () => clearTimeout(safety);
+  }, []);
+
+  useEffect(() => {
+    if (!cupLoaderReady) return;
+    const start = loaderMountTimeRef.current ?? Date.now();
+    const elapsed = Date.now() - start;
+    const remaining = Math.max(0, LOADER_MIN_VISIBLE_MS - elapsed);
+    const t = setTimeout(() => setIsLoading(false), remaining);
+    return () => clearTimeout(t);
+  }, [cupLoaderReady]);
 
   useEffect(() => {
     const raw = searchParams.get("account");
@@ -458,12 +478,14 @@ export default function FifaWorldCupPage() {
             transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
           />
           <Image
-            src="/CARD-TO-CUP/cup.png"
+            src={FIFA_CUP_LOADER_SRC}
             alt="FIFA World Cup loader"
             width={250}
             height={250}
             className="relative h-auto w-[15.625rem] drop-shadow-[0_0_1.875rem_rgba(245,185,66,0.24)]"
             priority
+            onLoadingComplete={() => setCupLoaderReady(true)}
+            onError={() => setCupLoaderReady(true)}
           />
         </motion.div>
       </div>

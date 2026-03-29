@@ -12,12 +12,21 @@ import {
 import { LocateFixed } from "lucide-react";
 import { BranchList } from "./BranchList";
 import { BranchMap } from "./BranchMap";
-import { BRANCH_BACKEND_BASE_URL } from "./constants";
+import { BRANCH_BACKEND_BASE_URL, EXCLUDED_BRANCH_NAMES_LOWER } from "./constants";
 import { SearchBar } from "./SearchBar";
 import { useUserLocation } from "./hooks/useUserLocation";
 import { useBranchSearch } from "./hooks/useBranchSearch";
 import type { Branch } from "./types";
 import { sortBranchesByDistance } from "./utils/geolocationUtils";
+
+function isExcludedBranchName(b: Branch): boolean {
+  const company = (b.companyName ?? "").trim().toLowerCase();
+  const address = (b.nameAddress ?? "").trim().toLowerCase();
+  return (
+    EXCLUDED_BRANCH_NAMES_LOWER.has(company) ||
+    EXCLUDED_BRANCH_NAMES_LOWER.has(address)
+  );
+}
 
 export function BranchSelectorContainer({
   selectedBranch,
@@ -72,7 +81,8 @@ export function BranchSelectorContainer({
               Number.isFinite(b.lng) &&
               b.id > 0 &&
               Boolean(b.branchCode)
-          );
+          )
+          .filter((b) => !isExcludedBranchName(b));
 
         setBranches(normalized);
       } catch (e: any) {
@@ -105,10 +115,6 @@ export function BranchSelectorContainer({
       ),
     [selectedBranch]
   );
-
-  useEffect(() => {
-    if (!selectedBranch && filtered.length > 0) onBranchSelect(filtered[0]);
-  }, [filtered, selectedBranch, onBranchSelect]);
 
   useEffect(() => {
     if (!selectedBranch || selectedBranch.id <= 0) return;

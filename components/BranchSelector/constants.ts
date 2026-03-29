@@ -20,5 +20,8 @@ export const CLUSTER_OPTIONS = {
 
 // Static backend/map config for branch selector flow
 export const BRANCH_BACKEND_BASE_URL = "https://coopengage.coopbankoromiasc.com";
+
+/** Dropped after fetch; match is case-insensitive on companyName or nameAddress (exact). */
+export const EXCLUDED_BRANCH_NAMES_LOWER = new Set<string>(["ijo old branch"]);
 export const GOOGLE_MAPS_API_KEY = "AIzaSyCgNHw8Dx5xHOGOCpyrWAWt-7nzCp2k6E4";
 
