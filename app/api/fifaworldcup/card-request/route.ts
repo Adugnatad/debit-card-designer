@@ -1,25 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import type {
   CardRequestBranchPayload,
-  RequestNewCardGatewayBody,
+  NewCardManagementRequest,
+  NewCardRequestInner,
 } from "@/lib/fifaworldcup/cardRequestTypes";
 import { postFifaRequestNewCard } from "@/lib/fifaworldcup/cardRequestGateway";
 import { getFifaWorldCupAccessToken } from "@/lib/fifaworldcup/oauthToken";
 import { requestNewCardFlowServer } from "@/lib/fifaworldcup/requestNewCardService";
-import { isSoufleGatewayLogicalFailure } from "@/lib/fifaworldcup/soufleGatewaySuccess";
+import { isCardManagementNewCardSuccess } from "@/lib/fifaworldcup/soufleGatewaySuccess";
 
 export const dynamic = "force-dynamic";
 
 /**
- * POST `requestNewCard` to the gateway. If the JSON body includes `customerDetails`
+ * POST to gateway `newCardRequest`. If the JSON body includes `customerDetails`
  * (same object as `GET /api/fifaworldcup/customer-info`), that object is used to build
- * the prepaid payload and the server skips a second GET to customer/info. Otherwise
+ * the payload and the server skips a second GET to customer/info. Otherwise
  * the server fetches customer/info once, then posts.
  */
 
 type CardRequestResponse = {
   success: boolean;
-  step: "validation" | "auth" | "customer" | "fund" | "card" | "server" | "ok";
+  step:
+    | "validation"
+    | "auth"
+    | "customer"
+    | "fund"
+    | "card"
+    | "cbs"
+    | "server"
+    | "ok";
   error: string;
   details?: unknown;
 };
@@ -30,46 +39,61 @@ function responseCodeOf(data: unknown): string | null {
   return typeof v === "string" && v.trim() ? v.trim() : null;
 }
 
+function isAlreadyHasCardError(data: unknown): boolean {
+  if (responseCodeOf(data) === "CD012") return true;
+  if (data === null || typeof data !== "object" || Array.isArray(data)) return false;
+  const o = data as Record<string, unknown>;
+  const rt =
+    typeof o.ResponseType === "string" ? o.ResponseType.trim().toLowerCase() : "";
+  const desc =
+    typeof o.ResponseDescription === "string"
+      ? o.ResponseDescription.toLowerCase()
+      : "";
+  if (rt !== "business error") return false;
+  return (
+    desc.includes("maximum number") ||
+    desc.includes("exceeded") ||
+    desc.includes("primary cards")
+  );
+}
+
 function statusForGatewayCardFailure(data: unknown): number {
-  const code = responseCodeOf(data);
-  if (code === "CD012") return 503;
+  if (isAlreadyHasCardError(data)) return 503;
   return 417;
 }
 
-function toGatewayBody(
+const DIRECT_NEW_CARD_KEYS: Array<keyof NewCardRequestInner> = [
+  "accountId",
+  "Title",
+  "PreferredLanguage",
+  "customerType",
+  "Region",
+  "District",
+  "BranchCode",
+  "DeliveryBranchCode",
+  "CardProduct",
+  "EmbossingName",
+];
+
+function toNewCardManagementDirectBody(
   body: Record<string, unknown>
-): RequestNewCardGatewayBody | null {
-  const keys: Array<keyof RequestNewCardGatewayBody> = [
-    "MsgUid",
-    "CustomerCode",
-    "Title",
-    "FirstName",
-    "LastName",
-    "IdNumber",
-    "DateOfBirth",
-    "MaritalStatus",
-    "Gender",
-    "AddressLine1",
-    "City",
-    "PostalCode",
-    "Region",
-    "Phone1",
-    "Email",
-    "District",
-    "CurrCode",
-    "BranchCode",
-    "CardProduct",
-    "EmbossingName",
-    "CustomerIdNumber",
-    "ExtendedCustomerIdNumber",
-  ];
-  const out = {} as RequestNewCardGatewayBody;
-  for (const k of keys) {
-    const v = body[k];
+): NewCardManagementRequest | null {
+  const innerRaw = body.newCardRequest;
+  if (
+    innerRaw === null ||
+    typeof innerRaw !== "object" ||
+    Array.isArray(innerRaw)
+  ) {
+    return null;
+  }
+  const inner = innerRaw as Record<string, unknown>;
+  const out: Partial<NewCardRequestInner> = {};
+  for (const k of DIRECT_NEW_CARD_KEYS) {
+    const v = inner[k];
     if (typeof v !== "string") return null;
     out[k] = v;
   }
-  return out;
+  return { newCardRequest: out as NewCardRequestInner };
 }
 
 export async function POST(req: NextRequest) {
@@ -78,7 +102,7 @@ export async function POST(req: NextRequest) {
       string,
       unknown
     >;
-    const directGatewayBody = toGatewayBody(body);
+    const directBody = toNewCardManagementDirectBody(body);
 
     const authHeader = req.headers.get("authorization");
     const clientBearer =
@@ -104,9 +128,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (directGatewayBody) {
-      const cardRes = await postFifaRequestNewCard(directGatewayBody, access_token);
-      if (!cardRes.ok || isSoufleGatewayLogicalFailure(cardRes.data)) {
+    if (directBody) {
+      const cardRes = await postFifaRequestNewCard(directBody, access_token);
+      if (!cardRes.ok || !isCardManagementNewCardSuccess(cardRes.data)) {
         const failStatus = statusForGatewayCardFailure(cardRes.data);
         if (cardRes.data && typeof cardRes.data === "object") {
           return NextResponse.json(cardRes.data, { status: failStatus });

@@ -10,30 +10,23 @@ export interface NormalizedCustomerForCard {
   email: string;
 }
 
-/** POST /prepaidcard/1.0.0/requestNewCard body (gateway contract). */
-export interface RequestNewCardGatewayBody {
-  MsgUid: string;
-  CustomerCode: string;
+/** POST /cardmanagement/1.0.0/newCardRequest inner body (gateway contract). */
+export interface NewCardRequestInner {
+  accountId: string;
   Title: string;
-  FirstName: string;
-  LastName: string;
-  IdNumber: string;
-  DateOfBirth: string;
-  MaritalStatus: string;
-  Gender: string;
-  AddressLine1: string;
-  City: string;
-  PostalCode: string;
+  PreferredLanguage: string;
+  customerType: string;
   Region: string;
-  Phone1: string;
-  Email: string;
   District: string;
-  CurrCode: string;
   BranchCode: string;
+  DeliveryBranchCode: string;
   CardProduct: string;
   EmbossingName: string;
-  CustomerIdNumber: string;
-  ExtendedCustomerIdNumber: string;
+}
+
+/** POST /cardmanagement/1.0.0/newCardRequest wrapper. */
+export interface NewCardManagementRequest {
+  newCardRequest: NewCardRequestInner;
 }
 
 /** POST /generic/1.0.0/ftVisaCard body (gateway contract). */
@@ -42,6 +35,21 @@ export interface FtVisaCardGatewayBody {
   debitAmount: number;
   narrative: string;
   debitAccount: string;
+}
+
+/** POST /generic/1.0.0/cardToCbs body (gateway contract). */
+export interface CardToCbsGatewayBody {
+  company: string;
+  messageId: string;
+  pan: string;
+  cardStatus: string;
+  account: string;
+  currency: string;
+  expiryDate: string;
+  issueDate: string;
+  name: string;
+  customerId: string;
+  maskedPan: string;
 }
 
 /**
@@ -68,7 +76,7 @@ export type RequestNewCardFlowServerResult =
   | { ok: true; data: unknown }
   | {
       ok: false;
-      step: "customer" | "fund" | "card";
+      step: "customer" | "fund" | "card" | "cbs";
       message?: string;
       data?: unknown;
     };

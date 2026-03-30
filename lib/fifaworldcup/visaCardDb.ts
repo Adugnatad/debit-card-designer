@@ -1,5 +1,5 @@
 import { Pool } from "pg";
-import type { RequestNewCardGatewayBody } from "./cardRequestTypes";
+import type { NewCardRequestInner } from "./cardRequestTypes";
 
 type NewCardResponse = {
   RspDateTime?: unknown;
@@ -44,7 +44,7 @@ const pool = new Pool({
  */
 export async function insertVisaCardRecordFromGatewayData(
   gatewayData: unknown,
-  requestBody?: RequestNewCardGatewayBody
+  requestInner?: NewCardRequestInner
 ): Promise<boolean> {
   if (gatewayData === null || typeof gatewayData !== "object") return false;
   const root = gatewayData as Record<string, unknown>;
@@ -81,25 +81,25 @@ export async function insertVisaCardRecordFromGatewayData(
     asString(r.VPan),
     asBigIntString(r.ExpiryDate),
     asBigIntString(r.EffectiveDate),
-    asString(requestBody?.MsgUid),
-    asString(requestBody?.CustomerCode),
-    asString(requestBody?.Title),
-    asString(requestBody?.IdNumber),
-    asString(requestBody?.DateOfBirth),
-    asString(requestBody?.MaritalStatus),
-    asString(requestBody?.Gender),
-    asString(requestBody?.AddressLine1),
-    asString(requestBody?.City),
-    asString(requestBody?.PostalCode),
-    asString(requestBody?.Region),
-    asString(requestBody?.Phone1),
-    asString(requestBody?.Email),
-    asString(requestBody?.District),
-    asString(requestBody?.BranchCode),
-    asString(requestBody?.CardProduct),
-    asString(requestBody?.EmbossingName),
-    asString(requestBody?.CustomerIdNumber),
-    asString(requestBody?.ExtendedCustomerIdNumber),
+    "",
+    asString(requestInner?.accountId),
+    asString(requestInner?.Title),
+    asString(requestInner?.accountId),
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    asString(requestInner?.Region),
+    "",
+    "",
+    asString(requestInner?.District),
+    asString(requestInner?.BranchCode),
+    asString(requestInner?.CardProduct),
+    asString(requestInner?.EmbossingName),
+    asString(requestInner?.accountId),
+    asString(requestInner?.accountId),
   ];
 
   const res = await pool.query(query, values);

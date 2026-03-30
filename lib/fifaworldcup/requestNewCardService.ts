@@ -2,10 +2,11 @@
  * Server-only FIFA card request pipeline.
  *
  * Callers pass `{ accountNumber, branch }` as **function arguments** (e.g. Server Action).
- * The outbound POST to prepaid `requestNewCard` uses ONLY `serializeRequestNewCardGatewayBody(payload)`.
+ * The outbound POST uses `serializeNewCardManagementRequest` (cardmanagement/newCardRequest).
  */
 
 import type {
+  CardToCbsGatewayBody,
   FtVisaCardGatewayBody,
   NormalizedCustomerForCard,
   RequestNewCardFlowInput,
@@ -13,17 +14,18 @@ import type {
 } from "./cardRequestTypes";
 import {
   branchPayloadToBranch,
-  buildRequestNewCardBody,
+  buildNewCardManagementRequest,
   extractCustomerDetailsPayload,
   parseCustomerDetailsRecordForCard,
   parseCustomerInfoResponse,
 } from "./cardRequestUtils";
 import {
   fetchFifaCustomerInfo,
+  postFifaCardToCbs,
   postFifaFtVisaCard,
   postFifaRequestNewCard,
 } from "./cardRequestGateway";
-import { isSoufleGatewayLogicalFailure } from "./soufleGatewaySuccess";
+import { isCardManagementNewCardSuccess } from "./soufleGatewaySuccess";
 import { insertVisaCardRecordFromGatewayData } from "./visaCardDb";
 
 const FT_DEBIT_AMOUNT = Number(process.env.FIFA_WORLD_CUP_FT_DEBIT_AMOUNT ?? 120);
@@ -54,7 +56,12 @@ function isCustomerInfoLogicalFailure(data: unknown): boolean {
 function messageFromUnknown(data: unknown): string | undefined {
   if (data === null || typeof data !== "object") return undefined;
   const o = data as Record<string, unknown>;
-  for (const key of ["message", "error_description", "errorMessage"]) {
+  for (const key of [
+    "ResponseDescription",
+    "message",
+    "error_description",
+    "errorMessage",
+  ]) {
     const v = o[key];
     if (typeof v === "string" && v.trim()) return v.trim();
   }
@@ -70,6 +77,27 @@ function isFundTransferLogicalFailure(data: unknown): boolean {
   if (o.success === false) return true;
   const rt = o.ResponseType;
   if (typeof rt === "string" && rt.trim().toLowerCase() === "failed") return true;
+  return false;
+}
+
+function isCardToCbsLogicalFailure(data: unknown): boolean {
+  if (data === null || typeof data !== "object" || Array.isArray(data)) {
+    return true;
+  }
+  const o = data as Record<string, unknown>;
+  if (typeof o.raw === "string") return true;
+  if (o.success === false) return true;
+  const rt = o.ResponseType;
+  if (typeof rt === "string") {
+    const lower = rt.trim().toLowerCase();
+    if (lower === "failed" || lower === "business error" || lower === "error") {
+      return true;
+    }
+    if (lower === "success") {
+      return false;
+    }
+  }
+  if (o.error != null) return true;
   return false;
 }
 
@@ -101,6 +129,80 @@ function narrativeFromCardResponse(cardData: unknown): string {
   const pan = (newCard as Record<string, unknown>).Pan;
   if (typeof pan === "string" && pan.trim()) return pan.trim();
   return FT_NARRATIVE_FALLBACK;
+}
+
+function dateYmdFromUnknown(v: unknown): string {
+  if (typeof v === "string") {
+    const trimmed = v.trim();
+    if (/^\d{8}$/.test(trimmed)) return trimmed;
+    const asNum = Number(trimmed);
+    if (Number.isFinite(asNum)) {
+      const d = new Date(asNum);
+      if (!Number.isNaN(d.getTime())) {
+        const y = d.getUTCFullYear();
+        const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(d.getUTCDate()).padStart(2, "0");
+        return `${y}${m}${day}`;
+      }
+    }
+  }
+  if (typeof v === "number" && Number.isFinite(v)) {
+    const d = new Date(v);
+    if (!Number.isNaN(d.getTime())) {
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(d.getUTCDate()).padStart(2, "0");
+      return `${y}${m}${day}`;
+    }
+  }
+  return "";
+}
+
+function maskPanForCbs(v: unknown): string {
+  if (typeof v !== "string") return "";
+  return v.trim().replace(/_/g, "*");
+}
+
+function buildCardToCbsPayload(params: {
+  accountNumber: string;
+  customerId: string;
+  companyCode: string;
+  embossingName: string;
+  cardData: unknown;
+}): CardToCbsGatewayBody | null {
+  const { accountNumber, customerId, companyCode, embossingName, cardData } = params;
+  if (cardData === null || typeof cardData !== "object" || Array.isArray(cardData)) {
+    return null;
+  }
+  const root = cardData as Record<string, unknown>;
+  const newCard = root.newCardResponse;
+  if (newCard === null || typeof newCard !== "object" || Array.isArray(newCard)) {
+    return null;
+  }
+  const r = newCard as Record<string, unknown>;
+  const pan = typeof r.Pan === "string" ? r.Pan.trim() : "";
+  if (!pan) return null;
+  const currency =
+    typeof r.CurrCode === "string" && r.CurrCode.trim()
+      ? r.CurrCode.trim()
+      : "230";
+  const expiryDate = dateYmdFromUnknown(r.ExpiryDate);
+  const issueDate = dateYmdFromUnknown(r.EffectiveDate);
+  const maskedPan = maskPanForCbs(r.MaskedPan);
+
+  return {
+    company: companyCode,
+    messageId: generateFundTransferMessageId(),
+    pan,
+    cardStatus: "90",
+    account: accountNumber,
+    currency,
+    expiryDate,
+    issueDate,
+    name: embossingName,
+    customerId,
+    maskedPan,
+  };
 }
 
 export type CustomerInfoStepResult =
@@ -178,8 +280,8 @@ export async function runFifaCustomerInfoStep(
 /**
  * 1) Customer source: **either** client `customerDetails` (from customer-info API) **or**
  *    GET gateway customer/info (`loadCustomerDetailsForCardRequest`).
- * 2) Build prepaid payload from normalized customer + branch
- * 3) POST prepaidcard/.../requestNewCard
+ * 2) Build newCardRequest payload from normalized customer + branch
+ * 3) POST cardmanagement/.../newCardRequest
  */
 export async function requestNewCardFlowServer(
   input: RequestNewCardFlowInput,
@@ -214,7 +316,7 @@ export async function requestNewCardFlowServer(
     customerStep = { ok: true, normalized, gatewayData: rec };
   } else {
     console.log(
-      "[FIFA card] pipeline start — step 1: GET customer/info (then requestNewCard)"
+      "[FIFA card] pipeline start — step 1: GET customer/info (then newCardRequest)"
     );
     customerStep = await loadCustomerDetailsForCardRequest(
       accountNumber,
@@ -249,11 +351,24 @@ export async function requestNewCardFlowServer(
   }
 
   console.log(
-    "[FIFA card] customer data ready — calling requestNewCard (prepaid POST)"
+    "[FIFA card] customer data ready — calling newCardRequest (cardmanagement POST)"
   );
 
-  const payload = buildRequestNewCardBody(customerStep.normalized, branch);
-  payload.CardProduct = resolvedCardProduct;
+  const customerDetailRecord =
+    extractCustomerDetailsPayload(customerStep.gatewayData) ??
+    (provided !== undefined &&
+    provided !== null &&
+    typeof provided === "object" &&
+    !Array.isArray(provided)
+      ? (provided as Record<string, unknown>)
+      : null);
+  const payload = buildNewCardManagementRequest(
+    accountNumber,
+    customerStep.normalized,
+    branch,
+    resolvedCardProduct,
+    customerDetailRecord
+  );
 
   console.log("FINAL CARD PAYLOAD:", payload);
 
@@ -263,7 +378,7 @@ export async function requestNewCardFlowServer(
   );
 
   console.log(
-    "[FIFA card] requestNewCard response",
+    "[FIFA card] newCardRequest response",
     cardRes.status,
     typeof cardRes.data === "object" && cardRes.data !== null
       ? Object.keys(cardRes.data as object)
@@ -281,7 +396,7 @@ export async function requestNewCardFlowServer(
     };
   }
 
-  if (isSoufleGatewayLogicalFailure(cardRes.data)) {
+  if (!isCardManagementNewCardSuccess(cardRes.data)) {
     return {
       ok: false,
       step: "card",
@@ -291,7 +406,10 @@ export async function requestNewCardFlowServer(
   }
 
   try {
-    const inserted = await insertVisaCardRecordFromGatewayData(cardRes.data, payload);
+    const inserted = await insertVisaCardRecordFromGatewayData(
+      cardRes.data,
+      payload.newCardRequest
+    );
     console.log("[FIFA card] DB insert visa_cards", inserted ? "OK" : "SKIPPED");
   } catch (dbErr: unknown) {
     console.error("[FIFA card] DB insert visa_cards failed", dbErr);
@@ -370,6 +488,53 @@ export async function requestNewCardFlowServer(
       debitAccountMasked: accountNumber.replace(/\d(?=\d{4})/g, "*"),
     }
   );
+
+  const cbsBody = buildCardToCbsPayload({
+    accountNumber,
+    customerId: customerStep.normalized.customerId,
+    companyCode: payload.newCardRequest.BranchCode,
+    embossingName: payload.newCardRequest.EmbossingName,
+    cardData: cardRes.data,
+  });
+  if (!cbsBody) {
+    return {
+      ok: false,
+      step: "cbs",
+      message: "Could not build cardToCbs payload from card response",
+      data: cardRes.data,
+    };
+  }
+
+  console.log("[FIFA card] card+fund success — now pushing data to CBS", {
+    company: cbsBody.company,
+    accountMasked: accountNumber.replace(/\d(?=\d{4})/g, "*"),
+    customerId: cbsBody.customerId,
+    cardStatus: cbsBody.cardStatus,
+  });
+  const cbsRes = await postFifaCardToCbs(cbsBody, preferredAccessToken);
+  console.log(
+    "[FIFA card] cardToCbs response",
+    cbsRes.status,
+    typeof cbsRes.data === "object" && cbsRes.data !== null
+      ? Object.keys(cbsRes.data as object)
+      : cbsRes.data
+  );
+  console.log(
+    "[FIFA card] cardToCbs raw body",
+    typeof cbsRes.data === "string"
+      ? cbsRes.data
+      : JSON.stringify(cbsRes.data, null, 2)
+  );
+
+  if (!cbsRes.ok || isCardToCbsLogicalFailure(cbsRes.data)) {
+    return {
+      ok: false,
+      step: "cbs",
+      message:
+        messageFromUnknown(cbsRes.data) || `cardToCbs failed (${cbsRes.status})`,
+      data: cbsRes.data,
+    };
+  }
 
   return { ok: true, data: cardRes.data };
 }

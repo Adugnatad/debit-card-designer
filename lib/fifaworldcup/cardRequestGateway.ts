@@ -3,10 +3,11 @@ import {
   getFifaWorldCupAccessToken,
 } from "./oauthToken";
 import type {
+  CardToCbsGatewayBody,
   FtVisaCardGatewayBody,
-  RequestNewCardGatewayBody,
+  NewCardManagementRequest,
 } from "./cardRequestTypes";
-import { serializeRequestNewCardGatewayBody } from "./cardRequestUtils";
+import { serializeNewCardManagementRequest } from "./cardRequestUtils";
 import { FIFA_INTERNAL_GATEWAY_BASE_URL } from "./fifaWorldCupConstants";
 
 function gatewayBase(): string {
@@ -25,10 +26,10 @@ function customerInfoUrl(accountId: string): string {
   return `${gatewayBase()}/coopapp/1.0.0/customer/info?accountId=${encodeURIComponent(accountId)}`;
 }
 
-function requestNewCardUrl(): string {
+function newCardManagementUrl(): string {
   return (
     process.env.FIFA_WORLD_CUP_REQUEST_NEW_CARD_URL?.trim() ||
-    `${gatewayBase()}/prepaidcard/1.0.0/requestNewCard`
+    `${gatewayBase()}/cardmanagement/1.0.0/newCardRequest`
   );
 }
 
@@ -36,6 +37,13 @@ function ftVisaCardUrl(): string {
   return (
     process.env.FIFA_WORLD_CUP_FT_VISA_CARD_URL?.trim() ||
     `${gatewayBase()}/generic/1.0.0/ftVisaCard`
+  );
+}
+
+function cardToCbsUrl(): string {
+  return (
+    process.env.FIFA_WORLD_CUP_CARD_TO_CBS_URL?.trim() ||
+    `${gatewayBase()}/generic/1.0.0/cardToCbs`
   );
 }
 
@@ -132,21 +140,20 @@ export async function fetchFifaCustomerInfo(
 }
 
 /**
- * POST requestNewCard. Retries once on 401 after clearing token cache.
+ * POST cardmanagement/1.0.0/newCardRequest. Retries once on 401 after clearing token cache.
  */
 export async function postFifaRequestNewCard(
-  body: RequestNewCardGatewayBody,
+  body: NewCardManagementRequest,
   preferredAccessToken?: string | null
 ): Promise<GatewayJsonResult> {
-  const url = requestNewCardUrl();
-  console.log("[FIFA card] POST requestNewCard", url);
+  const url = newCardManagementUrl();
+  console.log("[FIFA card] POST newCardRequest", url);
   const trimmed = preferredAccessToken?.trim();
   let token = trimmed
     ? trimmed
     : (await getFifaWorldCupAccessToken()).access_token;
 
-  /** Whitelisted JSON only — never accountNumber or branch object. */
-  const jsonBody = serializeRequestNewCardGatewayBody(body);
+  const jsonBody = serializeNewCardManagementRequest(body);
 
   const headers = {
     ...gatewayHeaders(token),
@@ -202,6 +209,69 @@ export async function postFifaFtVisaCard(
     debitAmount: body.debitAmount,
     narrative: body.narrative,
     debitAccount: body.debitAccount,
+  });
+
+  const headers = {
+    ...gatewayHeaders(token),
+    "Content-Type": "application/json",
+  };
+
+  const run = async () =>
+    fetch(url, {
+      method: "POST",
+      headers,
+      body: jsonBody,
+      cache: "no-store",
+    });
+
+  let res = await run();
+  let data = await parseJson(res);
+
+  if (res.status === 401) {
+    clearFifaWorldCupTokenCache();
+    token = (await getFifaWorldCupAccessToken()).access_token;
+    const retryHeaders = {
+      ...gatewayHeaders(token),
+      "Content-Type": "application/json",
+    };
+    res = await fetch(url, {
+      method: "POST",
+      headers: retryHeaders,
+      body: jsonBody,
+      cache: "no-store",
+    });
+    data = await parseJson(res);
+  }
+
+  return { ok: res.ok, status: res.status, data };
+}
+
+/**
+ * POST generic/1.0.0/cardToCbs. Retries once on 401 after clearing token cache.
+ */
+export async function postFifaCardToCbs(
+  body: CardToCbsGatewayBody,
+  preferredAccessToken?: string | null
+): Promise<GatewayJsonResult> {
+  const url = cardToCbsUrl();
+  console.log("[FIFA card] POST cardToCbs", url);
+  const trimmed = preferredAccessToken?.trim();
+  let token = trimmed
+    ? trimmed
+    : (await getFifaWorldCupAccessToken()).access_token;
+
+  const jsonBody = JSON.stringify({
+    company: body.company,
+    messageId: body.messageId,
+    pan: body.pan,
+    cardStatus: body.cardStatus,
+    account: body.account,
+    currency: body.currency,
+    expiryDate: body.expiryDate,
+    issueDate: body.issueDate,
+    name: body.name,
+    customerId: body.customerId,
+    maskedPan: body.maskedPan,
   });
 
   const headers = {

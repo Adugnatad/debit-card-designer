@@ -20,7 +20,7 @@ import type { Branch } from "@/components/BranchSelector/types";
 import { useFifaWorldCupToken } from "@/hooks/use-fifaworldcup-token";
 import { maskPhoneForOtpHint } from "@/lib/fifaworldcup/maskPhoneNumber";
 import {
-  buildRequestNewCardBody,
+  buildNewCardManagementRequest,
   parseCustomerDetailsRecordForCard,
 } from "@/lib/fifaworldcup/cardRequestUtils";
 import {
@@ -355,7 +355,6 @@ export default function FifaWorldCupPage() {
         fifaToastSomethingWrong();
         return;
       }
-      const composedPayload = buildRequestNewCardBody(normalized, selectedBranch);
       const specialCategoryIds = new Set([
         "6052",
         "6064",
@@ -372,14 +371,14 @@ export default function FifaWorldCupPage() {
           : typeof categoryIdRaw === "number" && Number.isFinite(categoryIdRaw)
             ? String(categoryIdRaw)
             : "";
-      composedPayload.CardProduct = specialCategoryIds.has(categoryId)
-        ? "404"
-        : "403";
-      // Hard enforce branch-derived values from selector (never from customer/account info).
-      composedPayload.BranchCode = selectedBranch.branchCode
-        .trim()
-        .replace(/^ET00/i, "");
-      composedPayload.District = (selectedBranch.district ?? "").trim();
+      const cardProduct = specialCategoryIds.has(categoryId) ? "404" : "403";
+      const composedPayload = buildNewCardManagementRequest(
+        acct,
+        normalized,
+        selectedBranch,
+        cardProduct,
+        infoJson.customerDetails ?? null
+      );
       const res = await fetch("/api/fifaworldcup/card-request", {
         method: "POST",
         cache: "no-store",
@@ -398,13 +397,25 @@ export default function FifaWorldCupPage() {
         }),
       });
       const cardResult = (await res.json()) as {
-        success: boolean;
+        success?: boolean;
         step?: string;
         error?: string;
         ResponseCode?: string;
+        ResponseType?: string;
         ResponseDescription?: string;
+        newCardResponse?: unknown;
       };
-      if (res.ok && cardResult.success) {
+      const responseType =
+        typeof cardResult.ResponseType === "string"
+          ? cardResult.ResponseType.trim().toLowerCase()
+          : "";
+      const gatewaySuccess =
+        res.ok &&
+        (cardResult.success === true ||
+          responseType === "success" ||
+          (typeof cardResult.newCardResponse === "object" &&
+            cardResult.newCardResponse !== null));
+      if (gatewaySuccess) {
         fifaToastSuccess("Card request submitted successfully");
         setActiveStep(3);
       } else {
@@ -414,7 +425,12 @@ export default function FifaWorldCupPage() {
           `error=${cardResult.error ?? res.statusText}`,
           cardResult
         );
-        if (cardResult.ResponseCode === "CD012") {
+        const desc = cardResult.ResponseDescription ?? "";
+        const alreadyCard =
+          cardResult.ResponseCode === "CD012" ||
+          (responseType === "business error" &&
+            /maximum number|exceeded|primary cards/i.test(desc));
+        if (alreadyCard) {
           fifaToastError("You have already requested a card!");
         } else {
           fifaToastSomethingWrong();

@@ -24,3 +24,17 @@ export function isSoufleGatewayLogicalFailure(data: unknown): boolean {
   }
   return false;
 }
+
+/** Card management `newCardRequest` API: HTTP 200 + `ResponseType: Success` + `newCardResponse` object. */
+export function isCardManagementNewCardSuccess(data: unknown): boolean {
+  if (data === null || typeof data !== "object" || Array.isArray(data)) {
+    return false;
+  }
+  const o = data as Record<string, unknown>;
+  const rt = o.ResponseType;
+  if (typeof rt !== "string" || rt.trim().toLowerCase() !== "success") {
+    return false;
+  }
+  const ncr = o.newCardResponse;
+  return ncr !== null && typeof ncr === "object" && !Array.isArray(ncr);
+}

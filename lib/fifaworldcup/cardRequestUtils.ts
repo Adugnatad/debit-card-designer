@@ -1,17 +1,9 @@
-import { v4 as uuidv4 } from "uuid";
 import type { Branch } from "@/components/BranchSelector/types";
 import type {
   CardRequestBranchPayload,
+  NewCardManagementRequest,
   NormalizedCustomerForCard,
-  RequestNewCardGatewayBody,
 } from "./cardRequestTypes";
-
-const CURR_CODE = "840";
-const CARD_PRODUCT = "403";
-const TEMP_DOB = "1990-01-01";
-const MARITAL_STATUS = "M";
-const DEFAULT_EMAIL = "default@mail.com";
-const POSTAL_CODE = "12345";
 
 /** MALE → M, FEMALE → F (case-insensitive); otherwise M. */
 export function mapGender(gender: string | undefined | null): string {
@@ -48,7 +40,7 @@ export function formatPhoneNumber(phone: string | undefined | null): string {
   return `+251${rest}`;
 }
 
-/** Maps minimal branch payload to `Branch` for `buildRequestNewCardBody` (lat/lng unused there). */
+/** Maps minimal branch payload to `Branch` for card request builders (lat/lng unused there). */
 export function branchPayloadToBranch(p: CardRequestBranchPayload): Branch {
   return {
     id: p.branchId,
@@ -69,6 +61,41 @@ export function transformBranchCode(branchCode: string): string {
   const trimmed = branchCode.trim();
   const stripped = trimmed.replace(/^ET00/i, "").trim();
   return stripped.length > 0 ? stripped : trimmed;
+}
+
+/** Card management API expects branch codes with an `ET` prefix (e.g. `ET10003`, `ET0010104`). */
+export function toEtPrefixedBranchCode(branchCode: string): string {
+  const t = branchCode.trim().toUpperCase();
+  if (!t) return t;
+  return t.startsWith("ET") ? t : `ET${t}`;
+}
+
+const EMBOSSING_NAME_KEYS = [
+  "displayName",
+  "DisplayName",
+  "customerName",
+  "CustomerName",
+  "fullName",
+  "FullName",
+];
+
+function fullNameForEmbossingFromDetails(
+  customer: NormalizedCustomerForCard,
+  customerDetails: Record<string, unknown> | null | undefined
+): string {
+  if (customerDetails && typeof customerDetails === "object") {
+    const fromApi = pickString(
+      customerDetails as Record<string, unknown>,
+      EMBOSSING_NAME_KEYS
+    );
+    if (fromApi) {
+      return uppercaseGatewayName(fromApi.replace(/\s+/g, " ").trim());
+    }
+  }
+  const combined = `${customer.firstName} ${customer.lastName}`
+    .replace(/\s+/g, " ")
+    .trim();
+  return uppercaseGatewayName(combined || "CUSTOMER");
 }
 
 function pickString(obj: Record<string, unknown>, keys: string[]): string {
@@ -347,77 +374,55 @@ export function parseCustomerInfoResponse(data: unknown): NormalizedCustomerForC
   };
 }
 
-export function buildRequestNewCardBody(
+/**
+ * Builds POST /cardmanagement/1.0.0/newCardRequest JSON from customer info + selected branch.
+ */
+export function buildNewCardManagementRequest(
+  accountId: string,
   customer: NormalizedCustomerForCard,
-  branch: Branch
-): RequestNewCardGatewayBody {
-  const gender = mapGender(customer.genderRaw);
-  const title = mapTitle(customer.genderRaw);
-  const phone1 = formatPhoneNumber(customer.phoneNumber);
-  const branchCode = transformBranchCode(branch.branchCode);
-  const district = (branch.district ?? "").trim();
-  const email =
-    customer.email.trim() !== "" ? customer.email.trim() : DEFAULT_EMAIL;
-  const firstName = uppercaseGatewayName(customer.firstName);
-  const lastName = uppercaseGatewayName(customer.lastName);
-  const embossing = `${firstName} ${lastName}`.trim();
+  branch: Branch,
+  cardProduct: string,
+  customerDetails: Record<string, unknown> | null | undefined
+): NewCardManagementRequest {
+  const district = (branch.district ?? "").trim() || "N/A";
+  const branchEt = toEtPrefixedBranchCode(branch.branchCode);
+  const title = mapTitle(customer.genderRaw).toUpperCase();
+  const embossing = fullNameForEmbossingFromDetails(customer, customerDetails);
 
   return {
-    MsgUid: uuidv4(),
-    CustomerCode: customer.customerId,
-    Title: title,
-    FirstName: firstName,
-    LastName: lastName,
-    IdNumber: customer.customerId,
-    DateOfBirth: TEMP_DOB,
-    MaritalStatus: MARITAL_STATUS,
-    Gender: gender,
-    AddressLine1: customer.street,
-    City: customer.townCountry,
-    PostalCode: POSTAL_CODE,
-    Region: customer.townCountry,
-    Phone1: phone1,
-    Email: email,
-    District: district,
-    CurrCode: CURR_CODE,
-    BranchCode: branchCode,
-    CardProduct: CARD_PRODUCT,
-    EmbossingName: embossing,
-    CustomerIdNumber: customer.customerId,
-    ExtendedCustomerIdNumber: customer.customerId,
+    newCardRequest: {
+      accountId,
+      Title: title,
+      PreferredLanguage: "EN",
+      customerType: "0",
+      Region: "14",
+      District: district,
+      BranchCode: branchEt,
+      DeliveryBranchCode: branchEt,
+      CardProduct: cardProduct,
+      EmbossingName: embossing,
+    },
   };
 }
 
-/**
- * JSON body for POST prepaidcard/.../requestNewCard ONLY.
- * Whitelists fields so accountNumber / branch never appear on the wire.
- */
-export function serializeRequestNewCardGatewayBody(
-  body: RequestNewCardGatewayBody
+/** JSON body for POST cardmanagement/.../newCardRequest (whitelisted nested shape). */
+export function serializeNewCardManagementRequest(
+  body: NewCardManagementRequest
 ): string {
-  const payload: RequestNewCardGatewayBody = {
-    MsgUid: body.MsgUid,
-    CustomerCode: body.CustomerCode,
-    Title: body.Title,
-    FirstName: uppercaseGatewayName(body.FirstName),
-    LastName: uppercaseGatewayName(body.LastName),
-    IdNumber: body.IdNumber,
-    DateOfBirth: body.DateOfBirth,
-    MaritalStatus: body.MaritalStatus,
-    Gender: body.Gender,
-    AddressLine1: body.AddressLine1,
-    City: body.City,
-    PostalCode: body.PostalCode,
-    Region: body.Region,
-    Phone1: body.Phone1,
-    Email: body.Email,
-    District: body.District,
-    CurrCode: body.CurrCode,
-    BranchCode: body.BranchCode,
-    CardProduct: body.CardProduct,
-    EmbossingName: uppercaseGatewayName(body.EmbossingName),
-    CustomerIdNumber: body.CustomerIdNumber,
-    ExtendedCustomerIdNumber: body.ExtendedCustomerIdNumber,
+  const inner = body.newCardRequest;
+  const payload: NewCardManagementRequest = {
+    newCardRequest: {
+      accountId: inner.accountId.trim(),
+      Title: inner.Title.trim().toUpperCase(),
+      PreferredLanguage: "EN",
+      customerType: inner.customerType.trim() || "0",
+      Region: inner.Region.trim() || "14",
+      District: inner.District.trim(),
+      BranchCode: toEtPrefixedBranchCode(inner.BranchCode),
+      DeliveryBranchCode: toEtPrefixedBranchCode(inner.DeliveryBranchCode),
+      CardProduct: inner.CardProduct.trim(),
+      EmbossingName: uppercaseGatewayName(inner.EmbossingName),
+    },
   };
   return JSON.stringify(payload);
 }
