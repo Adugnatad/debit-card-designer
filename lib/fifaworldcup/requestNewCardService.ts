@@ -513,6 +513,10 @@ export async function requestNewCardFlowServer(
     customerId: cbsBody.customerId,
     cardStatus: cbsBody.cardStatus,
   });
+  console.log(
+    "[FIFA card] cardToCbs request body",
+    JSON.stringify(cbsBody, null, 2)
+  );
   const cbsRes = await postFifaCardToCbs(cbsBody, preferredAccessToken);
   console.log(
     "[FIFA card] cardToCbs response",
