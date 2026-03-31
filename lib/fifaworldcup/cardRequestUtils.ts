@@ -56,18 +56,12 @@ export function branchPayloadToBranch(p: CardRequestBranchPayload): Branch {
   };
 }
 
-/** ET0010131 → 10131 (strip leading ET00, case-insensitive). */
+/** ET0010131 → 10131, ET10003 → 10003 (strip ET, then leading zeros). */
 export function transformBranchCode(branchCode: string): string {
   const trimmed = branchCode.trim();
-  const stripped = trimmed.replace(/^ET00/i, "").trim();
-  return stripped.length > 0 ? stripped : trimmed;
-}
-
-/** ET0010104 → 0010104, ET10003 → 10003 (strip only ET prefix). */
-export function stripEtPrefix(branchCode: string): string {
-  const trimmed = branchCode.trim();
-  const stripped = trimmed.replace(/^ET/i, "").trim();
-  return stripped.length > 0 ? stripped : trimmed;
+  const withoutEt = trimmed.replace(/^ET/i, "").trim();
+  const numeric = withoutEt.replace(/^0+/, "");
+  return numeric.length > 0 ? numeric : withoutEt || trimmed;
 }
 
 /** Card management API expects branch codes with an `ET` prefix (e.g. `ET10003`, `ET0010104`). */
@@ -112,20 +106,6 @@ function pickString(obj: Record<string, unknown>, keys: string[]): string {
     if (typeof v === "number" && Number.isFinite(v)) return String(v);
   }
   return "";
-}
-
-function customerBranchCodeFromDetails(
-  customerDetails: Record<string, unknown> | null | undefined
-): string {
-  if (!customerDetails || typeof customerDetails !== "object") return "";
-  return pickString(customerDetails, [
-    "companyReference",
-    "CompanyReference",
-    "companyCode",
-    "CompanyCode",
-    "branchCode",
-    "BranchCode",
-  ]);
 }
 
 const CUSTOMER_ID_KEYS = [
@@ -406,9 +386,12 @@ export function buildNewCardManagementRequest(
   customerDetails: Record<string, unknown> | null | undefined
 ): NewCardManagementRequest {
   const district = (branch.district ?? "").trim() || "N/A";
-  const customerBranchRaw = customerBranchCodeFromDetails(customerDetails);
-  const requestBranchCode = stripEtPrefix(customerBranchRaw || branch.branchCode);
-  const deliveryBranchCode = stripEtPrefix(branch.branchCode);
+  const customerBranchCodeRaw = pickString(customerDetails ?? {}, [
+    "companyReference",
+    "CompanyReference",
+  ]);
+  const customerBranchCode = transformBranchCode(customerBranchCodeRaw);
+  const deliveryBranchCode = transformBranchCode(branch.branchCode);
   const title = mapTitle(customer.genderRaw).toUpperCase();
   const embossing = fullNameForEmbossingFromDetails(customer, customerDetails);
 
@@ -420,7 +403,9 @@ export function buildNewCardManagementRequest(
       customerType: "0",
       Region: "14",
       District: district,
-      BranchCode: requestBranchCode,
+      // BranchCode must come from customer info (companyReference).
+      BranchCode: customerBranchCode || deliveryBranchCode,
+      // DeliveryBranchCode must come from selected nearest branch.
       DeliveryBranchCode: deliveryBranchCode,
       CardProduct: cardProduct,
       EmbossingName: embossing,
@@ -441,8 +426,9 @@ export function serializeNewCardManagementRequest(
       customerType: inner.customerType.trim() || "0",
       Region: inner.Region.trim() || "14",
       District: inner.District.trim(),
-      BranchCode: stripEtPrefix(inner.BranchCode),
-      DeliveryBranchCode: stripEtPrefix(inner.DeliveryBranchCode),
+      // cardmanagement/newCardRequest expects numeric branch codes (no ET prefix).
+      BranchCode: transformBranchCode(inner.BranchCode),
+      DeliveryBranchCode: transformBranchCode(inner.DeliveryBranchCode),
       CardProduct: inner.CardProduct.trim(),
       EmbossingName: uppercaseGatewayName(inner.EmbossingName),
     },
