@@ -1,7 +1,6 @@
 /** Normalized fields used to build the prepaid card request (from customer/info + branch). */
 export interface NormalizedCustomerForCard {
   customerId: string;
-  customerBranchCode: string;
   firstName: string;
   lastName: string;
   genderRaw: string;
