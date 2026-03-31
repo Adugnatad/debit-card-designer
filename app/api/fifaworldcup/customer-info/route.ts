@@ -14,6 +14,45 @@ type CustomerInfoErrorBody = {
   error: string;
 };
 
+function maskValue(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  if (trimmed.includes("@")) {
+    const [name, domain] = trimmed.split("@");
+    if (!domain) return "***";
+    const safeName = name.length <= 2 ? `${name[0] ?? "*"}*` : `${name.slice(0, 2)}***`;
+    return `${safeName}@${domain}`;
+  }
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length >= 7) {
+    return trimmed.replace(/\d(?=\d{4})/g, "*");
+  }
+  if (trimmed.length <= 2) return "*".repeat(trimmed.length);
+  return `${trimmed.slice(0, 2)}***`;
+}
+
+function maskCustomerDetailsForResponse(
+  details: Record<string, unknown>
+): Record<string, unknown> {
+  const keepRaw = new Set([
+    "accountId",
+    "accountNumber",
+    "categoryId",
+    "companyReference",
+    "CompanyReference",
+  ]);
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(details)) {
+    if (keepRaw.has(k)) {
+      out[k] = v;
+      continue;
+    }
+    out[k] = maskValue(v);
+  }
+  return out;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const raw = req.nextUrl.searchParams.get("accountId")?.trim() ?? "";
@@ -80,7 +119,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      customerDetails,
+      customerDetails: maskCustomerDetailsForResponse(customerDetails),
     });
   } catch (e: unknown) {
     const message =
