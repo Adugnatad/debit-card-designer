@@ -371,8 +371,6 @@ export async function requestNewCardFlowServer(
     customerDetailRecord
   );
 
-  console.log("FINAL CARD PAYLOAD:", payload);
-
   const cardRes = await postFifaRequestNewCard(
     payload,
     preferredAccessToken
@@ -435,13 +433,6 @@ export async function requestNewCardFlowServer(
       ? Object.keys(ftRes.data as object)
       : ftRes.data
   );
-  console.log(
-    "[FIFA card] ftVisaCard raw body",
-    typeof ftRes.data === "string"
-      ? ftRes.data
-      : JSON.stringify(ftRes.data, null, 2)
-  );
-
   if (!ftRes.ok || isFundTransferLogicalFailure(ftRes.data)) {
     console.warn("[FIFA card] fund transfer failed after card-request success");
     return {
@@ -515,10 +506,6 @@ export async function requestNewCardFlowServer(
     customerId: cbsBody.customerId,
     cardStatus: cbsBody.cardStatus,
   });
-  console.log(
-    "[FIFA card] cardToCbs request payload",
-    JSON.stringify(cbsBody, null, 2)
-  );
   const cbsRes = await postFifaCardToCbs(cbsBody, preferredAccessToken);
   console.log(
     "[FIFA card] cardToCbs response",
@@ -527,13 +514,6 @@ export async function requestNewCardFlowServer(
       ? Object.keys(cbsRes.data as object)
       : cbsRes.data
   );
-  console.log(
-    "[FIFA card] cardToCbs raw body",
-    typeof cbsRes.data === "string"
-      ? cbsRes.data
-      : JSON.stringify(cbsRes.data, null, 2)
-  );
-
   if (!cbsRes.ok || isCardToCbsLogicalFailure(cbsRes.data)) {
     try {
       const inserted = await insertVisaCardRecordFromGatewayData({
@@ -553,7 +533,6 @@ export async function requestNewCardFlowServer(
       message:
         messageFromUnknown(cbsRes.data) || `cardToCbs failed (${cbsRes.status})`,
       data: cbsRes.data,
-      debugCardToCbsRequest: cbsBody,
     };
   }
 
@@ -570,5 +549,5 @@ export async function requestNewCardFlowServer(
     console.error("[FIFA card] DB insert card_logs failed", dbErr);
   }
 
-  return { ok: true, data: cardRes.data, debugCardToCbsRequest: cbsBody };
+  return { ok: true, data: cardRes.data };
 }

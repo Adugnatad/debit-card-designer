@@ -73,15 +73,10 @@ export type RequestNewCardFlowInput = {
 };
 
 export type RequestNewCardFlowServerResult =
-  | {
-      ok: true;
-      data: unknown;
-      debugCardToCbsRequest?: CardToCbsGatewayBody;
-    }
+  | { ok: true; data: unknown }
   | {
       ok: false;
       step: "customer" | "fund" | "card" | "cbs";
       message?: string;
       data?: unknown;
-      debugCardToCbsRequest?: CardToCbsGatewayBody;
     };

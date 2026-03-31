@@ -1,8 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  customerDetailsFromNormalized,
-  extractCustomerDetailsPayload,
-} from "@/lib/fifaworldcup/cardRequestUtils";
 import { getFifaWorldCupAccessToken } from "@/lib/fifaworldcup/oauthToken";
 import { runFifaCustomerInfoStep } from "@/lib/fifaworldcup/requestNewCardService";
 
@@ -74,13 +70,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const customerDetails =
-      extractCustomerDetailsPayload(result.gatewayData) ??
-      customerDetailsFromNormalized(result.normalized);
-
     return NextResponse.json({
       success: true,
-      customerDetails,
+      step: "customer",
     });
   } catch (e: unknown) {
     const message =

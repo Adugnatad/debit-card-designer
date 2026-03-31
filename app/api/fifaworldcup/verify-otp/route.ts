@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         messageFromGatewayData(result.data) ||
         `Unable to verify OTP (${result.status})`;
       return NextResponse.json(
-        { success: false, message: msg, details: result.data },
+        { success: false, message: msg },
         { status: result.status >= 400 && result.status < 600 ? result.status : 502 }
       );
     }
@@ -74,12 +74,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false }, { status: 422 });
     }
 
-    return NextResponse.json(
-      result.data && typeof result.data === "object"
-        ? result.data
-        : { success: true },
-      { status: 200 }
-    );
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (e: unknown) {
     const message =
       e instanceof Error ? e.message : "Failed to verify OTP";
