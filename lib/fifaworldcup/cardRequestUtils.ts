@@ -70,6 +70,13 @@ export function toEtPrefixedBranchCode(branchCode: string): string {
   return t.startsWith("ET") ? t : `ET${t}`;
 }
 
+/** New card request DeliveryBranchCode must be numeric-only (drop leading ET if present). */
+export function toNumericDeliveryBranchCode(branchCode: string): string {
+  const t = branchCode.trim();
+  if (!t) return t;
+  return t.replace(/^ET/i, "");
+}
+
 const EMBOSSING_NAME_KEYS = [
   "displayName",
   "DisplayName",
@@ -386,6 +393,7 @@ export function buildNewCardManagementRequest(
 ): NewCardManagementRequest {
   const district = (branch.district ?? "").trim() || "N/A";
   const branchEt = toEtPrefixedBranchCode(branch.branchCode);
+  const deliveryBranchCode = toNumericDeliveryBranchCode(branch.branchCode);
   const title = mapTitle(customer.genderRaw).toUpperCase();
   const embossing = fullNameForEmbossingFromDetails(customer, customerDetails);
 
@@ -398,7 +406,7 @@ export function buildNewCardManagementRequest(
       Region: "14",
       District: district,
       BranchCode: branchEt,
-      DeliveryBranchCode: branchEt,
+      DeliveryBranchCode: deliveryBranchCode,
       CardProduct: cardProduct,
       EmbossingName: embossing,
     },
@@ -419,7 +427,7 @@ export function serializeNewCardManagementRequest(
       Region: inner.Region.trim() || "14",
       District: inner.District.trim(),
       BranchCode: toEtPrefixedBranchCode(inner.BranchCode),
-      DeliveryBranchCode: toEtPrefixedBranchCode(inner.DeliveryBranchCode),
+      DeliveryBranchCode: toNumericDeliveryBranchCode(inner.DeliveryBranchCode),
       CardProduct: inner.CardProduct.trim(),
       EmbossingName: uppercaseGatewayName(inner.EmbossingName),
     },
