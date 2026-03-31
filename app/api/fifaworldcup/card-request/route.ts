@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { CardRequestBranchPayload } from "@/lib/fifaworldcup/cardRequestTypes";
+import type {
+  CardRequestBranchPayload,
+  NewCardManagementRequest,
+  NewCardRequestInner,
+} from "@/lib/fifaworldcup/cardRequestTypes";
+import { postFifaRequestNewCard } from "@/lib/fifaworldcup/cardRequestGateway";
 import { getFifaWorldCupAccessToken } from "@/lib/fifaworldcup/oauthToken";
 import { requestNewCardFlowServer } from "@/lib/fifaworldcup/requestNewCardService";
+import { isCardManagementNewCardSuccess } from "@/lib/fifaworldcup/soufleGatewaySuccess";
 
 export const dynamic = "force-dynamic";
 
@@ -26,25 +32,6 @@ type CardRequestResponse = {
   error: string;
   details?: unknown;
 };
-
-function messageFromUnknown(data: unknown): string | null {
-  if (data === null || data === undefined) return null;
-  if (typeof data === "string" && data.trim()) return data.trim().slice(0, 500);
-  if (typeof data !== "object") return null;
-  const o = data as Record<string, unknown>;
-  for (const key of [
-    "ResponseDescription",
-    "message",
-    "error_description",
-    "errorMessage",
-    "detail",
-    "error",
-  ]) {
-    const v = o[key];
-    if (typeof v === "string" && v.trim()) return v.trim().slice(0, 500);
-  }
-  return null;
-}
 
 function responseCodeOf(data: unknown): string | null {
   if (data === null || typeof data !== "object" || Array.isArray(data)) return null;
@@ -75,12 +62,47 @@ function statusForGatewayCardFailure(data: unknown): number {
   return 417;
 }
 
+const DIRECT_NEW_CARD_KEYS: Array<keyof NewCardRequestInner> = [
+  "accountId",
+  "Title",
+  "PreferredLanguage",
+  "customerType",
+  "Region",
+  "District",
+  "BranchCode",
+  "DeliveryBranchCode",
+  "CardProduct",
+  "EmbossingName",
+];
+
+function toNewCardManagementDirectBody(
+  body: Record<string, unknown>
+): NewCardManagementRequest | null {
+  const innerRaw = body.newCardRequest;
+  if (
+    innerRaw === null ||
+    typeof innerRaw !== "object" ||
+    Array.isArray(innerRaw)
+  ) {
+    return null;
+  }
+  const inner = innerRaw as Record<string, unknown>;
+  const out: Partial<NewCardRequestInner> = {};
+  for (const k of DIRECT_NEW_CARD_KEYS) {
+    const v = inner[k];
+    if (typeof v !== "string") return null;
+    out[k] = v;
+  }
+  return { newCardRequest: out as NewCardRequestInner };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json().catch(() => ({}))) as Record<
       string,
       unknown
     >;
+    const directBody = toNewCardManagementDirectBody(body);
 
     const authHeader = req.headers.get("authorization");
     const clientBearer =
@@ -103,6 +125,30 @@ export async function POST(req: NextRequest) {
           error: msg || "Could not obtain access token",
         } satisfies CardRequestResponse,
         { status: 502 }
+      );
+    }
+
+    if (directBody) {
+      const cardRes = await postFifaRequestNewCard(directBody, access_token);
+      if (!cardRes.ok || !isCardManagementNewCardSuccess(cardRes.data)) {
+        const failStatus = statusForGatewayCardFailure(cardRes.data);
+        if (cardRes.data && typeof cardRes.data === "object") {
+          return NextResponse.json(cardRes.data, { status: failStatus });
+        }
+        return NextResponse.json(
+          {
+            success: false,
+            step: "card",
+            error: "Card request failed",
+            details: cardRes.data,
+          } satisfies CardRequestResponse,
+          { status: failStatus }
+        );
+      }
+      return NextResponse.json(
+        cardRes.data && typeof cardRes.data === "object"
+          ? cardRes.data
+          : { success: true }
       );
     }
 
@@ -150,10 +196,22 @@ export async function POST(req: NextRequest) {
       district,
     };
 
+    const rawDetails = body.customerDetails;
+    let customerDetails: Record<string, unknown> | undefined;
+    if (
+      rawDetails !== null &&
+      rawDetails !== undefined &&
+      typeof rawDetails === "object" &&
+      !Array.isArray(rawDetails)
+    ) {
+      customerDetails = rawDetails as Record<string, unknown>;
+    }
+
     const result = await requestNewCardFlowServer(
       {
         accountNumber,
         branch: branchPayload,
+        ...(customerDetails ? { customerDetails } : {}),
       },
       access_token
     );
@@ -167,17 +225,39 @@ export async function POST(req: NextRequest) {
         message: msg,
       });
       const failStatus = statusForGatewayCardFailure(result.data);
+      if (result.data && typeof result.data === "object") {
+        if (result.debugCardToCbsRequest) {
+          return NextResponse.json(
+            {
+              ...(result.data as Record<string, unknown>),
+              debugCardToCbsRequest: result.debugCardToCbsRequest,
+            },
+            { status: failStatus }
+          );
+        }
+        return NextResponse.json(result.data, { status: failStatus });
+      }
       return NextResponse.json(
         {
           success: false,
           step: result.step,
-          error: messageFromUnknown(result.data) || msg,
+          error: msg,
+          ...(result.debugCardToCbsRequest
+            ? { debugCardToCbsRequest: result.debugCardToCbsRequest }
+            : {}),
         } satisfies CardRequestResponse,
         { status: failStatus }
       );
     }
 
-    return NextResponse.json({ success: true, step: "ok" }, { status: 200 });
+    return NextResponse.json({
+      ...(result.data && typeof result.data === "object"
+        ? (result.data as Record<string, unknown>)
+        : { success: true }),
+      ...(result.debugCardToCbsRequest
+        ? { debugCardToCbsRequest: result.debugCardToCbsRequest }
+        : {}),
+    });
   } catch (e: unknown) {
     const message =
       e instanceof Error && e.message.trim()

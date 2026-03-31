@@ -12,7 +12,7 @@ import {
 import { LocateFixed } from "lucide-react";
 import { BranchList } from "./BranchList";
 import { BranchMap } from "./BranchMap";
-import { EXCLUDED_BRANCH_NAMES_LOWER } from "./constants";
+import { BRANCH_BACKEND_BASE_URL, EXCLUDED_BRANCH_NAMES_LOWER } from "./constants";
 import { SearchBar } from "./SearchBar";
 import { useUserLocation } from "./hooks/useUserLocation";
 import { useBranchSearch } from "./hooks/useBranchSearch";
@@ -50,35 +50,29 @@ export function BranchSelectorContainer({
     const load = async () => {
       try {
         setLoading(true);
-        const res = await fetch("/api/fifaworldcup/branches", {
+        const res = await fetch(`${BRANCH_BACKEND_BASE_URL}/api/branches`, {
           headers: { "Content-Type": "application/json" },
-          cache: "no-store",
         });
         if (!res.ok) throw new Error("Failed to load branches");
         const data = await res.json();
-        const mapped: unknown[] =
-          data && typeof data === "object" && Array.isArray(data.branches)
-            ? data.branches
-            : [];
+        const mapped = Array.isArray(data) ? data : data.data || [];
 
         // Normalize and keep only valid coordinate rows for map safety.
         const normalized: Branch[] = mapped
-          .map((item: unknown) => {
-            const src =
-              item && typeof item === "object" ? (item as Record<string, unknown>) : {};
-            const lat = Number(src.lat);
-            const lng = Number(src.lng);
+          .map((item: any) => {
+            const lat = Number(item?.lat);
+            const lng = Number(item?.lng);
             return {
-              id: Number(src.id ?? 0),
-              branchCode: String(src.branchCode ?? ""),
-              companyName: src.companyName ?? null,
-              nameAddress: src.nameAddress ?? null,
-              mnemonic: src.mnemonic ?? null,
-              languageCode: src.languageCode ?? null,
-              district: src.district ?? null,
+              id: Number(item?.id ?? 0),
+              branchCode: String(item?.branchCode ?? ""),
+              companyName: item?.companyName ?? null,
+              nameAddress: item?.nameAddress ?? null,
+              mnemonic: item?.mnemonic ?? null,
+              languageCode: item?.languageCode ?? null,
+              district: item?.district ?? null,
               lat,
               lng,
-              phone: src.phone ?? null,
+              phone: item?.phone ?? null,
             } as Branch;
           })
           .filter(

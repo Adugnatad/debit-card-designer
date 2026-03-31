@@ -17,7 +17,12 @@ import { ReusableStepper } from "@/components/CorporateForm/Stepper";
 import { CreditCard, KeyRound, Landmark, Send } from "lucide-react";
 import { BranchSelectorStep } from "@/components/BranchSelector/BranchSelectorStep";
 import type { Branch } from "@/components/BranchSelector/types";
+import { useFifaWorldCupToken } from "@/hooks/use-fifaworldcup-token";
 import { maskPhoneForOtpHint } from "@/lib/fifaworldcup/maskPhoneNumber";
+import {
+  buildNewCardManagementRequest,
+  parseCustomerDetailsRecordForCard,
+} from "@/lib/fifaworldcup/cardRequestUtils";
 import {
   fifaToastError,
   fifaToastSomethingWrong,
@@ -101,6 +106,18 @@ export default function FifaWorldCupPage() {
     "/CARD-TO-CUP/card-3.jpeg",
     "/CARD-TO-CUP/card-4.jpeg",
   ];
+
+  /**
+   * OAuth for FIFA flow: `ensureValidToken()` before send/verify so a fresh bearer is ready
+   * (session + `/api/fifaworldcup/token` warms the server OAuth cache used by gateway routes).
+   */
+  const fifaWorldCupAuth = useFifaWorldCupToken({ enabled: !isLoading });
+
+  useEffect(() => {
+    if (fifaWorldCupAuth.error) {
+      console.warn("[FIFA World Cup] OAuth token error:", fifaWorldCupAuth.error);
+    }
+  }, [fifaWorldCupAuth.error]);
 
   useEffect(() => {
     loaderMountTimeRef.current = Date.now();
@@ -201,10 +218,16 @@ export default function FifaWorldCupPage() {
     if (!canProceedAccount) return;
     setIsSendingOtp(true);
     try {
+      const accessToken = await fifaWorldCupAuth.ensureValidToken();
+      if (!accessToken) {
+        fifaToastSomethingWrong();
+        return;
+      }
       const res = await fetch("/api/fifaworldcup/send-otp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ accountNumber }),
       });
@@ -243,10 +266,16 @@ export default function FifaWorldCupPage() {
 
     setIsVerifyingOtp(true);
     try {
+      const accessToken = await fifaWorldCupAuth.ensureValidToken();
+      if (!accessToken) {
+        fifaToastSomethingWrong();
+        return;
+      }
       const res = await fetch("/api/fifaworldcup/verify-otp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           phoneNumber: otpPhoneNumber,
@@ -279,25 +308,113 @@ export default function FifaWorldCupPage() {
     const acct = accountNumber.replace(/\D/g, "").slice(0, 13);
     setIsSubmittingCardRequest(true);
     try {
+      const accessToken = await fifaWorldCupAuth.ensureValidToken();
+      if (!accessToken) {
+        fifaToastSomethingWrong();
+        return;
+      }
+      const authHeaders = {
+        Authorization: `Bearer ${accessToken}`,
+      };
+      const infoRes = await fetch(
+        `/api/fifaworldcup/customer-info?accountId=${encodeURIComponent(acct)}`,
+        { cache: "no-store", headers: authHeaders }
+      );
+      const infoJson = (await infoRes.json()) as {
+        success?: boolean;
+        step?: string;
+        error?: string;
+        customerDetails?: Record<string, unknown>;
+      };
+      if (!infoRes.ok || !infoJson.success) {
+        console.error(
+          "[FIFA card] customer-info failed (call this before card-request)",
+          `step=${infoJson.step ?? "unknown"}`,
+          `error=${infoJson.error ?? infoRes.statusText}`
+        );
+        fifaToastSomethingWrong();
+        return;
+      }
+      const balanceRaw = infoJson.customerDetails?.balance;
+      const balance =
+        typeof balanceRaw === "number" && Number.isFinite(balanceRaw)
+          ? balanceRaw
+          : typeof balanceRaw === "string"
+            ? Number(balanceRaw.replace(/,/g, "").trim())
+            : Number.NaN;
+      if (!Number.isFinite(balance) || balance <= 120) {
+        fifaToastError("Insufficient balance");
+        return;
+      }
+      const normalized = parseCustomerDetailsRecordForCard(
+        infoJson.customerDetails ?? {},
+        acct
+      );
+      if (!normalized) {
+        console.error("[FIFA card] could not compose prepaid payload from customerDetails");
+        fifaToastSomethingWrong();
+        return;
+      }
+      const specialCategoryIds = new Set([
+        "6052",
+        "6064",
+        "6060",
+        "6501",
+        "6500",
+        "1500",
+        "6050",
+      ]);
+      const categoryIdRaw = infoJson.customerDetails?.categoryId;
+      const categoryId =
+        typeof categoryIdRaw === "string"
+          ? categoryIdRaw.trim()
+          : typeof categoryIdRaw === "number" && Number.isFinite(categoryIdRaw)
+            ? String(categoryIdRaw)
+            : "";
+      const cardProduct = specialCategoryIds.has(categoryId) ? "404" : "403";
+      const composedPayload = buildNewCardManagementRequest(
+        acct,
+        normalized,
+        selectedBranch,
+        cardProduct,
+        infoJson.customerDetails ?? null
+      );
       const res = await fetch("/api/fifaworldcup/card-request", {
         method: "POST",
         cache: "no-store",
         headers: {
           "Content-Type": "application/json",
+          ...authHeaders,
         },
         body: JSON.stringify({
           accountNumber: acct,
           branchId: selectedBranch.id,
           branchCode: selectedBranch.branchCode,
           district: selectedBranch.district ?? null,
+          customerDetails: infoJson.customerDetails,
+          // Keep preview payload for debugging, but server pipeline remains source of truth.
+          composedPayload,
         }),
       });
       const cardResult = (await res.json()) as {
         success?: boolean;
         step?: string;
         error?: string;
+        ResponseCode?: string;
+        ResponseType?: string;
+        ResponseDescription?: string;
+        newCardResponse?: unknown;
       };
-      const gatewaySuccess = res.ok && cardResult.success === true;
+      const responseType =
+        typeof cardResult.ResponseType === "string"
+          ? cardResult.ResponseType.trim().toLowerCase()
+          : "";
+      const gatewaySuccess =
+        res.ok &&
+        (cardResult.success === true ||
+          responseType === "success" ||
+          (typeof cardResult.newCardResponse === "object" &&
+            cardResult.newCardResponse !== null));
       if (gatewaySuccess) {
         fifaToastSuccess("Card request submitted successfully");
         setActiveStep(3);
@@ -306,12 +423,15 @@ export default function FifaWorldCupPage() {
           "[FIFA card] flow failed",
           `step=${cardResult.step ?? "unknown"}`,
           `error=${cardResult.error ?? res.statusText}`,
+          cardResult
         );
-        const alreadyCard = res.status === 503;
+        const desc = cardResult.ResponseDescription ?? "";
+        const alreadyCard =
+          cardResult.ResponseCode === "CD012" ||
+          (responseType === "business error" &&
+            /maximum number|exceeded|primary cards/i.test(desc));
         if (alreadyCard) {
           fifaToastError("You have already requested a card!");
-        } else if (cardResult.step === "fund") {
-          fifaToastError("Insufficient balance");
         } else {
           fifaToastSomethingWrong();
         }
