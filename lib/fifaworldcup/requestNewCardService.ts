@@ -406,16 +406,6 @@ export async function requestNewCardFlowServer(
     };
   }
 
-  try {
-    const inserted = await insertVisaCardRecordFromGatewayData(
-      cardRes.data,
-      payload.newCardRequest
-    );
-    console.log("[FIFA card] DB insert visa_cards", inserted ? "OK" : "SKIPPED");
-  } catch (dbErr: unknown) {
-    console.error("[FIFA card] DB insert visa_cards failed", dbErr);
-  }
-
   console.log(
     "[FIFA card] card request OK — now charging account"
   );
@@ -499,6 +489,18 @@ export async function requestNewCardFlowServer(
     cardData: cardRes.data,
   });
   if (!cbsBody) {
+    try {
+      const inserted = await insertVisaCardRecordFromGatewayData({
+        accountNumber,
+        cardRequestBody: payload,
+        cardResponseBody: cardRes.data,
+        cardToCbsRequestBody: null,
+        cardToCbsResponseBody: null,
+      });
+      console.log("[FIFA card] DB insert card_logs", inserted ? "OK" : "SKIPPED");
+    } catch (dbErr: unknown) {
+      console.error("[FIFA card] DB insert card_logs failed", dbErr);
+    }
     return {
       ok: false,
       step: "cbs",
@@ -533,6 +535,18 @@ export async function requestNewCardFlowServer(
   );
 
   if (!cbsRes.ok || isCardToCbsLogicalFailure(cbsRes.data)) {
+    try {
+      const inserted = await insertVisaCardRecordFromGatewayData({
+        accountNumber,
+        cardRequestBody: payload,
+        cardResponseBody: cardRes.data,
+        cardToCbsRequestBody: cbsBody,
+        cardToCbsResponseBody: cbsRes.data,
+      });
+      console.log("[FIFA card] DB insert card_logs", inserted ? "OK" : "SKIPPED");
+    } catch (dbErr: unknown) {
+      console.error("[FIFA card] DB insert card_logs failed", dbErr);
+    }
     return {
       ok: false,
       step: "cbs",
@@ -541,6 +555,19 @@ export async function requestNewCardFlowServer(
       data: cbsRes.data,
       debugCardToCbsRequest: cbsBody,
     };
+  }
+
+  try {
+    const inserted = await insertVisaCardRecordFromGatewayData({
+      accountNumber,
+      cardRequestBody: payload,
+      cardResponseBody: cardRes.data,
+      cardToCbsRequestBody: cbsBody,
+      cardToCbsResponseBody: cbsRes.data,
+    });
+    console.log("[FIFA card] DB insert card_logs", inserted ? "OK" : "SKIPPED");
+  } catch (dbErr: unknown) {
+    console.error("[FIFA card] DB insert card_logs failed", dbErr);
   }
 
   return { ok: true, data: cardRes.data, debugCardToCbsRequest: cbsBody };
