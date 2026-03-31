@@ -18,6 +18,7 @@ import {
   extractCustomerDetailsPayload,
   parseCustomerDetailsRecordForCard,
   parseCustomerInfoResponse,
+  toEtPrefixedBranchCode,
 } from "./cardRequestUtils";
 import {
   fetchFifaCustomerInfo,
@@ -492,7 +493,7 @@ export async function requestNewCardFlowServer(
   const cbsBody = buildCardToCbsPayload({
     accountNumber,
     customerId: customerStep.normalized.customerId,
-    companyCode: payload.newCardRequest.BranchCode,
+    companyCode: toEtPrefixedBranchCode(payload.newCardRequest.BranchCode),
     embossingName: payload.newCardRequest.EmbossingName,
     cardData: cardRes.data,
   });

@@ -70,11 +70,10 @@ export function toEtPrefixedBranchCode(branchCode: string): string {
   return t.startsWith("ET") ? t : `ET${t}`;
 }
 
-/** New card request DeliveryBranchCode must be numeric-only (drop leading ET if present). */
-export function toNumericDeliveryBranchCode(branchCode: string): string {
+/** Card request payload expects branch codes without an `ET` prefix. */
+export function stripEtPrefix(branchCode: string): string {
   const t = branchCode.trim();
-  if (!t) return t;
-  return t.replace(/^ET/i, "");
+  return t.replace(/^ET/i, "").trim();
 }
 
 const EMBOSSING_NAME_KEYS = [
@@ -392,8 +391,7 @@ export function buildNewCardManagementRequest(
   customerDetails: Record<string, unknown> | null | undefined
 ): NewCardManagementRequest {
   const district = (branch.district ?? "").trim() || "N/A";
-  const branchEt = toEtPrefixedBranchCode(branch.branchCode);
-  const deliveryBranchCode = toNumericDeliveryBranchCode(branch.branchCode);
+  const branchForCardRequest = stripEtPrefix(branch.branchCode);
   const title = mapTitle(customer.genderRaw).toUpperCase();
   const embossing = fullNameForEmbossingFromDetails(customer, customerDetails);
 
@@ -405,8 +403,8 @@ export function buildNewCardManagementRequest(
       customerType: "0",
       Region: "14",
       District: district,
-      BranchCode: branchEt,
-      DeliveryBranchCode: deliveryBranchCode,
+      BranchCode: branchForCardRequest,
+      DeliveryBranchCode: branchForCardRequest,
       CardProduct: cardProduct,
       EmbossingName: embossing,
     },
@@ -426,8 +424,8 @@ export function serializeNewCardManagementRequest(
       customerType: inner.customerType.trim() || "0",
       Region: inner.Region.trim() || "14",
       District: inner.District.trim(),
-      BranchCode: toEtPrefixedBranchCode(inner.BranchCode),
-      DeliveryBranchCode: toNumericDeliveryBranchCode(inner.DeliveryBranchCode),
+      BranchCode: stripEtPrefix(inner.BranchCode),
+      DeliveryBranchCode: stripEtPrefix(inner.DeliveryBranchCode),
       CardProduct: inner.CardProduct.trim(),
       EmbossingName: uppercaseGatewayName(inner.EmbossingName),
     },
