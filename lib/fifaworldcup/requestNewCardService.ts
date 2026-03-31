@@ -493,8 +493,8 @@ export async function requestNewCardFlowServer(
   const cbsBody = buildCardToCbsPayload({
     accountNumber,
     customerId: customerStep.normalized.customerId,
-    // cardToCbs keeps ET-prefixed company code.
-    companyCode: toEtPrefixedBranchCode(payload.newCardRequest.BranchCode),
+    // cardToCbs should preserve selected branch code format (including ET00... when present).
+    companyCode: toEtPrefixedBranchCode(branch.branchCode),
     embossingName: payload.newCardRequest.EmbossingName,
     cardData: cardRes.data,
   });
@@ -539,8 +539,9 @@ export async function requestNewCardFlowServer(
       message:
         messageFromUnknown(cbsRes.data) || `cardToCbs failed (${cbsRes.status})`,
       data: cbsRes.data,
+      debugCardToCbsRequest: cbsBody,
     };
   }
 
-  return { ok: true, data: cardRes.data };
+  return { ok: true, data: cardRes.data, debugCardToCbsRequest: cbsBody };
 }

@@ -226,6 +226,15 @@ export async function POST(req: NextRequest) {
       });
       const failStatus = statusForGatewayCardFailure(result.data);
       if (result.data && typeof result.data === "object") {
+        if (result.debugCardToCbsRequest) {
+          return NextResponse.json(
+            {
+              ...(result.data as Record<string, unknown>),
+              debugCardToCbsRequest: result.debugCardToCbsRequest,
+            },
+            { status: failStatus }
+          );
+        }
         return NextResponse.json(result.data, { status: failStatus });
       }
       return NextResponse.json(
@@ -233,16 +242,22 @@ export async function POST(req: NextRequest) {
           success: false,
           step: result.step,
           error: msg,
+          ...(result.debugCardToCbsRequest
+            ? { debugCardToCbsRequest: result.debugCardToCbsRequest }
+            : {}),
         } satisfies CardRequestResponse,
         { status: failStatus }
       );
     }
 
-    return NextResponse.json(
-      result.data && typeof result.data === "object"
-        ? result.data
-        : { success: true }
-    );
+    return NextResponse.json({
+      ...(result.data && typeof result.data === "object"
+        ? (result.data as Record<string, unknown>)
+        : { success: true }),
+      ...(result.debugCardToCbsRequest
+        ? { debugCardToCbsRequest: result.debugCardToCbsRequest }
+        : {}),
+    });
   } catch (e: unknown) {
     const message =
       e instanceof Error && e.message.trim()
