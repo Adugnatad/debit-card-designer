@@ -386,12 +386,7 @@ export function buildNewCardManagementRequest(
   customerDetails: Record<string, unknown> | null | undefined
 ): NewCardManagementRequest {
   const district = (branch.district ?? "").trim() || "N/A";
-  const customerBranchCodeRaw = pickString(customerDetails ?? {}, [
-    "companyReference",
-    "CompanyReference",
-  ]);
-  const customerBranchCode = transformBranchCode(customerBranchCodeRaw);
-  const deliveryBranchCode = transformBranchCode(branch.branchCode);
+  const branchCode = transformBranchCode(branch.branchCode);
   const title = mapTitle(customer.genderRaw).toUpperCase();
   const embossing = fullNameForEmbossingFromDetails(customer, customerDetails);
 
@@ -403,10 +398,8 @@ export function buildNewCardManagementRequest(
       customerType: "0",
       Region: "14",
       District: district,
-      // BranchCode must come from customer info (companyReference).
-      BranchCode: customerBranchCode || deliveryBranchCode,
-      // DeliveryBranchCode must come from selected nearest branch.
-      DeliveryBranchCode: deliveryBranchCode,
+      BranchCode: branchCode,
+      DeliveryBranchCode: branchCode,
       CardProduct: cardProduct,
       EmbossingName: embossing,
     },
