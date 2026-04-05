@@ -12,7 +12,7 @@ import {
 import { LocateFixed } from "lucide-react";
 import { BranchList } from "./BranchList";
 import { BranchMap } from "./BranchMap";
-import { BRANCH_BACKEND_BASE_URL, EXCLUDED_BRANCH_NAMES_LOWER } from "./constants";
+import { BRANCHES_API_PATH, EXCLUDED_BRANCH_NAMES_LOWER } from "./constants";
 import { SearchBar } from "./SearchBar";
 import { useUserLocation } from "./hooks/useUserLocation";
 import { useBranchSearch } from "./hooks/useBranchSearch";
@@ -50,7 +50,8 @@ export function BranchSelectorContainer({
     const load = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${BRANCH_BACKEND_BASE_URL}/api/branches`, {
+        const res = await fetch(BRANCHES_API_PATH, {
+          cache: "no-store",
           headers: { "Content-Type": "application/json" },
         });
         if (!res.ok) throw new Error("Failed to load branches");
