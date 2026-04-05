@@ -1,50 +1,56 @@
 import { NextResponse } from "next/server";
-
-/** Upstream branch list API (server-side only). Override with BRANCH_BACKEND_BASE_URL. */
-const DEFAULT_UPSTREAM = "https://coopengage.coopbankoromiasc.com";
+import { isAsmAllowedResponseStatus } from "@/lib/branches/asmAllowedStatus";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const base = (
-    process.env.BRANCH_BACKEND_BASE_URL?.trim() || DEFAULT_UPSTREAM
-  ).replace(/\/$/, "");
-  const url = `${base}/api/branches`;
+const DEFAULT_UPSTREAM =
+  "https://coopengage.coopbankoromiasc.com/api/branches";
 
+function upstreamUrl(): string {
+  return (
+    process.env.BRANCH_LIST_UPSTREAM_URL?.trim() || DEFAULT_UPSTREAM
+  );
+}
+
+/**
+ * GET — server-side proxy to the bank branch list.
+ * Only HTTP statuses allowed by BIG-IP ASM defaults are returned to the client;
+ * any other upstream status is mapped to 503.
+ */
+export async function GET() {
+  let upstream: Response;
   try {
-    const res = await fetch(url, {
+    upstream = await fetch(upstreamUrl(), {
       method: "GET",
       headers: { Accept: "application/json" },
       cache: "no-store",
     });
-
-    const text = await res.text();
-
-    if (!res.ok) {
-      return NextResponse.json(
-        {
-          error: "Upstream branches request failed",
-          upstreamStatus: res.status,
-        },
-        { status: res.status >= 500 ? 502 : res.status }
-      );
-    }
-
-    let data: unknown;
-    try {
-      data = text ? JSON.parse(text) : [];
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid JSON from upstream branches API" },
-        { status: 502 }
-      );
-    }
-
-    return NextResponse.json(data);
-  } catch (e: unknown) {
-    const message =
-      e instanceof Error ? e.message : "Branch proxy request failed";
-    console.error("[branches proxy]", message, e);
-    return NextResponse.json({ error: message }, { status: 502 });
+  } catch {
+    return NextResponse.json(
+      { error: "Branch list service unreachable" },
+      { status: 503 }
+    );
   }
+
+  const status = upstream.status;
+  const bodyText = await upstream.text();
+  const contentType =
+    upstream.headers.get("content-type")?.split(";")[0]?.trim() ||
+    "application/json";
+
+  if (!isAsmAllowedResponseStatus(status)) {
+    console.warn("[branches proxy] upstream status not ASM-allowed, returning 503", status);
+    return NextResponse.json(
+      { error: "Unable to load branch list" },
+      { status: 503 }
+    );
+  }
+
+  return new NextResponse(bodyText, {
+    status,
+    headers: {
+      "Content-Type": contentType,
+      "Cache-Control": "no-store",
+    },
+  });
 }

@@ -18,12 +18,9 @@ export const CLUSTER_OPTIONS = {
   gridSize: 50,
 };
 
-// Branch list is loaded via same-origin `/api/branches` (proxied server-side).
-// Set BRANCH_BACKEND_BASE_URL in env to point the proxy at another host.
-export const BRANCHES_API_PATH = "/api/branches";
-
-/** @deprecated Use BRANCHES_API_PATH from the browser. Server reads BRANCH_BACKEND_BASE_URL. */
-export const BRANCH_BACKEND_BASE_URL = "https://coopengage.coopbankoromiasc.com";
+// Branch list is loaded via same-origin proxy (BIG-IP ASM–safe statuses only).
+// Upstream URL is configured server-side: BRANCH_LIST_UPSTREAM_URL.
+export const BRANCHES_PROXY_PATH = "/api/branches";
 
 /** Dropped after fetch; match is case-insensitive on companyName or nameAddress (exact). */
 export const EXCLUDED_BRANCH_NAMES_LOWER = new Set<string>(["ijo old branch"]);
