@@ -57,6 +57,11 @@ function messageFromUnknown(data: unknown): string {
     const v = o[key];
     if (typeof v === "string" && v.trim()) return v.trim();
   }
+  const err = o.error;
+  if (err && typeof err === "object" && !Array.isArray(err)) {
+    const em = (err as Record<string, unknown>).message;
+    if (typeof em === "string" && em.trim()) return em.trim();
+  }
   return "Unknown error";
 }
 
@@ -93,6 +98,33 @@ function isCbsLogicalFailure(data: unknown): boolean {
 
 function asTrimmedString(v: unknown): string {
   return `${v ?? ""}`.trim();
+}
+
+function dateYmdFromUnknown(v: unknown): string {
+  if (typeof v === "string") {
+    const trimmed = v.trim();
+    if (/^\d{8}$/.test(trimmed)) return trimmed;
+    const asNum = Number(trimmed);
+    if (Number.isFinite(asNum)) {
+      const d = new Date(asNum);
+      if (!Number.isNaN(d.getTime())) {
+        const y = d.getUTCFullYear();
+        const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(d.getUTCDate()).padStart(2, "0");
+        return `${y}${m}${day}`;
+      }
+    }
+  }
+  if (typeof v === "number" && Number.isFinite(v)) {
+    const d = new Date(v);
+    if (!Number.isNaN(d.getTime())) {
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(d.getUTCDate()).padStart(2, "0");
+      return `${y}${m}${day}`;
+    }
+  }
+  return "";
 }
 
 function buildFullName(r: BulkInputRecord): string {
@@ -164,8 +196,8 @@ function buildCardToCbsBody(
   if (!pan) return null;
   const maskedPan = asTrimmedString(r.MaskedPan).replace(/_/g, "*");
   const currency = asTrimmedString(r.CurrCode) || "230";
-  const expiryDate = asTrimmedString(r.ExpiryDate);
-  const issueDate = asTrimmedString(r.EffectiveDate);
+  const expiryDate = dateYmdFromUnknown(r.ExpiryDate);
+  const issueDate = dateYmdFromUnknown(r.EffectiveDate);
 
   return {
     company: normalizeCompanyEt00(record.branch_code),
