@@ -13,7 +13,7 @@ export const FIFA_OAUTH_CLIENT_CREDENTIALS_BASE64 =
 export const FIFA_OAUTH_AUTHORIZATION_BASIC = `Basic ${FIFA_OAUTH_CLIENT_CREDENTIALS_BASE64}`;
 
 
-//development urls
+//development urls test
 
 // export const FIFA_INTERNAL_GATEWAY_BASE_URL =
 //   "https://externalgateway-apim-uat.coopbankoromiasc.com"; 
