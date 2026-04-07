@@ -129,8 +129,7 @@ function dateYmdFromUnknown(v: unknown): string {
 
 function buildFullName(r: BulkInputRecord): string {
   const first = asTrimmedString(r.first_name);
-  const last = asTrimmedString(r.last_name);
-  return `${first} ${last}`.replace(/\s+/g, " ").trim() || first || "N/A";
+  return first || "N/A";
 }
 
 function normalizeCompanyEt00(branchCode: string): string {
