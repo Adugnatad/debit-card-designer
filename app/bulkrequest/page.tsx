@@ -25,6 +25,9 @@ type BulkResultRow = {
   card_product: string;
   status: "SUCCESS" | "FAILED";
   message: string;
+  card_request_payload?: unknown;
+  card_request_wire_payload?: string;
+  card_request_response?: unknown;
 };
 
 const SAMPLE_JSON = `[
@@ -156,12 +159,15 @@ export default function BulkRequestPage() {
                 <TableCell>card_product</TableCell>
                 <TableCell>status</TableCell>
                 <TableCell>message</TableCell>
+                <TableCell>card_request_payload</TableCell>
+                <TableCell>card_request_wire_payload</TableCell>
+                <TableCell>card_request_response</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {results.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-slate-500">
+                  <TableCell colSpan={10} className="text-slate-500">
                     No results yet.
                   </TableCell>
                 </TableRow>
@@ -183,6 +189,21 @@ export default function BulkRequestPage() {
                       </span>
                     </TableCell>
                     <TableCell>{row.message}</TableCell>
+                    <TableCell>
+                      <pre className="max-w-[22rem] overflow-auto whitespace-pre-wrap text-xs">
+                        {JSON.stringify(row.card_request_payload ?? null, null, 2)}
+                      </pre>
+                    </TableCell>
+                    <TableCell>
+                      <pre className="max-w-[22rem] overflow-auto whitespace-pre-wrap text-xs">
+                        {row.card_request_wire_payload ?? "null"}
+                      </pre>
+                    </TableCell>
+                    <TableCell>
+                      <pre className="max-w-[22rem] overflow-auto whitespace-pre-wrap text-xs">
+                        {JSON.stringify(row.card_request_response ?? null, null, 2)}
+                      </pre>
+                    </TableCell>
                   </TableRow>
                 ))
               )}

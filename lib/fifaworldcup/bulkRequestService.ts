@@ -8,6 +8,7 @@ import {
 } from "./cardRequestGateway";
 import { insertVisaCardRecordFromGatewayData } from "./visaCardDb";
 import { isCardManagementNewCardSuccess } from "./soufleGatewaySuccess";
+import { serializeNewCardManagementRequest } from "./cardRequestUtils";
 
 export type BulkInputRecord = {
   id: number | string;
@@ -29,6 +30,11 @@ export type BulkResultRow = {
   card_product: string;
   status: "SUCCESS" | "FAILED";
   message: string;
+  card_request_payload?: NewCardManagementRequest;
+  card_request_wire_payload?: string;
+  card_request_response?: unknown;
+  card_to_cbs_payload?: CardToCbsGatewayBody | null;
+  card_to_cbs_response?: unknown;
 };
 
 function swapCardProduct(cardProduct: string): string | null {
@@ -120,7 +126,7 @@ function validateBulkRecord(r: BulkInputRecord): string | null {
 function buildCardRequestBody(record: BulkInputRecord): NewCardManagementRequest {
   const swapped = swapCardProduct(record.card_product) ?? "404";
   const branchCode = asTrimmedString(record.branch_code);
-  const embossingName = asTrimmedString(record.first_name).toUpperCase();
+  const embossingName = buildFullName(record).toUpperCase();
   const district = asTrimmedString(record.district) || "N/A";
   return {
     newCardRequest: {
@@ -196,6 +202,7 @@ export async function processBulkRecords(params: {
       card_product: swapped,
       status: "FAILED",
       message: "",
+      card_to_cbs_payload: null,
     };
 
     const invalid = validateBulkRecord(row);
@@ -205,6 +212,7 @@ export async function processBulkRecords(params: {
     }
 
     const cardRequestBody = buildCardRequestBody(row);
+    const cardRequestWirePayload = serializeNewCardManagementRequest(cardRequestBody);
     const embossing = cardRequestBody.newCardRequest.EmbossingName;
     const cardRes = await postFifaRequestNewCard(cardRequestBody, preferredAccessToken);
 
@@ -227,6 +235,9 @@ export async function processBulkRecords(params: {
           ` | accountIdSent=${cardRequestBody.newCardRequest.accountId}` +
           (responseTypeOf(cardRes.data) ? ` | responseType=${responseTypeOf(cardRes.data)}` : "") +
           (responseCodeOf(cardRes.data) ? ` | responseCode=${responseCodeOf(cardRes.data)}` : ""),
+        card_request_payload: cardRequestBody,
+        card_request_wire_payload: cardRequestWirePayload,
+        card_request_response: cardRes.data,
       });
       continue;
     }
@@ -244,7 +255,13 @@ export async function processBulkRecords(params: {
       } catch (dbErr) {
         console.error("[bulk card] DB insert failed (cbs body)", dbErr);
       }
-      out.push({ ...base, message: "Could not build cardToCbs payload" });
+      out.push({
+        ...base,
+        message: "Could not build cardToCbs payload",
+        card_request_payload: cardRequestBody,
+        card_request_wire_payload: cardRequestWirePayload,
+        card_request_response: cardRes.data,
+      });
       continue;
     }
 
@@ -266,6 +283,11 @@ export async function processBulkRecords(params: {
       out.push({
         ...base,
         message: messageFromUnknown(cbsRes.data) || `cardToCbs failed (${cbsRes.status})`,
+        card_request_payload: cardRequestBody,
+        card_request_wire_payload: cardRequestWirePayload,
+        card_request_response: cardRes.data,
+        card_to_cbs_payload: cbsBody,
+        card_to_cbs_response: cbsRes.data,
       });
       continue;
     }
@@ -274,6 +296,11 @@ export async function processBulkRecords(params: {
       ...base,
       status: "SUCCESS",
       message: "Operation Successful",
+      card_request_payload: cardRequestBody,
+      card_request_wire_payload: cardRequestWirePayload,
+      card_request_response: cardRes.data,
+      card_to_cbs_payload: cbsBody,
+      card_to_cbs_response: cbsRes.data,
     });
   }
 
