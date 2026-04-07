@@ -16,176 +16,179 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import type { BulkProcessResponse, BulkRowResult } from "@/lib/bulkrequest/bulkRequestTypes";
 
-const SAMPLE_INPUT = `[
+type BulkResultRow = {
+  id: number | string;
+  fullName: string;
+  account_number: string;
+  debitAccount: string;
+  card_product: string;
+  status: "SUCCESS" | "FAILED";
+  message: string;
+};
+
+const SAMPLE_JSON = `[
   {
     "id": 603,
     "first_name": "EDLAWIT MANYAZEWAL LULE",
-    "title": "Ms",
-    "customer_code": "1260406056",
+    "last_name": "EDLAWIT MANYAZEWAL LULE",
+    "account_number": "308400001267",
     "branch_code": "10246",
+    "district": "ADDIS ABABA",
     "card_product": "403",
-    "district": "DIREDEWA",
-    "region": "14",
-    "preferred_language": "EN",
-    "customer_type": "0",
+    "customer_code": "1260406056",
     "debitAccount": "1024600302868"
   }
 ]`;
 
 export default function BulkRequestPage() {
-  const [inputText, setInputText] = useState(SAMPLE_INPUT);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [rows, setRows] = useState<BulkRowResult[]>([]);
-  const [summary, setSummary] = useState({ total: 0, ok: 0, failed: 0 });
+  const [jsonInput, setJsonInput] = useState(SAMPLE_JSON);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  const [results, setResults] = useState<BulkResultRow[]>([]);
+  const [successCount, setSuccessCount] = useState(0);
+  const [failureCount, setFailureCount] = useState(0);
 
-  const hasResults = rows.length > 0;
-
-  const parsedCount = useMemo(() => {
-    try {
-      const parsed = JSON.parse(inputText);
-      return Array.isArray(parsed) ? parsed.length : 0;
-    } catch {
-      return 0;
-    }
-  }, [inputText]);
+  const totalCount = useMemo(() => results.length, [results]);
 
   const handleSubmit = async () => {
-    setErrorMessage("");
-    setRows([]);
-    setSummary({ total: 0, ok: 0, failed: 0 });
-    setIsSubmitting(true);
+    setError("");
+    setResults([]);
+    setSuccessCount(0);
+    setFailureCount(0);
 
+    let parsed: unknown;
     try {
-      const parsed = JSON.parse(inputText) as unknown;
-      if (!Array.isArray(parsed)) {
-        setErrorMessage("Input must be a JSON array.");
-        return;
-      }
+      parsed = JSON.parse(jsonInput);
+    } catch {
+      setError("Invalid JSON: please provide a valid JSON array.");
+      return;
+    }
+    if (!Array.isArray(parsed)) {
+      setError("Invalid input: root value must be a JSON array.");
+      return;
+    }
 
-      const res = await fetch("/api/bulkrequest", {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/bulk-card-request", {
         method: "POST",
         cache: "no-store",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(parsed),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ records: parsed }),
       });
-
-      const json = (await res.json().catch(() => ({}))) as BulkProcessResponse;
-      if (!res.ok || !json.success) {
-        setErrorMessage(
-          json.success ? "Bulk request failed." : json.error || "Bulk request failed."
-        );
+      const data = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
+        message?: string;
+        results?: BulkResultRow[];
+        successCount?: number;
+        failureCount?: number;
+      };
+      if (!res.ok || !data.success) {
+        setError(data.message || "Bulk processing failed.");
         return;
       }
-
-      setSummary(json.summary);
-      setRows(json.rows);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Invalid JSON input.";
-      setErrorMessage(msg);
+      const rows = Array.isArray(data.results) ? data.results : [];
+      setResults(rows);
+      setSuccessCount(Number(data.successCount ?? 0));
+      setFailureCount(Number(data.failureCount ?? 0));
+    } catch {
+      setError("Request failed. Please try again.");
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-[#F6FAFB] py-8">
-      <Box className="mx-auto w-full max-w-6xl px-4">
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+    <main className="min-h-screen bg-slate-50 py-10">
+      <Box className="mx-auto w-full max-w-7xl px-4">
+        <Typography variant="h4" className="mb-2 font-semibold text-slate-900">
           Bulk Card Request
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          Paste a JSON array and process each row through card request and card-to-cbs.
+        <Typography variant="body2" className="mb-6 text-slate-600">
+          Paste a JSON array and process card request + card-to-CBS in bulk.
         </Typography>
 
-        <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+        <Paper className="mb-6 p-4">
           <TextField
             label="Bulk JSON Input"
+            value={jsonInput}
+            onChange={(e) => setJsonInput(e.target.value)}
             multiline
             minRows={16}
-            maxRows={30}
             fullWidth
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder='[{"id":603,"debitAccount":"..."}]'
-            disabled={isSubmitting}
+            placeholder='[{"id":1,"first_name":"..."}]'
           />
-
-          <Box sx={{ display: "flex", gap: 2, alignItems: "center", mt: 2 }}>
-            <Button variant="contained" onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <CircularProgress size={18} sx={{ mr: 1, color: "#fff" }} />
-                  Processing...
-                </>
-              ) : (
-                "Process Bulk Request"
-              )}
+          <Box className="mt-4 flex items-center gap-3">
+            <Button
+              variant="contained"
+              onClick={handleSubmit}
+              disabled={isLoading}
+              className="normal-case"
+            >
+              {isLoading ? "Processing..." : "Process Bulk Request"}
             </Button>
-            <Typography variant="body2" color="text.secondary">
-              Parsed rows: {parsedCount}
-            </Typography>
+            {isLoading ? <CircularProgress size={22} /> : null}
           </Box>
-
-          {errorMessage ? (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {errorMessage}
+          {error ? (
+            <Alert severity="error" className="mt-4">
+              {error}
             </Alert>
           ) : null}
         </Paper>
 
-        {hasResults ? (
-          <Paper elevation={2} sx={{ p: 2 }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              Processing Result
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Total: {summary.total} | Success: {summary.ok} | Failed: {summary.failed}
-            </Typography>
+        {(totalCount > 0 || successCount > 0 || failureCount > 0) && (
+          <Box className="mb-4 flex flex-wrap gap-3">
+            <Alert severity="info">Total: {totalCount}</Alert>
+            <Alert severity="success">Success: {successCount}</Alert>
+            <Alert severity="warning">Failed: {failureCount}</Alert>
+          </Box>
+        )}
 
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Input ID</TableCell>
-                    <TableCell>Debit Account</TableCell>
-                    <TableCell>Branch Code</TableCell>
-                    <TableCell>Card Product Used</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Step</TableCell>
-                    <TableCell>Message</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {rows.map((row) => (
-                    <TableRow key={`${row.index}-${row.inputId}`}>
-                      <TableCell>{row.index + 1}</TableCell>
-                      <TableCell>{row.inputId}</TableCell>
-                      <TableCell>{row.debitAccount}</TableCell>
-                      <TableCell>{row.branchCode}</TableCell>
-                      <TableCell>{row.flippedCardProduct}</TableCell>
-                      <TableCell
-                        sx={{
-                          fontWeight: 700,
-                          color: row.status === "ok" ? "success.main" : "error.main",
-                        }}
+        <TableContainer component={Paper}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>id</TableCell>
+                <TableCell>fullName</TableCell>
+                <TableCell>account_number</TableCell>
+                <TableCell>debitAccount</TableCell>
+                <TableCell>card_product</TableCell>
+                <TableCell>status</TableCell>
+                <TableCell>message</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {results.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-slate-500">
+                    No results yet.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                results.map((row, idx) => (
+                  <TableRow key={`${row.id}-${idx}`}>
+                    <TableCell>{row.id}</TableCell>
+                    <TableCell>{row.fullName}</TableCell>
+                    <TableCell>{row.account_number}</TableCell>
+                    <TableCell>{row.debitAccount}</TableCell>
+                    <TableCell>{row.card_product}</TableCell>
+                    <TableCell>
+                      <span
+                        className={
+                          row.status === "SUCCESS" ? "text-green-700" : "text-red-700"
+                        }
                       >
                         {row.status}
-                      </TableCell>
-                      <TableCell>{row.step}</TableCell>
-                      <TableCell>{row.message}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        ) : null}
+                      </span>
+                    </TableCell>
+                    <TableCell>{row.message}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Box>
     </main>
   );
