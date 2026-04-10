@@ -101,10 +101,10 @@ export default function FifaWorldCupPage() {
     "Success",
   ];
   const slideImages = [
-    "/CARD-TO-CUP/card-1.jpeg",
+    "/CARD-TO-CUP/Visacard-1.png",
     "/CARD-TO-CUP/card-2.jpeg",
-    "/CARD-TO-CUP/card-3.jpeg",
-    "/CARD-TO-CUP/card-4.jpeg",
+    "/CARD-TO-CUP/Visacard-2.png",
+    // "/CARD-TO-CUP/card-4.jpeg",
   ];
 
   /**
@@ -151,7 +151,7 @@ export default function FifaWorldCupPage() {
     if (isLoading) return;
     const slideTimer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slideImages.length);
-    }, 2600);
+    }, 6200);
 
     return () => clearInterval(slideTimer);
   }, [isLoading, slideImages.length]);
@@ -1264,11 +1264,10 @@ export default function FifaWorldCupPage() {
                             opacity: currentSlide === index ? 1 : 0,
                             scale: currentSlide === index ? 1.08 : 1.16,
                           }}
-                          transition={{ duration: 1.15, ease: [0.22, 1, 0.36, 1] }}
-                          className="absolute inset-0"
+                          transition={{ duration: 3.2, ease: [0.22, 1, 0.36, 1] }}
+                          className="absolute inset-0 origin-center min-[600px]:origin-top"
                           style={{
                             pointerEvents: "none",
-                            transformOrigin: "center center",
                             willChange: "transform, opacity",
                           }}
                         >
@@ -1276,7 +1275,7 @@ export default function FifaWorldCupPage() {
                             src={src}
                             alt={`Card slide ${index + 1}`}
                             fill
-                            className="object-cover"
+                            className="object-cover min-[600px]:object-top min-[600px]:-translate-y-1.5"
                             sizes="(max-width: 40rem) 100vw, 45rem"
                             priority={index === 0}
                           />
