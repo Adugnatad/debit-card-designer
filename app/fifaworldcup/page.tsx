@@ -101,7 +101,7 @@ export default function FifaWorldCupPage() {
     "Success",
   ];
   const slideImages = [
-    "/CARD-TO-CUP/Visacard-1.png",
+    "/CARD-TO-CUP/Visacard.png",
     "/CARD-TO-CUP/card-2.jpeg",
     "/CARD-TO-CUP/Visacard-2.png",
     // "/CARD-TO-CUP/card-4.jpeg",
