@@ -12,7 +12,11 @@ import {
 import { LocateFixed } from "lucide-react";
 import { BranchList } from "./BranchList";
 import { BranchMap } from "./BranchMap";
-import { BRANCH_BACKEND_BASE_URL, EXCLUDED_BRANCH_NAMES_LOWER } from "./constants";
+import {
+  BRANCH_BACKEND_BASE_URL,
+  EXCLUDED_BRANCH_CODES,
+  EXCLUDED_BRANCH_NAMES_LOWER,
+} from "./constants";
 import { SearchBar } from "./SearchBar";
 import { useUserLocation } from "./hooks/useUserLocation";
 import { useBranchSearch } from "./hooks/useBranchSearch";
@@ -26,6 +30,11 @@ function isExcludedBranchName(b: Branch): boolean {
     EXCLUDED_BRANCH_NAMES_LOWER.has(company) ||
     EXCLUDED_BRANCH_NAMES_LOWER.has(address)
   );
+}
+
+function isExcludedBranchCode(b: Branch): boolean {
+  const code = b.branchCode.trim().toUpperCase();
+  return code.length > 0 && EXCLUDED_BRANCH_CODES.has(code);
 }
 
 export function BranchSelectorContainer({
@@ -82,7 +91,7 @@ export function BranchSelectorContainer({
               b.id > 0 &&
               Boolean(b.branchCode)
           )
-          .filter((b) => !isExcludedBranchName(b));
+          .filter((b) => !isExcludedBranchName(b) && !isExcludedBranchCode(b));
 
         setBranches(normalized);
       } catch (e: any) {
