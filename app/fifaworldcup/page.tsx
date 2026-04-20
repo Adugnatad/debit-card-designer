@@ -36,6 +36,13 @@ import { FIFA_CUP_LOADER_SRC } from "./fifaLoaderAsset";
 const LOADER_MIN_VISIBLE_MS = 400;
 /** Never block the app if the asset fails or hangs. */
 const LOADER_SAFETY_MAX_MS = 12_000;
+const GOOGLE_ADS_ID = "AW-18103005190";
+const META_VIEW_CONTENT_EVENT = "ViewContent";
+const META_LEAD_EVENT = "Lead";
+const META_FIND_LOCATION_EVENT = "FindLocation";
+const META_SUBMIT_APPLICATION_EVENT = "SubmitApplication";
+const META_PURCHASE_EVENT = "Purchase";
+const IS_DEV = process.env.NODE_ENV !== "production";
 
 export default function FifaWorldCupPage() {
   const searchParams = useSearchParams();
@@ -54,6 +61,10 @@ export default function FifaWorldCupPage() {
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isSubmittingCardRequest, setIsSubmittingCardRequest] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const previousStepRef = useRef(0);
+  const viewContentTrackedRef = useRef(false);
+  const purchaseTrackedRef = useRef(false);
+  const selectedBranchIdTrackedRef = useRef<number | null>(null);
 
   // Step 4: animate the success cup into the top header cup (repeats on an interval).
   const [cupFlyingToHeader, setCupFlyingToHeader] = useState(false);
@@ -68,6 +79,16 @@ export default function FifaWorldCupPage() {
   const clearCupLoopTimers = useCallback(() => {
     cupLoopTimersRef.current.forEach((id) => clearTimeout(id));
     cupLoopTimersRef.current = [];
+  }, []);
+
+  const trackMetaEvent = useCallback((eventName: string) => {
+    if (typeof window === "undefined") return;
+    const fbqFn = (window as Window & { fbq?: (...args: unknown[]) => void }).fbq;
+    if (typeof fbqFn !== "function") return;
+    fbqFn("track", eventName);
+    if (IS_DEV) {
+      console.info("[Meta Pixel][FIFA] tracked event:", eventName);
+    }
   }, []);
 
   const measureAndStartCupFlight = useCallback(() => {
@@ -148,6 +169,12 @@ export default function FifaWorldCupPage() {
   }, [searchParams]);
 
   useEffect(() => {
+    if (viewContentTrackedRef.current) return;
+    trackMetaEvent(META_VIEW_CONTENT_EVENT);
+    viewContentTrackedRef.current = true;
+  }, [trackMetaEvent]);
+
+  useEffect(() => {
     if (isLoading) return;
     const slideTimer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slideImages.length);
@@ -172,6 +199,35 @@ export default function FifaWorldCupPage() {
 
     return () => clearInterval(timer);
   }, [activeStep]);
+
+  useEffect(() => {
+    const enteredSuccessStep = previousStepRef.current !== 3 && activeStep === 3;
+    previousStepRef.current = activeStep;
+    if (!enteredSuccessStep || typeof window === "undefined") return;
+
+    const gtagFn = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
+    if (typeof gtagFn !== "function") return;
+
+    gtagFn("event", "conversion", {
+      send_to: GOOGLE_ADS_ID,
+    });
+    if (IS_DEV) {
+      console.info("[Google Ads][FIFA] tracked conversion:", GOOGLE_ADS_ID);
+    }
+  }, [activeStep]);
+
+  useEffect(() => {
+    if (activeStep !== 3 || purchaseTrackedRef.current) return;
+    trackMetaEvent(META_PURCHASE_EVENT);
+    purchaseTrackedRef.current = true;
+  }, [activeStep, trackMetaEvent]);
+
+  useEffect(() => {
+    if (activeStep !== 2 || !selectedBranch || selectedBranch.id <= 0) return;
+    if (selectedBranchIdTrackedRef.current === selectedBranch.id) return;
+    trackMetaEvent(META_FIND_LOCATION_EVENT);
+    selectedBranchIdTrackedRef.current = selectedBranch.id;
+  }, [activeStep, selectedBranch, trackMetaEvent]);
 
   useEffect(() => {
     if (activeStep !== 3) {
@@ -291,6 +347,7 @@ export default function FifaWorldCupPage() {
         return;
       }
       fifaToastSuccess("Verified successfully");
+      trackMetaEvent(META_LEAD_EVENT);
       setActiveStep(2);
     } catch {
       fifaToastSomethingWrong();
@@ -417,6 +474,7 @@ export default function FifaWorldCupPage() {
             cardResult.newCardResponse !== null));
       if (gatewaySuccess) {
         fifaToastSuccess("Card request submitted successfully");
+        trackMetaEvent(META_SUBMIT_APPLICATION_EVENT);
         setActiveStep(3);
       } else {
         console.error(
