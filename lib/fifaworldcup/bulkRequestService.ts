@@ -43,12 +43,12 @@ type RawBulkInputRecord = {
 };
 
 type DirectBulkInputRecord = {
-  accountId?: string | number;
+  accountId?: number | string;
   Title?: string;
   District?: string;
   BranchCode?: string;
   DeliveryBranchCode?: string;
-  CardProduct?: string | number;
+  CardProduct?: string;
   EmbossingName?: string;
 };
 
@@ -58,11 +58,8 @@ type NormalizedBulkRecord = {
   accountNumber: string;
   debitAccount: string;
   branchCode: string;
-  deliveryBranchCode?: string;
   district: string;
-  requestedCardProduct?: string;
-  requestedTitle?: string;
-  requestedEmbossingName?: string;
+  directNewCardRequest?: NewCardManagementRequest;
 };
 
 export type BulkInputRecord =
@@ -112,12 +109,6 @@ function resolveCardProduct(customerDetails: Record<string, unknown> | null): st
     : CARD_PRODUCT_DEFAULT;
 }
 
-function normalizeCardProduct(v: unknown): string {
-  const p = `${v ?? ""}`.trim();
-  if (p === "403" || p === "404") return p;
-  return "";
-}
-
 function normalizeBulkRecord(row: BulkInputRecord, index: number): {
   ok: true;
   value: NormalizedBulkRecord;
@@ -153,11 +144,11 @@ function normalizeBulkRecord(row: BulkInputRecord, index: number): {
   if (hasDirectKeys) {
     const accountNumber = digits13(obj.accountId);
     const branchCode = pickString(obj, "BranchCode");
-    const deliveryBranchCode = pickString(obj, "DeliveryBranchCode");
+    const deliveryBranchCode = pickString(obj, "DeliveryBranchCode") || branchCode;
     const district = pickString(obj, "District") || "N/A";
-    const requestedCardProduct = normalizeCardProduct(obj.CardProduct);
-    const requestedTitle = pickString(obj, "Title");
-    const requestedEmbossingName = pickString(obj, "EmbossingName").replace(/\s+/g, " ").trim();
+    const embossingName = pickString(obj, "EmbossingName").replace(/\s+/g, " ").trim();
+    const title = (pickString(obj, "Title") || "MR").toUpperCase();
+    const cardProduct = pickString(obj, "CardProduct");
     const id = accountNumber || index + 1;
 
     if (!accountNumber || !/^\d{13}$/.test(accountNumber)) {
@@ -166,7 +157,7 @@ function normalizeBulkRecord(row: BulkInputRecord, index: number): {
         message: "Invalid accountId (need 13 digits)",
         id,
         accountNumber,
-        displayName: requestedEmbossingName || "N/A",
+        displayName: embossingName || "N/A",
       };
     }
     if (!branchCode) {
@@ -175,16 +166,34 @@ function normalizeBulkRecord(row: BulkInputRecord, index: number): {
         message: "Missing BranchCode",
         id,
         accountNumber,
-        displayName: requestedEmbossingName || "N/A",
+        displayName: embossingName || "N/A",
       };
     }
-    if (!requestedCardProduct) {
+    if (!cardProduct) {
+      return {
+        ok: false,
+        message: "Missing CardProduct",
+        id,
+        accountNumber,
+        displayName: embossingName || "N/A",
+      };
+    }
+    if (cardProduct !== "403" && cardProduct !== "404") {
       return {
         ok: false,
         message: "CardProduct must be 403 or 404",
         id,
         accountNumber,
-        displayName: requestedEmbossingName || "N/A",
+        displayName: embossingName || "N/A",
+      };
+    }
+    if (!embossingName) {
+      return {
+        ok: false,
+        message: "Missing EmbossingName",
+        id,
+        accountNumber,
+        displayName: "N/A",
       };
     }
 
@@ -192,15 +201,25 @@ function normalizeBulkRecord(row: BulkInputRecord, index: number): {
       ok: true,
       value: {
         id,
-        displayName: requestedEmbossingName || "N/A",
+        displayName: embossingName,
         accountNumber,
         debitAccount: accountNumber,
         branchCode,
-        deliveryBranchCode: deliveryBranchCode || branchCode,
         district,
-        requestedCardProduct,
-        requestedTitle,
-        requestedEmbossingName,
+        directNewCardRequest: {
+          newCardRequest: {
+            accountId: accountNumber,
+            Title: title,
+            PreferredLanguage: "EN",
+            customerType: "0",
+            Region: "14",
+            District: district,
+            BranchCode: branchCode,
+            DeliveryBranchCode: deliveryBranchCode,
+            CardProduct: cardProduct,
+            EmbossingName: embossingName.toUpperCase(),
+          },
+        },
       },
     };
   }
@@ -258,6 +277,7 @@ function normalizeBulkRecord(row: BulkInputRecord, index: number): {
         debitAccount: accountNumber,
         branchCode,
         district,
+        directNewCardRequest: undefined,
       },
     };
   }
@@ -297,6 +317,7 @@ function normalizeBulkRecord(row: BulkInputRecord, index: number): {
       debitAccount: debitAccount || accountNumber,
       branchCode,
       district,
+      directNewCardRequest: undefined,
     },
   };
 }
@@ -457,25 +478,14 @@ function buildCardRequestBodyFromCustomer(params: {
 }): NewCardManagementRequest {
   const { record, customer, customerDetails } = params;
   const branch = branchPayloadToBranch(branchPayloadFromRecord(record));
-  const cardProduct =
-    record.requestedCardProduct || resolveCardProduct(customerDetails);
-  const built = buildNewCardManagementRequest(
+  const cardProduct = resolveCardProduct(customerDetails);
+  return buildNewCardManagementRequest(
     record.debitAccount,
     customer,
     branch,
     cardProduct,
     customerDetails ?? undefined
   );
-  if (record.requestedTitle) {
-    built.newCardRequest.Title = record.requestedTitle;
-  }
-  if (record.requestedEmbossingName) {
-    built.newCardRequest.EmbossingName = record.requestedEmbossingName;
-  }
-  if (record.deliveryBranchCode) {
-    built.newCardRequest.DeliveryBranchCode = record.deliveryBranchCode;
-  }
-  return built;
 }
 
 export async function processBulkRecords(params: {
@@ -541,11 +551,13 @@ export async function processBulkRecords(params: {
       continue;
     }
 
-    const cardRequestBody = buildCardRequestBodyFromCustomer({
-      record: source,
-      customer: parsedCustomer,
-      customerDetails,
-    });
+    const cardRequestBody =
+      source.directNewCardRequest ??
+      buildCardRequestBodyFromCustomer({
+        record: source,
+        customer: parsedCustomer,
+        customerDetails,
+      });
     const resolvedCardProduct = asTrimmedString(
       cardRequestBody.newCardRequest.CardProduct
     );

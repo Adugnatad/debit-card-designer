@@ -32,13 +32,13 @@ type BulkResultRow = {
 
 const SAMPLE_JSON = `[
   {
-    "accountId": "1000010370616",
+    "accountId": 1000200231299,
     "Title": "Mr",
     "District": "ADAMA DISTRICT",
-    "BranchCode": "Hawas Branch",
-    "DeliveryBranchCode": "Hawas Branch",
+    "BranchCode": "10002",
+    "DeliveryBranchCode": "10002",
     "CardProduct": "404",
-    "EmbossingName": "ADAMA DISTRICT"
+    "EmbossingName": "MULU LEMA BELAYNEH"
   }
 ]`;
 
@@ -118,7 +118,7 @@ export default function BulkRequestPage() {
             multiline
             minRows={16}
             fullWidth
-            placeholder='[{"accountId":"1000010370616","Title":"Mr","District":"ADAMA DISTRICT","BranchCode":"Hawas Branch","DeliveryBranchCode":"Hawas Branch","CardProduct":"404","EmbossingName":"ADAMA DISTRICT"}]'
+            placeholder='[{"accountId":1000200231299,"Title":"Mr","District":"ADAMA DISTRICT","BranchCode":"10002","DeliveryBranchCode":"10002","CardProduct":"404","EmbossingName":"MULU LEMA BELAYNEH"}]'
           />
           <Box className="mt-4 flex items-center gap-3">
             <Button
