@@ -1,8 +1,6 @@
 import type {
-  CardRequestBranchPayload,
   CardToCbsGatewayBody,
   NewCardManagementRequest,
-  NormalizedCustomerForCard,
 } from "./cardRequestTypes";
 import {
   fetchFifaCustomerInfo,
@@ -12,315 +10,43 @@ import {
 import { insertVisaCardRecordFromGatewayData } from "./visaCardDb";
 import { isCardManagementNewCardSuccess } from "./soufleGatewaySuccess";
 import {
-  branchPayloadToBranch,
-  buildNewCardManagementRequest,
-  extractCustomerDetailsPayload,
-  parseCustomerDetailsRecordForCard,
   parseCustomerInfoResponse,
   serializeNewCardManagementRequest,
-  toEtPrefixedBranchCode,
 } from "./cardRequestUtils";
 
-type LegacyBulkInputRecord = {
+export type BulkInputRecord = {
   id: number | string;
   first_name: string;
   last_name?: string;
   account_number: string;
   branch_code: string;
   district?: string;
+  card_product: string;
+  customer_code: string;
   debitAccount: string;
-  card_product?: string;
-  customer_code?: string;
 };
 
-type RawBulkInputRecord = {
-  "DISTRICT NAME"?: string;
-  "BRANCH NAME"?: string;
-  "BRANCH CODE"?: string;
-  "PHONE NO"?: number | string;
-  "CUSTOMER NAME"?: string;
-  "ACCOUNT NUMBER"?: number | string;
-};
-
-type DirectBulkInputRecord = {
-  accountId?: number | string;
-  Title?: string;
-  District?: string;
-  BranchCode?: string;
-  DeliveryBranchCode?: string;
-  CardProduct?: string;
-  EmbossingName?: string;
+export type BulkDirectInputRecord = {
+  accountId: number | string;
+  Title: string;
+  District: string;
+  BranchCode: string;
+  DeliveryBranchCode: string;
+  CardProduct: string;
+  EmbossingName: string;
 };
 
 type NormalizedBulkRecord = {
   id: number | string;
-  displayName: string;
-  accountNumber: string;
-  debitAccount: string;
-  branchCode: string;
+  accountId: string;
+  title: string;
   district: string;
-  directNewCardRequest?: NewCardManagementRequest;
+  branchCode: string;
+  deliveryBranchCode: string;
+  cardProduct: string;
+  embossingName: string;
+  customerCode: string;
 };
-
-export type BulkInputRecord =
-  | LegacyBulkInputRecord
-  | RawBulkInputRecord
-  | DirectBulkInputRecord;
-
-const CARD_PRODUCT_DEFAULT = "403";
-const CARD_PRODUCT_SPECIAL = "404";
-const SPECIAL_CATEGORY_IDS = new Set([
-  "6052",
-  "6064",
-  "6060",
-  "6501",
-  "6500",
-  "1500",
-  "6050",
-]);
-
-function asObject(v: unknown): Record<string, unknown> | null {
-  if (v === null || typeof v !== "object" || Array.isArray(v)) return null;
-  return v as Record<string, unknown>;
-}
-
-function pickString(obj: Record<string, unknown>, key: string): string {
-  const v = obj[key];
-  if (typeof v === "string") return v.trim();
-  if (typeof v === "number" && Number.isFinite(v)) return String(v);
-  return "";
-}
-
-function digits13(v: unknown): string {
-  return `${v ?? ""}`.replace(/\D/g, "").slice(0, 13);
-}
-
-function parseCategoryId(customerDetails: Record<string, unknown> | null): string {
-  if (!customerDetails) return "";
-  const raw = customerDetails.categoryId;
-  if (typeof raw === "string") return raw.trim();
-  if (typeof raw === "number" && Number.isFinite(raw)) return String(raw);
-  return "";
-}
-
-function resolveCardProduct(customerDetails: Record<string, unknown> | null): string {
-  return SPECIAL_CATEGORY_IDS.has(parseCategoryId(customerDetails))
-    ? CARD_PRODUCT_SPECIAL
-    : CARD_PRODUCT_DEFAULT;
-}
-
-function normalizeBulkRecord(row: BulkInputRecord, index: number): {
-  ok: true;
-  value: NormalizedBulkRecord;
-} | {
-  ok: false;
-  message: string;
-  id: number | string;
-  accountNumber: string;
-  displayName: string;
-} {
-  const obj = asObject(row);
-  if (!obj) {
-    return {
-      ok: false,
-      message: "Record must be an object",
-      id: index + 1,
-      accountNumber: "",
-      displayName: "N/A",
-    };
-  }
-
-  const hasRawKeys =
-    "ACCOUNT NUMBER" in obj ||
-    "BRANCH CODE" in obj ||
-    "DISTRICT NAME" in obj ||
-    "CUSTOMER NAME" in obj;
-  const hasDirectKeys =
-    "accountId" in obj ||
-    "BranchCode" in obj ||
-    "CardProduct" in obj ||
-    "EmbossingName" in obj;
-
-  if (hasDirectKeys) {
-    const accountNumber = digits13(obj.accountId);
-    const branchCode = pickString(obj, "BranchCode");
-    const deliveryBranchCode = pickString(obj, "DeliveryBranchCode") || branchCode;
-    const district = pickString(obj, "District") || "N/A";
-    const embossingName = pickString(obj, "EmbossingName").replace(/\s+/g, " ").trim();
-    const title = (pickString(obj, "Title") || "MR").toUpperCase();
-    const cardProduct = pickString(obj, "CardProduct");
-    const id = accountNumber || index + 1;
-
-    if (!accountNumber || !/^\d{13}$/.test(accountNumber)) {
-      return {
-        ok: false,
-        message: "Invalid accountId (need 13 digits)",
-        id,
-        accountNumber,
-        displayName: embossingName || "N/A",
-      };
-    }
-    if (!branchCode) {
-      return {
-        ok: false,
-        message: "Missing BranchCode",
-        id,
-        accountNumber,
-        displayName: embossingName || "N/A",
-      };
-    }
-    if (!cardProduct) {
-      return {
-        ok: false,
-        message: "Missing CardProduct",
-        id,
-        accountNumber,
-        displayName: embossingName || "N/A",
-      };
-    }
-    if (cardProduct !== "403" && cardProduct !== "404") {
-      return {
-        ok: false,
-        message: "CardProduct must be 403 or 404",
-        id,
-        accountNumber,
-        displayName: embossingName || "N/A",
-      };
-    }
-    if (!embossingName) {
-      return {
-        ok: false,
-        message: "Missing EmbossingName",
-        id,
-        accountNumber,
-        displayName: "N/A",
-      };
-    }
-
-    return {
-      ok: true,
-      value: {
-        id,
-        displayName: embossingName,
-        accountNumber,
-        debitAccount: accountNumber,
-        branchCode,
-        district,
-        directNewCardRequest: {
-          newCardRequest: {
-            accountId: accountNumber,
-            Title: title,
-            PreferredLanguage: "EN",
-            customerType: "0",
-            Region: "14",
-            District: district,
-            BranchCode: branchCode,
-            DeliveryBranchCode: deliveryBranchCode,
-            CardProduct: cardProduct,
-            EmbossingName: embossingName.toUpperCase(),
-          },
-        },
-      },
-    };
-  }
-
-  if (hasRawKeys) {
-    const accountNumber = digits13(obj["ACCOUNT NUMBER"]);
-    const branchCode = pickString(obj, "BRANCH CODE");
-    const district = pickString(obj, "DISTRICT NAME");
-    const customerName = pickString(obj, "CUSTOMER NAME").replace(/\s+/g, " ").trim();
-    const id = accountNumber || index + 1;
-
-    if (!accountNumber || !/^\d{13}$/.test(accountNumber)) {
-      return {
-        ok: false,
-        message: "Invalid ACCOUNT NUMBER (need 13 digits)",
-        id,
-        accountNumber,
-        displayName: customerName || "N/A",
-      };
-    }
-    if (!branchCode) {
-      return {
-        ok: false,
-        message: "Missing BRANCH CODE",
-        id,
-        accountNumber,
-        displayName: customerName || "N/A",
-      };
-    }
-    if (!district) {
-      return {
-        ok: false,
-        message: "Missing DISTRICT NAME",
-        id,
-        accountNumber,
-        displayName: customerName || "N/A",
-      };
-    }
-    if (!customerName) {
-      return {
-        ok: false,
-        message: "Missing CUSTOMER NAME",
-        id,
-        accountNumber,
-        displayName: "N/A",
-      };
-    }
-
-    return {
-      ok: true,
-      value: {
-        id,
-        displayName: customerName,
-        accountNumber,
-        debitAccount: accountNumber,
-        branchCode,
-        district,
-        directNewCardRequest: undefined,
-      },
-    };
-  }
-
-  const idRaw = pickString(obj, "id") || index + 1;
-  const displayName = pickString(obj, "first_name") || "N/A";
-  const accountNumber = digits13(obj.account_number ?? obj.debitAccount);
-  const debitAccount = digits13(obj.debitAccount ?? obj.account_number);
-  const branchCode = pickString(obj, "branch_code");
-  const district = pickString(obj, "district") || "N/A";
-
-  if (!accountNumber || !/^\d{13}$/.test(accountNumber)) {
-    return {
-      ok: false,
-      message: "Invalid account_number/debitAccount (need 13 digits)",
-      id: idRaw,
-      accountNumber,
-      displayName,
-    };
-  }
-  if (!branchCode) {
-    return {
-      ok: false,
-      message: "Missing branch_code",
-      id: idRaw,
-      accountNumber,
-      displayName,
-    };
-  }
-
-  return {
-    ok: true,
-    value: {
-      id: idRaw,
-      displayName,
-      accountNumber,
-      debitAccount: debitAccount || accountNumber,
-      branchCode,
-      district,
-      directNewCardRequest: undefined,
-    },
-  };
-}
 
 export type BulkResultRow = {
   id: number | string;
@@ -336,6 +62,13 @@ export type BulkResultRow = {
   card_to_cbs_payload?: CardToCbsGatewayBody | null;
   card_to_cbs_response?: unknown;
 };
+
+function isSupportedCardProduct(cardProduct: string): string | null {
+  const p = `${cardProduct ?? ""}`.trim();
+  if (p === "403") return "403";
+  if (p === "404") return "404";
+  return null;
+}
 
 function messageFromUnknown(data: unknown): string {
   if (data === null || typeof data !== "object") return "Unknown error";
@@ -420,9 +153,150 @@ function dateYmdFromUnknown(v: unknown): string {
   return "";
 }
 
+function buildFullName(r: BulkInputRecord): string {
+  const first = asTrimmedString(r.first_name);
+  return first || "N/A";
+}
+
+function normalizeCompanyEt00(branchCode: string): string {
+  const b = asTrimmedString(branchCode).toUpperCase();
+  const digits = b.replace(/^ET/i, "").replace(/\D/g, "");
+  const padded = digits.padStart(7, "0");
+  return `ET${padded}`;
+}
+
+function validateBulkRecord(r: BulkInputRecord): string | null {
+  if (r == null || typeof r !== "object") return "Record must be an object";
+  if (!asTrimmedString(r.id)) return "Missing id";
+  if (!asTrimmedString(r.first_name)) return "Missing first_name";
+  if (!asTrimmedString(r.account_number)) return "Missing account_number";
+  if (!asTrimmedString(r.branch_code)) return "Missing branch_code";
+  if (!asTrimmedString(r.card_product)) return "Missing card_product";
+  if (!asTrimmedString(r.customer_code)) return "Missing customer_code";
+  if (!asTrimmedString(r.debitAccount)) return "Missing debitAccount";
+  if (!isSupportedCardProduct(asTrimmedString(r.card_product))) {
+    return "card_product must be 403 or 404";
+  }
+  return null;
+}
+
+function normalizeLegacyRecord(record: BulkInputRecord): NormalizedBulkRecord {
+  const invalid = validateBulkRecord(record);
+  if (invalid) {
+    throw new Error(invalid);
+  }
+  const accountId = asTrimmedString(record.debitAccount);
+  return {
+    id: record.id,
+    accountId,
+    title: "MR",
+    district: asTrimmedString(record.district) || "N/A",
+    branchCode: asTrimmedString(record.branch_code),
+    deliveryBranchCode: asTrimmedString(record.branch_code),
+    cardProduct: asTrimmedString(record.card_product),
+    embossingName: buildFullName(record).toUpperCase() || "CUSTOMER",
+    customerCode: asTrimmedString(record.customer_code),
+  };
+}
+
+function validateDirectInputRecord(r: BulkDirectInputRecord): string | null {
+  if (r == null || typeof r !== "object") return "Record must be an object";
+  const accountId = asTrimmedString(r.accountId);
+  if (!accountId) return "Missing accountId";
+  if (!asTrimmedString(r.Title)) return "Missing Title";
+  if (!asTrimmedString(r.District)) return "Missing District";
+  if (!asTrimmedString(r.BranchCode)) return "Missing BranchCode";
+  if (!asTrimmedString(r.DeliveryBranchCode)) return "Missing DeliveryBranchCode";
+  if (!isSupportedCardProduct(asTrimmedString(r.CardProduct))) {
+    return "CardProduct must be 403 or 404";
+  }
+  if (!asTrimmedString(r.EmbossingName)) return "Missing EmbossingName";
+  return null;
+}
+
+async function normalizeDirectInputRecord(params: {
+  record: BulkDirectInputRecord;
+  preferredAccessToken?: string | null;
+}): Promise<NormalizedBulkRecord> {
+  const { record, preferredAccessToken } = params;
+  const invalid = validateDirectInputRecord(record);
+  if (invalid) {
+    throw new Error(invalid);
+  }
+  const accountId = asTrimmedString(record.accountId);
+  const customerInfoRes = await fetchFifaCustomerInfo(accountId, preferredAccessToken);
+  if (!customerInfoRes.ok) {
+    throw new Error(
+      messageFromUnknown(customerInfoRes.data) ||
+        `Customer lookup failed (${customerInfoRes.status})`
+    );
+  }
+  const normalized = parseCustomerInfoResponse(customerInfoRes.data);
+  if (!normalized || !asTrimmedString(normalized.customerId)) {
+    throw new Error("Customer lookup returned no customerId");
+  }
+  return {
+    id: accountId,
+    accountId,
+    title: asTrimmedString(record.Title).toUpperCase(),
+    district: asTrimmedString(record.District) || "N/A",
+    branchCode: asTrimmedString(record.BranchCode),
+    deliveryBranchCode: asTrimmedString(record.DeliveryBranchCode),
+    cardProduct: asTrimmedString(record.CardProduct),
+    embossingName: asTrimmedString(record.EmbossingName).toUpperCase(),
+    customerCode: asTrimmedString(normalized.customerId),
+  };
+}
+
+function isLegacyBulkRecord(row: unknown): row is BulkInputRecord {
+  if (row === null || typeof row !== "object" || Array.isArray(row)) return false;
+  const o = row as Record<string, unknown>;
+  return "debitAccount" in o || "customer_code" in o || "first_name" in o;
+}
+
+function isDirectBulkRecord(row: unknown): row is BulkDirectInputRecord {
+  if (row === null || typeof row !== "object" || Array.isArray(row)) return false;
+  const o = row as Record<string, unknown>;
+  return "accountId" in o && "BranchCode" in o && "CardProduct" in o;
+}
+
+async function normalizeInputRecord(params: {
+  row: BulkInputRecord | BulkDirectInputRecord;
+  preferredAccessToken?: string | null;
+}): Promise<NormalizedBulkRecord> {
+  const { row, preferredAccessToken } = params;
+  if (isLegacyBulkRecord(row)) {
+    return normalizeLegacyRecord(row);
+  }
+  if (isDirectBulkRecord(row)) {
+    return normalizeDirectInputRecord({
+      record: row,
+      preferredAccessToken,
+    });
+  }
+  throw new Error("Unsupported row format");
+}
+
+function buildCardRequestBody(record: NormalizedBulkRecord): NewCardManagementRequest {
+  const cardProduct = isSupportedCardProduct(record.cardProduct) ?? "404";
+  return {
+    newCardRequest: {
+      accountId: record.accountId,
+      Title: asTrimmedString(record.title).toUpperCase() || "MR",
+      PreferredLanguage: "EN",
+      customerType: "0",
+      Region: "14",
+      District: record.district,
+      BranchCode: record.branchCode,
+      DeliveryBranchCode: record.deliveryBranchCode,
+      CardProduct: cardProduct,
+      EmbossingName: record.embossingName || "CUSTOMER",
+    },
+  };
+}
+
 function buildCardToCbsBody(
   record: NormalizedBulkRecord,
-  customerId: string,
   cardResponseData: unknown,
   embossingName: string
 ): CardToCbsGatewayBody | null {
@@ -445,123 +319,74 @@ function buildCardToCbsBody(
   const issueDate = dateYmdFromUnknown(r.EffectiveDate);
 
   return {
-    company: toEtPrefixedBranchCode(record.branchCode),
+    company: normalizeCompanyEt00(record.branchCode),
     messageId: `${Date.now()}${Math.floor(Math.random() * 1_000_000_000)
       .toString()
       .padStart(9, "0")}`,
     pan,
     cardStatus: "90",
-    account: asTrimmedString(record.debitAccount),
+    account: record.accountId,
     currency,
     expiryDate,
     issueDate,
     name: embossingName,
-    customerId: asTrimmedString(customerId),
+    customerId: record.customerCode,
     maskedPan,
   };
 }
 
-function branchPayloadFromRecord(
-  record: NormalizedBulkRecord
-): CardRequestBranchPayload {
-  return {
-    branchId: 1,
-    branchCode: record.branchCode,
-    district: record.district || null,
-  };
-}
-
-function buildCardRequestBodyFromCustomer(params: {
-  record: NormalizedBulkRecord;
-  customer: NormalizedCustomerForCard;
-  customerDetails: Record<string, unknown> | null;
-}): NewCardManagementRequest {
-  const { record, customer, customerDetails } = params;
-  const branch = branchPayloadToBranch(branchPayloadFromRecord(record));
-  const cardProduct = resolveCardProduct(customerDetails);
-  return buildNewCardManagementRequest(
-    record.debitAccount,
-    customer,
-    branch,
-    cardProduct,
-    customerDetails ?? undefined
-  );
-}
-
 export async function processBulkRecords(params: {
-  records: BulkInputRecord[];
+  records: Array<BulkInputRecord | BulkDirectInputRecord>;
   preferredAccessToken?: string | null;
 }): Promise<BulkResultRow[]> {
   const { records, preferredAccessToken } = params;
   const out: BulkResultRow[] = [];
 
-  for (let idx = 0; idx < records.length; idx += 1) {
-    const row = records[idx];
-    const normalized = normalizeBulkRecord(row, idx);
-    const fullName = normalized.ok ? normalized.value.displayName : normalized.displayName;
+  for (const row of records) {
+    const rowId =
+      row && typeof row === "object" && "id" in row
+        ? asTrimmedString((row as Record<string, unknown>).id)
+        : row && typeof row === "object" && "accountId" in row
+          ? asTrimmedString((row as Record<string, unknown>).accountId)
+          : "N/A";
+    const fullName =
+      row && typeof row === "object" && "first_name" in row
+        ? buildFullName(row as BulkInputRecord)
+        : asTrimmedString((row as Record<string, unknown>)?.EmbossingName) || "N/A";
+    const cardProductDisplay =
+      row && typeof row === "object" && "card_product" in row
+        ? asTrimmedString((row as Record<string, unknown>).card_product)
+        : asTrimmedString((row as Record<string, unknown>)?.CardProduct);
+    const debitAccountDisplay =
+      row && typeof row === "object" && "debitAccount" in row
+        ? asTrimmedString((row as Record<string, unknown>).debitAccount)
+        : asTrimmedString((row as Record<string, unknown>)?.accountId);
     const base: BulkResultRow = {
-      id: normalized.ok ? normalized.value.id : normalized.id,
+      id: rowId,
       fullName,
-      account_number: normalized.ok ? asTrimmedString(normalized.value.accountNumber) : asTrimmedString(normalized.accountNumber),
-      debitAccount: normalized.ok ? asTrimmedString(normalized.value.debitAccount) : asTrimmedString(normalized.accountNumber),
-      card_product: "N/A",
+      account_number: debitAccountDisplay,
+      debitAccount: debitAccountDisplay,
+      card_product: cardProductDisplay || "N/A",
       status: "FAILED",
       message: "",
       card_to_cbs_payload: null,
     };
 
-    if (!normalized.ok) {
-      out.push({ ...base, message: normalized.message });
-      continue;
-    }
-
-    const source = normalized.value;
-    const customerRes = await fetchFifaCustomerInfo(
-      source.accountNumber,
-      preferredAccessToken
-    );
-    if (!customerRes.ok) {
+    let normalized: NormalizedBulkRecord;
+    try {
+      normalized = await normalizeInputRecord({
+        row,
+        preferredAccessToken,
+      });
+    } catch (e: unknown) {
       out.push({
         ...base,
-        message:
-          messageFromUnknown(customerRes.data) ||
-          `Customer lookup failed (${customerRes.status})`,
+        message: e instanceof Error && e.message ? e.message : "Invalid row",
       });
       continue;
     }
 
-    const customerDetails = extractCustomerDetailsPayload(customerRes.data);
-    const customerFromDetails = customerDetails
-      ? parseCustomerDetailsRecordForCard(customerDetails, source.accountNumber)
-      : null;
-    const parsedCustomer = customerFromDetails ?? parseCustomerInfoResponse(customerRes.data);
-    if (!parsedCustomer) {
-      out.push({
-        ...base,
-        message: "Customer lookup returned invalid details",
-      });
-      continue;
-    }
-    const customerId = asTrimmedString(parsedCustomer.customerId);
-    if (!customerId) {
-      out.push({
-        ...base,
-        message: "Customer lookup did not return customerId",
-      });
-      continue;
-    }
-
-    const cardRequestBody =
-      source.directNewCardRequest ??
-      buildCardRequestBodyFromCustomer({
-        record: source,
-        customer: parsedCustomer,
-        customerDetails,
-      });
-    const resolvedCardProduct = asTrimmedString(
-      cardRequestBody.newCardRequest.CardProduct
-    );
-    base.card_product = resolvedCardProduct || "N/A";
+    const cardRequestBody = buildCardRequestBody(normalized);
     const cardRequestWirePayload = serializeNewCardManagementRequest(cardRequestBody);
     const embossing = cardRequestBody.newCardRequest.EmbossingName;
     const cardRes = await postFifaRequestNewCard(cardRequestBody, preferredAccessToken);
@@ -569,7 +394,7 @@ export async function processBulkRecords(params: {
     if (!cardRes.ok || !isCardManagementNewCardSuccess(cardRes.data)) {
       try {
         await insertVisaCardRecordFromGatewayData({
-          accountNumber: asTrimmedString(source.debitAccount),
+          accountNumber: normalized.accountId,
           cardRequestBody,
           cardResponseBody: cardRes.data,
           cardToCbsRequestBody: null,
@@ -592,16 +417,11 @@ export async function processBulkRecords(params: {
       continue;
     }
 
-    const cbsBody = buildCardToCbsBody(
-      source,
-      customerId,
-      cardRes.data,
-      embossing
-    );
+    const cbsBody = buildCardToCbsBody(normalized, cardRes.data, embossing);
     if (!cbsBody) {
       try {
         await insertVisaCardRecordFromGatewayData({
-          accountNumber: asTrimmedString(source.debitAccount),
+          accountNumber: normalized.accountId,
           cardRequestBody,
           cardResponseBody: cardRes.data,
           cardToCbsRequestBody: null,
@@ -624,7 +444,7 @@ export async function processBulkRecords(params: {
 
     try {
       await insertVisaCardRecordFromGatewayData({
-        accountNumber: asTrimmedString(source.debitAccount),
+        accountNumber: normalized.accountId,
         cardRequestBody,
         cardResponseBody: cardRes.data,
         cardToCbsRequestBody: cbsBody,

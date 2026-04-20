@@ -107,7 +107,7 @@ export default function BulkRequestPage() {
           Bulk Card Request
         </Typography>
         <Typography variant="body2" className="mb-6 text-slate-600">
-          Paste a JSON array and process card request + card-to-CBS in bulk.
+          Paste a JSON array and process customer lookup, card request, and card-to-CBS in bulk.
         </Typography>
 
         <Paper className="mb-6 p-4">
@@ -118,7 +118,7 @@ export default function BulkRequestPage() {
             multiline
             minRows={16}
             fullWidth
-            placeholder='[{"accountId":1000200231299,"Title":"Mr","District":"ADAMA DISTRICT","BranchCode":"10002","DeliveryBranchCode":"10002","CardProduct":"404","EmbossingName":"MULU LEMA BELAYNEH"}]'
+            placeholder='[{"accountId":1000200231299,"Title":"Mr","District":"ADAMA DISTRICT","BranchCode":"10002","DeliveryBranchCode":"10002","CardProduct":"404","EmbossingName":"NAME"}]'
           />
           <Box className="mt-4 flex items-center gap-3">
             <Button
