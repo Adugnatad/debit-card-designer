@@ -22,6 +22,7 @@ import { maskPhoneForOtpHint } from "@/lib/fifaworldcup/maskPhoneNumber";
 import {
   buildNewCardManagementRequest,
   parseCustomerDetailsRecordForCard,
+  pickSpendableBalanceFromCustomerDetails,
 } from "@/lib/fifaworldcup/cardRequestUtils";
 import {
   fifaToastError,
@@ -392,14 +393,13 @@ export default function FifaWorldCupPage() {
         fifaToastSomethingWrong();
         return;
       }
-      const balanceRaw = infoJson.customerDetails?.balance;
-      const balance =
-        typeof balanceRaw === "number" && Number.isFinite(balanceRaw)
-          ? balanceRaw
-          : typeof balanceRaw === "string"
-            ? Number(balanceRaw.replace(/,/g, "").trim())
-            : Number.NaN;
-      if (!Number.isFinite(balance) || balance <= 120) {
+      const balance = pickSpendableBalanceFromCustomerDetails(
+        infoJson.customerDetails
+      );
+      const minBalanceForCardFee = Number(
+        process.env.NEXT_PUBLIC_FIFA_WORLD_CUP_FT_DEBIT_AMOUNT ?? 120
+      );
+      if (balance === null || balance <= minBalanceForCardFee) {
         fifaToastError("Insufficient balance");
         return;
       }

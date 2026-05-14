@@ -18,6 +18,7 @@ import {
   extractCustomerDetailsPayload,
   parseCustomerDetailsRecordForCard,
   parseCustomerInfoResponse,
+  pickSpendableBalanceFromCustomerDetails,
   toEtPrefixedBranchCode,
 } from "./cardRequestUtils";
 import {
@@ -109,13 +110,6 @@ function generateFundTransferMessageId(): string {
     .padStart(9, "0");
   // Numeric-only unique id (timestamp + random digits).
   return `${ts}${rand}`;
-}
-
-function parseBalanceNumber(v: unknown): number | null {
-  if (typeof v === "number" && Number.isFinite(v)) return v;
-  if (typeof v !== "string") return null;
-  const n = Number(v.replace(/,/g, "").trim());
-  return Number.isFinite(n) ? n : null;
 }
 
 function narrativeFromCardResponse(cardData: unknown): string {
@@ -330,6 +324,15 @@ export async function requestNewCardFlowServer(
   }
 
   const customerPayload = extractCustomerDetailsPayload(customerStep.gatewayData);
+  const forBalanceCheck: Record<string, unknown> = {
+    ...(provided !== undefined &&
+    provided !== null &&
+    typeof provided === "object" &&
+    !Array.isArray(provided)
+      ? (provided as Record<string, unknown>)
+      : {}),
+    ...(customerPayload ?? {}),
+  };
   const categoryIdRaw = customerPayload?.categoryId;
   const categoryId =
     typeof categoryIdRaw === "string"
@@ -341,7 +344,7 @@ export async function requestNewCardFlowServer(
     ? CARD_PRODUCT_SPECIAL
     : CARD_PRODUCT_DEFAULT;
 
-  const balance = parseBalanceNumber(customerPayload?.balance);
+  const balance = pickSpendableBalanceFromCustomerDetails(forBalanceCheck);
   if (balance === null || balance <= FT_DEBIT_AMOUNT) {
     return {
       ok: false,

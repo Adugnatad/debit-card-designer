@@ -108,6 +108,87 @@ function pickString(obj: Record<string, unknown>, keys: string[]): string {
   return "";
 }
 
+/** Parse a single balance-like field (number or numeric string, commas allowed). */
+function parseBalanceNumberField(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v !== "string") return null;
+  const n = Number(v.replace(/,/g, "").trim());
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Primary spendable amount for card fees (coopapp customer/info). */
+const AVAILABLE_FUNDS_KEYS = [
+  "availableFunds",
+  "AvailableFunds",
+  "available_funds",
+];
+
+const SPENDABLE_BALANCE_FALLBACK_KEYS = [
+  "availableBalance",
+  "AvailableBalance",
+  "workingBalance",
+  "WorkingBalance",
+  "onlineActualBalance",
+  "OnlineActualBalance",
+  "clearedBalance",
+  "ClearedBalance",
+];
+
+const NESTED_DETAIL_KEYS = [
+  "customerDetails",
+  "CustomerDetails",
+  "data",
+  "Data",
+  "result",
+  "Result",
+] as const;
+
+function pickAvailableFundsOnly(
+  record: Record<string, unknown>,
+  depth = 0
+): number | null {
+  if (depth > 6) return null;
+  for (const key of AVAILABLE_FUNDS_KEYS) {
+    const n = parseBalanceNumberField(record[key]);
+    if (n !== null) return n;
+  }
+  for (const nk of NESTED_DETAIL_KEYS) {
+    const nested = record[nk];
+    if (nested === null || typeof nested !== "object" || Array.isArray(nested)) {
+      continue;
+    }
+    const inner = pickAvailableFundsOnly(nested as Record<string, unknown>, depth + 1);
+    if (inner !== null) return inner;
+  }
+  return null;
+}
+
+function pickFallbackSpendableBalance(
+  record: Record<string, unknown>
+): number | null {
+  for (const key of SPENDABLE_BALANCE_FALLBACK_KEYS) {
+    const n = parseBalanceNumberField(record[key]);
+    if (n !== null) return n;
+  }
+  return null;
+}
+
+/**
+ * Card-fee sufficiency prefers **`availableFunds`** (including nested
+ * `customerDetails` / `data` envelopes). Other balance fields are used only when
+ * `availableFunds` is absent.
+ */
+export function pickSpendableBalanceFromCustomerDetails(
+  record: Record<string, unknown> | null | undefined
+): number | null {
+  if (record === null || record === undefined || typeof record !== "object") {
+    return null;
+  }
+  const fromFunds = pickAvailableFundsOnly(record);
+  if (fromFunds !== null) return fromFunds;
+  return pickFallbackSpendableBalance(record);
+}
+
 const CUSTOMER_ID_KEYS = [
   "customerId",
   "CustomerCode",
@@ -130,8 +211,11 @@ function resolveCustomerRecord(data: unknown): Record<string, unknown> | null {
   const nestedCandidates: unknown[] = [
     root,
     root.customerDetails,
+    root.CustomerDetails,
     root.data,
+    root.Data,
     root.result,
+    root.Result,
     root.customer,
     root.payload,
     root.content,
@@ -172,7 +256,7 @@ export function extractCustomerDetailsPayload(
     return null;
   }
   const root = gatewayData as Record<string, unknown>;
-  const topCd = root.customerDetails;
+  const topCd = root.customerDetails ?? root.CustomerDetails;
   if (
     topCd !== null &&
     typeof topCd === "object" &&
@@ -180,9 +264,10 @@ export function extractCustomerDetailsPayload(
   ) {
     return topCd as Record<string, unknown>;
   }
-  const data = root.data;
+  const data = root.data ?? root.Data;
   if (data !== null && typeof data === "object" && !Array.isArray(data)) {
-    const inner = (data as Record<string, unknown>).customerDetails;
+    const d = data as Record<string, unknown>;
+    const inner = d.customerDetails ?? d.CustomerDetails;
     if (
       inner !== null &&
       typeof inner === "object" &&
