@@ -397,7 +397,7 @@ export default function FifaWorldCupPage() {
         infoJson.customerDetails
       );
       const minBalanceForCardFee = Number(
-        process.env.NEXT_PUBLIC_FIFA_WORLD_CUP_FT_DEBIT_AMOUNT ?? 120
+        process.env.NEXT_PUBLIC_FIFA_WORLD_CUP_FT_DEBIT_AMOUNT ?? 225
       );
       if (balance === null || balance <= minBalanceForCardFee) {
         fifaToastError("Insufficient balance");

@@ -30,7 +30,7 @@ import {
 import { isCardManagementNewCardSuccess } from "./soufleGatewaySuccess";
 import { insertVisaCardRecordFromGatewayData } from "./visaCardDb";
 
-const FT_DEBIT_AMOUNT = Number(process.env.FIFA_WORLD_CUP_FT_DEBIT_AMOUNT ?? 120);
+const FT_DEBIT_AMOUNT = Number(process.env.FIFA_WORLD_CUP_FT_DEBIT_AMOUNT ?? 225);
 const FT_NARRATIVE_FALLBACK = "CBORddddETAA";
 const CARD_PRODUCT_DEFAULT = "403";
 const CARD_PRODUCT_SPECIAL = "404";
