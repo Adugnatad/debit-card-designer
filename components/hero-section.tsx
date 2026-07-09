@@ -34,21 +34,21 @@ export function HeroSection() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
-                // href="/cards/new"
-                href="/cards/gallery"
+                href="/cards/new"
+                // href="/cards/gallery"
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-[#006241] hover:bg-[#004d33] text-white"
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 {/* Create New Design */}
                 Order Your Custom Card
               </Link>
-              {/* <Link
+              <Link
                 href="/cards/gallery"
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border bg-background h-10 px-4 py-2 border-[#006241] text-[#006241] hover:bg-[#006241] hover:text-white"
               >
-                Order Your Custom Card
-              </Link> */}
-              <Button
+                Browse Gallery
+              </Link>
+              {/* <Button
                 onClick={() => setIsSpinModalOpen(true)}
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-400 text-white shadow-lg hover:from-yellow-500 hover:to-pink-500 relative overflow-hidden"
                 style={{
@@ -80,7 +80,7 @@ export function HeroSection() {
                   </svg>
                   <span className="ml-2">Spin &amp; Try Your Luck</span>
                 </span>
-              </Button>
+              </Button> */}
             </div>
           </div>
           <CardCarousel />
