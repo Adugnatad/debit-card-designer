@@ -24,7 +24,7 @@ const cards: CardDesign[] = [
     id: 2,
     title: "Alpine Heights",
     image: "/Card1.jpg",
-    cardholder: "Wakjira Gurmu Haile",
+    cardholder: "WAKJIRA GURMU HAILE",
     cardNumber: "5678 1234 5678 9012",
   },
   {
