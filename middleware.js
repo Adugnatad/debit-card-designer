@@ -6,11 +6,11 @@ export function middleware(request) {
   const cspHeader = `
       default-src 'self';
       script-src  'nonce-${nonce}';
-      script-src-elem 'self' 'nonce-${nonce}' https://maps.googleapis.com https://maps.gstatic.com https://fonts.googleapis.com;
+      script-src-elem 'self' 'nonce-${nonce}' https://maps.googleapis.com https://maps.gstatic.com https://fonts.googleapis.com https://www.googletagmanager.com https://www.googleadservices.com https://www.google.com;
       style-src 'self';
       style-src-elem 'self' https://fonts.googleapis.com;
-      connect-src 'self' blob: https://maps.googleapis.com https://fonts.googleapis.com;
-      img-src 'self' data: blob: https://maps.googleapis.com https://maps.gstatic.com;
+      connect-src 'self' blob: https://maps.googleapis.com https://fonts.googleapis.com https://www.googletagmanager.com https://www.google.com https://www.googleadservices.com https://googleads.g.doubleclick.net;
+      img-src 'self' data: blob: https://maps.googleapis.com https://maps.gstatic.com https://www.googletagmanager.com https://www.google.com https://www.googleadservices.com;
       font-src 'self' https://fonts.gstatic.com;
       object-src 'none';
       base-uri 'self';

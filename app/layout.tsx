@@ -22,7 +22,19 @@ export default async function RootLayout({
     <QueryProvider>
       <html lang="en">
         <body>
-          <Script id="custom" nonce={nonce} strategy="afterInteractive" />
+          <Script
+            src="https://www.googletagmanager.com/gtag/js?id=AW-18103005190"
+            strategy="afterInteractive"
+            nonce={nonce}
+          />
+          <Script id="google-ads" strategy="afterInteractive" nonce={nonce}>
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'AW-18103005190');
+            `}
+          </Script>
           {children}
         </body>
       </html>
