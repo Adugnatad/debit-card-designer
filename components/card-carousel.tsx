@@ -17,14 +17,14 @@ const cards: CardDesign[] = [
     id: 1,
     title: "Sunset Panorama",
     image: "/Card.jpg",
-    cardholder: "Girma Jara Teshome",
+    cardholder: "GIRMA JARA TESHOME",
     cardNumber: "1234 5678 6789 1234",
   },
   {
     id: 2,
     title: "Alpine Heights",
     image: "/Card1.jpg",
-    cardholder: "JOHN BUSINESS",
+    cardholder: "Wakjira Gurmu Haile",
     cardNumber: "5678 1234 5678 9012",
   },
   {
@@ -45,14 +45,14 @@ const cards: CardDesign[] = [
     id: 5,
     title: "Nature's Embrace",
     image: "/Card4.jpg",
-    cardholder: "LILY JOHNSON",
+    cardholder: "LILY GIRMAY ",
     cardNumber: "7890 3456 9012 1234",
   },
   {
     id: 6,
     title: "Abstract Waves",
     image: "/Card5.jpg",
-    cardholder: "DAVID SMITH",
+    cardholder: "DERARTU TESHOME",
     cardNumber: "1234 7890 3456 5678",
   },
   {
