@@ -39,7 +39,7 @@ export const postOrder = async (payload: orderPayload) => {
 
 export const postSendOtp = async (
   phoneNumber: string,
-  verificationMethod: "sms" | "telegram"
+  verificationMethod: "sms" | "telegram",
 ) => {
   const res = await fetch("/api/send-otp", {
     method: "POST",
@@ -97,7 +97,7 @@ export const sendDesignSnapshot = async (data: DesignSnapshot) => {
 // }
 
 export function buildDesignSnapshotFormData(
-  snapshot: DesignSnapshot
+  snapshot: DesignSnapshot,
 ): FormData {
   let snapshotLayers: AnyLayer[] = [];
   const formData = new FormData();
@@ -166,6 +166,5 @@ export function buildDesignSnapshotFormData(
     }
   });
   formData.append("layers", JSON.stringify(snapshotLayers));
-
   return formData;
 }

@@ -28,8 +28,7 @@ export function HeroSection() {
               expression of who you are. With our custom card designer, you can
               showcase your personality while enjoying the trusted services of
               Cooperative Bank of Oromia. */}
-              Celebrate the new Addis Ababa with a beautifully designed debit
-              card. Spin to win rewards, refer friends, and carry Ethiopia's
+              Celebrate the new face of Addis on your card  . Spin to win rewards, refer friends, and carry Ethiopia's
               pride in your wallet.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
