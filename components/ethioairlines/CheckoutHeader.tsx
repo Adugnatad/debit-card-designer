@@ -89,10 +89,12 @@ export default function CheckoutHeader() {
               // takes a sparse top band and the Amharic lockup sits below. At
               // equal box heights the airline wordmark reads as much smaller.
               //
-              // Nudge = 0.0718*H_airline + 0.0619*H_coop -- Coop's ink centroid
-              // sits 6.2% above its box centre, this one's 7.2% below, and
-              // `items-center` aligns the boxes rather than the artwork.
-              className="h-[38px] w-auto -translate-y-[4.7px] sm:h-[33px] sm:-translate-y-[4px]"
+              // Lifted so the two WORDMARKS sit on one line. `items-center`
+              // aligns the boxes, but the words sit at different depths inside
+              // them: "coop" is centred 34.2% down its box, "Ethiopian" 61.2%
+              // down its own. Lift = (0.612-0.5)*H_airline + (0.5-0.342)*H_coop
+              // -> 9.2px at 38/31, 7.8px at 33/26.
+              className="h-[38px] w-auto -translate-y-[9px] sm:h-[33px] sm:-translate-y-[8px]"
             />
           )}
         </div>
