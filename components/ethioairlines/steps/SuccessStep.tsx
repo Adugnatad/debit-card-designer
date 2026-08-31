@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@mui/material";
-import { motion } from "framer-motion";
 import { Check, ExternalLink, Printer } from "lucide-react";
 import {
   primaryButtonSx,
@@ -57,23 +56,18 @@ export default function SuccessStep({
   return (
     <div className="space-y-5 text-center">
       <div className="flex justify-center">
-        <motion.div
+        <div
           className="relative flex h-16 w-16 items-center justify-center rounded-full"
           style={{ backgroundColor: PRIMARY_ACCENT_SOFT }}
-          initial={{ scale: 0.6, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 220, damping: 16 }}
         >
-          <motion.span
+          {/* CSS-only pulse -- no animation library needed on this route. */}
+          <span
             aria-hidden
-            className="absolute inset-0 rounded-full"
+            className="absolute inset-0 animate-ping rounded-full opacity-40"
             style={{ border: `2px solid ${PRIMARY_ACCENT}` }}
-            initial={{ scale: 1, opacity: 0.55 }}
-            animate={{ scale: 1.35, opacity: 0 }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
           />
           <Check size={30} strokeWidth={3} style={{ color: PRIMARY_ACCENT }} />
-        </motion.div>
+        </div>
       </div>
 
       <div className="space-y-1.5">

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toaster } from "react-hot-toast";
-import { motion } from "framer-motion";
 import { useMediaQuery, useTheme } from "@mui/material";
 import { CheckCircle2, KeyRound, Landmark, ReceiptText } from "lucide-react";
 
@@ -285,7 +284,7 @@ export default function EthioAirlinesCheckout({
     >
       <Toaster position={isMobile ? "top-center" : "top-right"} />
 
-      {/* Header, stepper and card travel together as one block, centered in the
+      {/* Header, stepper and card travel together as one block, centred in the
           leftover height on desktop rather than the header pinning to the top. */}
       <div className="flex flex-1 flex-col lg:justify-center">
         <CheckoutHeader />
@@ -300,11 +299,8 @@ export default function EthioAirlinesCheckout({
 
         <div className="mx-auto grid w-full max-w-4xl items-start gap-5 px-4 py-5 md:py-8 lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-5">
 
-          <motion.section
+          <section
             key={activeStep}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
             className="p-4 sm:p-6"
             style={{
               backgroundColor: "#ffffff",
@@ -384,7 +380,7 @@ export default function EthioAirlinesCheckout({
                 returnUrl={resolveReturnUrl(receipt?.redirectUrl)}
               />
             )}
-          </motion.section>
+          </section>
 
           <div>
             <OrderSummaryCard

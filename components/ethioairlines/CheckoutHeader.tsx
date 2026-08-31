@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
 import { Plane, ShieldCheck } from "lucide-react";
 import {
   AIRLINE_CRIMSON,
@@ -66,15 +65,13 @@ export default function CheckoutHeader() {
           {/* Swoosh-coloured divider: the airline's green/gold as a thin rule.
               As the middle child of a justify-between row it lands dead centre
               on mobile; from sm up it sits between the grouped logos. */}
-          <motion.span
+          <span
             aria-hidden
             className="block h-5 w-px shrink-0"
             style={{
               background: `linear-gradient(180deg, ${AIRLINE_GREEN}, ${AIRLINE_GOLD}, ${AIRLINE_CRIMSON})`,
+              opacity: 0.85,
             }}
-            initial={{ opacity: 0, scaleY: 0.4 }}
-            animate={{ opacity: 0.85, scaleY: 1 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
           />
 
           {airlineLogoFailed ? (
@@ -87,12 +84,15 @@ export default function CheckoutHeader() {
               height={LOGO_HEIGHT}
               priority
               onError={() => setAirlineLogoFailed(true)}
-              // Both PNGs are tightly cropped, so `items-center` aligns their
-              // boxes but not their artwork. Measured ink centroids: this mark's
-              // sits 7.2% BELOW its box centre (the swoosh fills a sparse top
-              // band), Coop's sits 6.2% ABOVE it. Nudge up by that ~13.4% gap so
-              // the wordmarks align optically -- scaled per breakpoint.
-              className="h-[31px] w-auto -translate-y-[4.2px] sm:h-[26px] sm:-translate-y-[3.5px]"
+              // Rendered TALLER than the Coop mark on purpose. Coop's wordmark
+              // fills 67% of its box; this one only 21%, because the swoosh
+              // takes a sparse top band and the Amharic lockup sits below. At
+              // equal box heights the airline wordmark reads as much smaller.
+              //
+              // Nudge = 0.0718*H_airline + 0.0619*H_coop -- Coop's ink centroid
+              // sits 6.2% above its box centre, this one's 7.2% below, and
+              // `items-center` aligns the boxes rather than the artwork.
+              className="h-[38px] w-auto -translate-y-[4.7px] sm:h-[33px] sm:-translate-y-[4px]"
             />
           )}
         </div>

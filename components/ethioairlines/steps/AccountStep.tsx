@@ -58,7 +58,7 @@ export default function AccountStep({
             : "Enter the 13-digit account you want to pay from."
         }
         disabled={isSending}
-        placeholder="1045500049787"
+        placeholder="Enter your account number"
         inputProps={{
           inputMode: "numeric",
           enterKeyHint: "go",

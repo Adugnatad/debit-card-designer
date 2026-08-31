@@ -75,7 +75,7 @@ export default function OtpStep({
         }
         error={expired}
         disabled={isVerifying}
-        placeholder="000000"
+        placeholder="Enter the code"
         helperText={
           expired
             ? "This code has expired. Request a new one."
@@ -101,6 +101,12 @@ export default function OtpStep({
           "& .MuiOutlinedInput-input": {
             letterSpacing: "0.5em",
             fontWeight: 600,
+            // The wide tracking is for the 6 digits. The placeholder is prose,
+            // so reset it or "Enter the code" stretches past the field.
+            "&::placeholder": {
+              letterSpacing: "normal",
+              fontWeight: 500,
+            },
           },
         }}
       />
