@@ -15,6 +15,7 @@ function cardStyle(accent: string): CSSProperties {
     boxShadow: "0 4px 24px rgba(15, 23, 42, 0.14)",
     borderLeft: `5px solid ${accent}`,
     maxWidth: "min(420px, 92vw)",
+    boxSizing: "border-box",
     lineHeight: 1.45,
   };
 }

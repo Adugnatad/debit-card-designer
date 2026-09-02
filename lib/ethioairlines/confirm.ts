@@ -16,9 +16,8 @@ export type ConfirmCheckoutInput = {
 /**
  * POST /confirm -- the money-moving step.
  *
- * Takes no `preferredAccessToken`: this call always uses the server-minted token,
- * never a client-supplied bearer. `checkoutKey` is renamed to `token` here and
- * nowhere else -- that rename is the whole reason for the naming convention.
+ * Always uses the server-minted token. `checkoutKey` is renamed to `token` here
+ * and nowhere else -- that rename is the whole reason for the naming convention.
  */
 export async function confirmEthioAirlinesCheckout(
   input: ConfirmCheckoutInput

@@ -55,22 +55,21 @@ async function postOnce(
 }
 
 /**
- * POSTs JSON with a Bearer token.
+ * POSTs JSON with a server-minted Bearer token.
  *
- * Uses `preferredAccessToken` when supplied, otherwise mints one server-side.
+ * The token is NEVER accepted from the caller. It used to be: the browser
+ * fetched one from /api/ethioairlines/token and passed it back, which meant any
+ * visitor held a live bank-gateway credential usable directly against APIM.
+ *
  * On 401 -- and only on 401 -- clears the cache and retries exactly once. A 401
  * happens before the upstream does any work, so the retry is safe; 5xx and
  * network failures are never retried here because they may have executed.
  */
 export async function postEthioAirlinesJson(
   url: string,
-  body: unknown,
-  preferredAccessToken?: string | null
+  body: unknown
 ): Promise<EthioAirlinesResult> {
-  const trimmed = preferredAccessToken?.trim();
-  let accessToken = trimmed
-    ? trimmed
-    : (await getEthioAirlinesAccessToken()).access_token;
+  let accessToken = (await getEthioAirlinesAccessToken()).access_token;
 
   let result = await postOnce(url, body, accessToken);
 

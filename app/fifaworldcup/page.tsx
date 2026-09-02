@@ -17,7 +17,6 @@ import { ReusableStepper } from "@/components/CorporateForm/Stepper";
 import { CreditCard, KeyRound, Landmark, Send } from "lucide-react";
 import { BranchSelectorStep } from "@/components/BranchSelector/BranchSelectorStep";
 import type { Branch } from "@/components/BranchSelector/types";
-import { useFifaWorldCupToken } from "@/hooks/use-fifaworldcup-token";
 import { maskPhoneForOtpHint } from "@/lib/fifaworldcup/maskPhoneNumber";
 import {
   buildNewCardManagementRequest,
@@ -129,17 +128,11 @@ export default function FifaWorldCupPage() {
     // "/CARD-TO-CUP/card-4.jpeg",
   ];
 
-  /**
-   * OAuth for FIFA flow: `ensureValidToken()` before send/verify so a fresh bearer is ready
-   * (session + `/api/fifaworldcup/token` warms the server OAuth cache used by gateway routes).
-   */
-  const fifaWorldCupAuth = useFifaWorldCupToken({ enabled: !isLoading });
+  // The browser no longer obtains an upstream OAuth bearer. It used to fetch
+  // one from /api/fifaworldcup/token and send it back, which handed every
+  // visitor a live PRODUCTION bank-gateway credential. The server mints and
+  // caches its own token; nothing is accepted from the client.
 
-  useEffect(() => {
-    if (fifaWorldCupAuth.error) {
-      console.warn("[FIFA World Cup] OAuth token error:", fifaWorldCupAuth.error);
-    }
-  }, [fifaWorldCupAuth.error]);
 
   useEffect(() => {
     loaderMountTimeRef.current = Date.now();
@@ -275,17 +268,9 @@ export default function FifaWorldCupPage() {
     if (!canProceedAccount) return;
     setIsSendingOtp(true);
     try {
-      const accessToken = await fifaWorldCupAuth.ensureValidToken();
-      if (!accessToken) {
-        fifaToastSomethingWrong();
-        return;
-      }
       const res = await fetch("/api/fifaworldcup/send-otp", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ accountNumber }),
       });
       const data = (await res.json().catch(() => ({}))) as {
@@ -323,17 +308,9 @@ export default function FifaWorldCupPage() {
 
     setIsVerifyingOtp(true);
     try {
-      const accessToken = await fifaWorldCupAuth.ensureValidToken();
-      if (!accessToken) {
-        fifaToastSomethingWrong();
-        return;
-      }
       const res = await fetch("/api/fifaworldcup/verify-otp", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phoneNumber: otpPhoneNumber,
           otpCode,
@@ -366,17 +343,9 @@ export default function FifaWorldCupPage() {
     const acct = accountNumber.replace(/\D/g, "").slice(0, 13);
     setIsSubmittingCardRequest(true);
     try {
-      const accessToken = await fifaWorldCupAuth.ensureValidToken();
-      if (!accessToken) {
-        fifaToastSomethingWrong();
-        return;
-      }
-      const authHeaders = {
-        Authorization: `Bearer ${accessToken}`,
-      };
       const infoRes = await fetch(
         `/api/fifaworldcup/customer-info?accountId=${encodeURIComponent(acct)}`,
-        { cache: "no-store", headers: authHeaders }
+        { cache: "no-store" }
       );
       const infoJson = (await infoRes.json()) as {
         success?: boolean;
@@ -440,8 +409,7 @@ export default function FifaWorldCupPage() {
         method: "POST",
         cache: "no-store",
         headers: {
-          "Content-Type": "application/json",
-          ...authHeaders,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           accountNumber: acct,

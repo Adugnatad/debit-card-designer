@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Toaster } from "react-hot-toast";
 import { useMediaQuery, useTheme } from "@mui/material";
 import { CheckCircle2, KeyRound, Landmark, ReceiptText } from "lucide-react";
@@ -14,9 +14,6 @@ import OtpStep from "./steps/OtpStep";
 import ConfirmStep from "./steps/ConfirmStep";
 import SuccessStep from "./steps/SuccessStep";
 
-import { useEthioAirlinesToken } from "@/hooks/use-ethioairlines-token";
-import { generateEthioAirlinesMessageId } from "@/lib/ethioairlines/messageId";
-import { maskPhoneForOtpHint } from "@/lib/fifaworldcup/maskPhoneNumber";
 import {
   airlineToastError,
   airlineToastSomethingWrong,
@@ -80,7 +77,10 @@ export default function EthioAirlinesCheckout({
   const [accountNumber, setAccountNumber] = useState(initialAccount ?? "");
   const [accountTouched, setAccountTouched] = useState(false);
   const [otpCode, setOtpCode] = useState("");
-  const [otpPhoneNumber, setOtpPhoneNumber] = useState<string | null>(null);
+  /** Opaque handle to server-side session state. The phone number and the
+   *  debit account live on the server and are never held here. */
+  const [sessionHandle, setSessionHandle] = useState<string | null>(null);
+  const [maskedPhone, setMaskedPhone] = useState("");
   const [otpTimeLeft, setOtpTimeLeft] = useState(0);
   const [otpRound, setOtpRound] = useState(0);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
@@ -90,20 +90,14 @@ export default function EthioAirlinesCheckout({
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
 
-  /**
-   * Generated once on the first confirm attempt and reused for every retry.
-   * Regenerating per click would turn a network timeout plus a user retry into
-   * a duplicate transaction.
-   */
-  const messageIdRef = useRef<string | null>(null);
-
-  const auth = useEthioAirlinesToken({ enabled: true });
+  /** Returned by confirm; shown on the receipt. Minted server-side and pinned
+   *  to the session, so a retry cannot vary it into a second transaction. */
+  const [messageId, setMessageId] = useState<string | null>(null);
 
   const canProceedAccount = /^\d{13}$/.test(accountNumber);
   const canVerify =
-    /^\d{6}$/.test(otpCode) && otpTimeLeft > 0 && !!otpPhoneNumber;
+    /^\d{6}$/.test(otpCode) && otpTimeLeft > 0 && !!sessionHandle;
   const canResend = otpTimeLeft <= OTP_TTL_SECONDS - RESEND_AFTER_SECONDS;
-  const maskedPhone = otpPhoneNumber ? maskPhoneForOtpHint(otpPhoneNumber) : "";
 
   // The key is a bearer credential for the booking: keep it out of browser
   // history and out of the Referer header on any outbound link.
@@ -135,37 +129,35 @@ export default function EthioAirlinesCheckout({
     }
   }, [activeStep]);
 
-  const authorizedFetch = useCallback(
-    async (url: string, body: unknown) => {
-      const token = await auth.ensureValidToken();
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (token) headers.Authorization = `Bearer ${token}`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(body),
-        cache: "no-store",
-      });
-      const data = (await res.json().catch(() => ({}))) as Record<
-        string,
-        unknown
-      >;
-      return { res, data };
-    },
-    [auth]
-  );
+  /**
+   * No Authorization header by design. The browser used to fetch a real upstream
+   * OAuth bearer from /api/ethioairlines/token, cache it in sessionStorage and
+   * send it back -- which handed every visitor a live bank-gateway credential.
+   * The server now mints and caches its own token and never accepts one.
+   */
+  const postJson = useCallback(async (url: string, body: unknown) => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+    const data = (await res.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
+    return { res, data };
+  }, []);
 
   const requestOtp = useCallback(
     async (mode: "send" | "resend") => {
       const setBusy = mode === "send" ? setIsSendingOtp : setIsResendingOtp;
       setBusy(true);
       try {
-        const { res, data } = await authorizedFetch(
-          "/api/ethioairlines/send-otp",
-          { accountNumber }
-        );
+        const { res, data } = await postJson("/api/portal/harbor", {
+          accountNumber,
+          key: checkoutKey,
+        });
 
         if (!res.ok || data.success !== true) {
           const message =
@@ -175,14 +167,16 @@ export default function EthioAirlinesCheckout({
           return;
         }
 
-        const phone =
-          typeof data.phoneNumber === "string" ? data.phoneNumber : "";
-        if (!phone) {
+        const handle = typeof data.s === "string" ? data.s : "";
+        if (!handle) {
           airlineToastSomethingWrong();
           return;
         }
 
-        setOtpPhoneNumber(phone);
+        setSessionHandle(handle);
+        setMaskedPhone(
+          typeof data.maskedPhone === "string" ? data.maskedPhone : ""
+        );
         setOtpCode("");
         airlineToastSuccess(
           mode === "send"
@@ -198,25 +192,37 @@ export default function EthioAirlinesCheckout({
         setBusy(false);
       }
     },
-    [accountNumber, authorizedFetch]
+    [accountNumber, checkoutKey, postJson]
   );
 
+  const handleChangeAccount = useCallback(() => {
+    setActiveStep(0);
+    setOtpCode("");
+    setSessionHandle(null);
+    setMaskedPhone("");
+    setOtpTimeLeft(0);
+  }, []);
+
   const handleVerifyOtp = useCallback(async () => {
-    if (!otpPhoneNumber) {
+    if (!sessionHandle) {
       airlineToastSomethingWrong();
       return;
     }
     setIsVerifyingOtp(true);
     try {
-      const { res, data } = await authorizedFetch(
-        "/api/ethioairlines/verify-otp",
-        { phoneNumber: otpPhoneNumber, otpCode }
-      );
+      const { res, data } = await postJson("/api/portal/beacon", {
+        s: sessionHandle,
+        otpCode,
+      });
 
       if (!res.ok || data.success !== true) {
         const message = typeof data.message === "string" ? data.message : null;
         if (message) airlineToastError(message);
         else airlineToastSomethingWrong();
+        // The server-side session is gone (TTL, or a restart cleared it), so
+        // the code can never verify. Send the user back rather than letting
+        // them retype a correct code into a dead session.
+        if (data.sessionLost === true) handleChangeAccount();
         return;
       }
 
@@ -226,18 +232,18 @@ export default function EthioAirlinesCheckout({
     } finally {
       setIsVerifyingOtp(false);
     }
-  }, [authorizedFetch, otpCode, otpPhoneNumber]);
+  }, [postJson, otpCode, sessionHandle, handleChangeAccount]);
 
   const handleConfirm = useCallback(async () => {
-    if (isConfirming) return;
-    messageIdRef.current ??= generateEthioAirlinesMessageId();
+    if (isConfirming || !sessionHandle) return;
 
     setIsConfirming(true);
     try {
-      const { res, data } = await authorizedFetch("/api/ethioairlines/confirm", {
+      // No debitAccount and no messageId: the server reads both from the
+      // session the OTP step verified, so neither can be substituted here.
+      const { res, data } = await postJson("/api/portal/anchor", {
+        s: sessionHandle,
         key: checkoutKey,
-        messageId: messageIdRef.current,
-        debitAccount: accountNumber,
       });
 
       if (!res.ok || data.success !== true) {
@@ -247,6 +253,7 @@ export default function EthioAirlinesCheckout({
         return;
       }
 
+      setMessageId(typeof data.messageId === "string" ? data.messageId : null);
       setReceipt({
         transactionRef:
           typeof data.transactionRef === "string" ? data.transactionRef : null,
@@ -265,14 +272,7 @@ export default function EthioAirlinesCheckout({
     } finally {
       setIsConfirming(false);
     }
-  }, [accountNumber, authorizedFetch, checkoutKey, isConfirming]);
-
-  const handleChangeAccount = useCallback(() => {
-    setActiveStep(0);
-    setOtpCode("");
-    setOtpPhoneNumber(null);
-    setOtpTimeLeft(0);
-  }, []);
+  }, [postJson, checkoutKey, isConfirming, sessionHandle]);
 
   const meta = STEP_META[activeStep];
   const StepIcon = meta.icon;
@@ -282,7 +282,22 @@ export default function EthioAirlinesCheckout({
       className="flex min-h-screen flex-col"
       style={{ backgroundColor: PAGE_BG }}
     >
-      <Toaster position={isMobile ? "top-center" : "top-right"} />
+      <Toaster
+        position="top-right"
+        containerStyle={
+          // react-hot-toast insets the container 16px by default, which left
+          // the mobile toast floating instead of sitting at the edge. Keep it
+          // flush right with a small top gap that also clears a notch or
+          // status bar via the safe-area inset.
+          isMobile
+            ? {
+                top: "calc(0.5rem + env(safe-area-inset-top))",
+                left: 0,
+                right: 0,
+              }
+            : undefined
+        }
+      />
 
       {/* Header, stepper and card travel together as one block, centred in the
           leftover height on desktop rather than the header pinning to the top. */}
@@ -373,7 +388,7 @@ export default function EthioAirlinesCheckout({
               <SuccessStep
                 accountNumber={accountNumber}
                 bookingRef={bookingRef}
-                messageId={messageIdRef.current}
+                messageId={messageId}
                 transactionRef={receipt?.transactionRef}
                 amount={receipt?.amount}
                 completedAt={receipt?.completedAt ?? null}

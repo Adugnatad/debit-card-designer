@@ -8,12 +8,7 @@ export type SendOtpResult = EthioAirlinesResult;
 
 /** POST /sendOtp -- body `{ accountNumber }`, returns `{ success, phoneNumber, message }`. */
 export async function sendEthioAirlinesOtp(
-  accountNumber: string,
-  preferredAccessToken?: string | null
+  accountNumber: string
 ): Promise<SendOtpResult> {
-  return postEthioAirlinesJson(
-    getEthioAirlinesSendOtpUrl(),
-    { accountNumber },
-    preferredAccessToken
-  );
+  return postEthioAirlinesJson(getEthioAirlinesSendOtpUrl(), { accountNumber });
 }

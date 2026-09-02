@@ -9,12 +9,10 @@ export type VerifyOtpResult = EthioAirlinesResult;
 /** POST /verifyOtp -- body `{ phoneNumber, otpCode }`. The phone comes from sendOtp. */
 export async function verifyEthioAirlinesOtp(
   phoneNumber: string,
-  otpCode: string,
-  preferredAccessToken?: string | null
+  otpCode: string
 ): Promise<VerifyOtpResult> {
-  return postEthioAirlinesJson(
-    getEthioAirlinesVerifyOtpUrl(),
-    { phoneNumber, otpCode },
-    preferredAccessToken
-  );
+  return postEthioAirlinesJson(getEthioAirlinesVerifyOtpUrl(), {
+    phoneNumber,
+    otpCode,
+  });
 }
