@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { Toaster } from "react-hot-toast";
 import {
   Alert,
@@ -190,8 +191,27 @@ export default function CardRequestFlow({ initialAccount = "" }: CardRequestFlow
   };
 
   return (
-    <main className="relative min-h-screen bg-[radial-gradient(circle_at_top,#e0f6fd_0%,#f4fbff_55%)]">
+    <main className="relative min-h-screen overflow-hidden bg-[#f4fbff]">
       <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+      {/* The card website itself, blurred and dimmed behind the modal. */}
+      <iframe
+        src="/"
+        title="Card homepage background"
+        aria-hidden="true"
+        tabIndex={-1}
+        className="pointer-events-none absolute inset-0 h-full w-full scale-[1.02] blur-[0.4375rem] brightness-[0.65] saturate-[0.9]"
+      />
+      <div className="absolute inset-0 bg-slate-900/78" />
+      <motion.div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(0,173,239,0.22)_0%,rgba(0,173,239,0.10)_34%,transparent_62%)]"
+        animate={{ opacity: [0.35, 0.55, 0.4] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="pointer-events-none absolute top-0 left-[-35%] h-full w-[70%] rotate-6 bg-[linear-gradient(90deg,transparent_0%,rgba(0,173,239,0.16)_45%,rgba(0,173,239,0.07)_60%,transparent_100%)] blur-[0.0625rem]"
+        animate={{ x: [0, 260, 0] }}
+        transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+      />
 
       <section className="relative z-10 flex min-h-screen items-center justify-center p-4">
         <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-sky-100">
@@ -207,7 +227,7 @@ export default function CardRequestFlow({ initialAccount = "" }: CardRequestFlow
               />
               <Typography
                 component="h1"
-                sx={{ fontSize: { xs: "1.1rem", sm: "1.35rem" }, fontWeight: 800, color: "#0f172a" }}
+                sx={{ fontSize: { xs: "1.1rem", sm: "1.35rem" }, fontWeight: 800, color: ACCENT }}
               >
                 Request a Debit Card
               </Typography>
