@@ -121,8 +121,12 @@ describe("CardRequestFlow", () => {
     expect(text).not.toMatch(/fifa|world cup|visa/i);
     const srcs = [...container.querySelectorAll("img")].map((i) => i.getAttribute("src") ?? "");
     expect(srcs.some((s) => /CARD-TO-CUP|cup|visa/i.test(s))).toBe(false);
+    // The onboarding link is shared with the campaign page by decision.
     const hrefs = [...container.querySelectorAll("a")].map((a) => a.getAttribute("href") ?? "");
-    expect(hrefs.some((h) => /fifa/i.test(h))).toBe(false);
+    expect(hrefs).toEqual(["https://my.coopbankoromiasc.com/individualaccount?fifawordlcup"]);
+    const link = screen.getByRole("link", { name: /click here/i });
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noreferrer");
   });
 
   it("validates the account number before allowing Send OTP", () => {

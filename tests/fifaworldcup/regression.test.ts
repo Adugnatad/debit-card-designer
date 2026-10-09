@@ -169,9 +169,12 @@ describe("/fifaworldcup page and tracking (unchanged)", () => {
     expect(page).not.toContain("/api/card-request/");
   });
 
-  it("the general flow's UI has no campaign dependency", () => {
-    for (const p of ["app/card-request/page.tsx", "components/cardrequest/CardRequestFlow.tsx"]) {
-      expect(read(p)).not.toMatch(/fifa|world ?cup|CARD-TO-CUP/i);
+  it("the general flow's UI has no campaign dependency beyond the shared onboarding link", () => {
+    const sharedOnboardingUrl = "https://my.coopbankoromiasc.com/individualaccount?fifawordlcup";
+    const flow = read("components/cardrequest/CardRequestFlow.tsx");
+    expect(flow).toContain(sharedOnboardingUrl);
+    for (const src of [read("app/card-request/page.tsx"), flow.replace(sharedOnboardingUrl, "")]) {
+      expect(src).not.toMatch(/fifa|world ?cup|CARD-TO-CUP/i);
     }
   });
 });

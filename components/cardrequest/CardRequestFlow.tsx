@@ -35,7 +35,8 @@ const STEPS = [
   "Success",
 ];
 const OTP_TTL_SECONDS = 180;
-const OPEN_ACCOUNT_URL = "https://my.coopbankoromiasc.com/individualaccount";
+/** Same onboarding link (including its query tag) as the campaign page, by decision. */
+const OPEN_ACCOUNT_URL = "https://my.coopbankoromiasc.com/individualaccount?fifawordlcup";
 const ACCENT = "#00adef";
 
 const fieldSx = {
@@ -320,22 +321,38 @@ export default function CardRequestFlow({ initialAccount = "" }: CardRequestFlow
                     variant="body2"
                     sx={{
                       textAlign: "center",
+                      color: "#000000",
+                      fontSize: { xs: "0.85rem", sm: "0.92rem" },
                       fontWeight: 700,
+                      mt: 0.5,
                       px: 1.5,
                       py: 1,
                       borderRadius: "0.625rem",
                       backgroundColor: "#e0f2fe",
                     }}
                   >
-                    Don&apos;t have a Coop Bank account?{" "}
+                    Don&apos;t have a coop bank account?{" "}
                     <Box
                       component="a"
                       href={OPEN_ACCOUNT_URL}
                       target="_blank"
                       rel="noreferrer"
-                      sx={{ color: "#15803d", textDecoration: "underline", fontWeight: 800 }}
+                      sx={{
+                        color: "#15803d",
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                        textUnderlineOffset: "0.1875rem",
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.02em",
+                        transition: "all 0.2s ease",
+                        display: "inline",
+                        "&:hover": {
+                          color: "#166534",
+                        },
+                      }}
                     >
-                      Open one here
+                      Click here
                     </Box>
                   </Typography>
                 </Box>
